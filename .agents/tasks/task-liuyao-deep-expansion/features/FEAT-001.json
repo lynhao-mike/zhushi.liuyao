@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Implement six-clash/six-harmony hexagram identification, xunkong (void) theory completion, and true/false break (po) analysis. These form the foundational state-identification layer that other features depend on.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1: Create liuyao/liuchong_liuhe.py - Six Clash / Six Harmony hexagram analysis module with the following functions:\n  - identify_liu_chong_gua(hexagram): Check if ben_gua is a six-clash hexagram (6 lines form 3 pairs of clashing branches between inner/outer trigrams). Return {'is_liu_chong': bool, 'type': 'main'/'bian'/'none'}.\n  - identify_liu_he_gua(hexagram): Check if ben_gua is a six-harmony hexagram (6 lines form 3 pairs of combining branches). Return {'is_liu_he': bool, 'type': 'main'/'bian'/'none'}.\n  - analyze_chong_he_huhua(hexagram): Detect four patterns: 六合变六冲, 六冲变六合, 六合变六合, 六冲变六冲. Each has distinct meaning per zhishidianzongjie.md.\n  - analyze_dong_yao_quhe(hexagram, dongbian_results): For each useful moving line, check if it 'qu-he' (trends toward combining with) any static line. Pure qu-he (no sheng/ke) strengthens wang lines; sheng-he and ke-he are treated as sheng/ke at jixiong level per theory.\n  - analyze_ri_ban(hexagram, dongbian_results): Check if moving lines are combined by day branch (ri-ban/day-binding). True binding: moving line is combined by day and the moving line is衰; False binding: moving line is combined by day but the moving line is旺.",
+    "Step 2: Create liuyao/xunkong.py - Enhanced Xunkong (Void) theory module with:\n  - is_jia_kong(line, hexagram, wangshuai_result): Determine if a xunkong line is 'false void' (假空). False void conditions per theory: (a) 旺相之静爻 (prosperous static line), (b) 动变之爻 (moving line or bian line). Rules: 旺不为空, 动不为空, 化空不为真空.\n  - is_zhen_kong_yongshen(line, hexagram, wangshuai_results): Determine if yong_shen is truly void. True void for yong_shen: static line that is even ping-xiang (not wang) -- does not meet 用旺世兴 criteria.\n  - is_zhen_kong_shiyao(line, hexagram, wangshuai_results): Determine if shi_yao is truly void. True void for shi_yao: static xunkong line with NO support from either day or month branch, or being clashed/controlled by moving lines.\n  - analyze_xunkong_special(hexagram, yong_shen_liu_qin, question_type, wangshuai_results): Return special xunkong applications per theory: (1) 占病用神旬空=short-term recovery, (2) 求财兄弟持世空亡=short-term wealth, (3) 行人世空/用神空=person returning, (4) 占仕途子孙持世空=fame won't last, (5) 忧患子孙逢空=worry persists short-term.\n  - get_chu_kong_method(line): Return the three exit-void methods: 填空(fill), 冲空(clash), 出旬(exit cycle).",
+    "Step 3: Create liuyao/yuepo.py - True/False Break (月破/日破) analysis module:\n  - is_zhen_po(line, hexagram, dongbian_results, wangshuai_results): Determine if a month-broken line is truly broken. False break (假破) conditions per theory: (1) 动而逢破不为真破 (moving line that happens to be broken), (2) 化破但变爻可回头作用者不为真破, (3) 化进退又化破者不为真破, (4) 自占自事世爻动而化破不为真破.\n  - analyze_maodun_qushi(hexagram, dongbian_results): Analyze contradictory trends using three principles from theory: (a) 动能轨迹终点原则 (final destination of motion energy), (b) 重动轻静/重内轻外原则 (prioritize moving over static, internal over external), (c) 世爻之变原则 (shi-yao change principle: shi-yao's change always matters, its six-qin is prioritized over day/month properties).",
+    "Step 4: Add data support in liuyao/data.py:\n  - Add LIU_CHONG_GUA_PAIRS dict mapping inner trigram to outer trigram for six-clash hexagrams (乾/坤自冲, 震/巽互冲, 坎/离互冲, 艮/兑互冲... actually the 6 clash hexagrams are where each corresponding line pair clashes).\n  - Add LIU_HE_GUA_PAIRS for six-harmony hexagram identification.\n  - Verify all six_chong and six_he relationships are complete.",
+    "Step 5: Integrate new modules into analyzer.py:\n  - Import liuchong_liuhe, xunkong, yuepo modules.\n  - Add liuchong_liuhe_results, xunkong_results, yuepo_results fields to AnalysisReport dataclass.\n  - Call analyze functions after dongbian analysis in run_analysis().\n  - Update report.py to display new sections: 六冲六合卦 analysis, 旬空分析, 月破真假分析.",
+    "Step 6: Write tests in tests/test_liuchong_liuhe.py:\n  - Test identify_liu_chong_gua with known six-clash hexagrams (e.g., 乾为天 is six-clash because inner 子寅辰 clashes outer 午申戌).\n  - Test identify_liu_he_gua with known six-harmony hexagrams.\n  - Test all four huhua patterns (六合变六冲 etc).\n  - Test ri_ban (day-binding) true/false detection.\n  - Test dong_yao_quhe (趋合) scenarios.",
+    "Step 7: Write tests in tests/test_xunkong.py:\n  - Test is_jia_kong: moving line that is xunkong should be false-void.\n  - Test is_jia_kong: prosperous static xunkong line should be false-void.\n  - Test is_zhen_kong: weak static xunkong line with no day/month support is true-void.\n  - Test special xunkong applications for each of the 5 scenarios.\n  - Test exit-void methods.",
+    "Step 8: Write tests in tests/test_yuepo.py:\n  - Test moving line that is month-broken is false-break.\n  - Test hua-po with hui-tou action is false-break.\n  - Test hua-jin-shen + hua-po is false-break.\n  - Test shi-yao hua-po in self-divination is false-break.\n  - Test genuine break scenario (static weak line month-broken)."
+  ],
+  "acceptance_criteria": [
+    "All existing 94 tests continue to pass",
+    "New tests for liuchong_liuhe, xunkong, yuepo modules all pass",
+    "Six-clash hexagram detection correctly identifies 乾为天 (inner 子寅辰 vs outer 午申戌 = six clash) and similar patterns",
+    "Xunkong module correctly distinguishes true void from false void per theory rules",
+    "Month-break module correctly identifies the 4 false-break conditions",
+    "AnalysisReport includes new analysis sections and report.py formats them",
+    "Running python3 -m pytest tests/ --tb=short passes all tests"
+  ],
+  "verification": [
+    "python3 -m pytest tests/ --tb=short -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

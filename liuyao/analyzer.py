@@ -15,6 +15,9 @@ from .jixiong import (
     find_yong_shen_lines, find_shi_line,
 )
 from .yingqi import analyze_yingqi
+from .liuchong_liuhe import analyze_liuchong_liuhe
+from .xunkong import analyze_xunkong
+from .yuepo import analyze_yuepo
 
 
 @dataclass
@@ -30,6 +33,9 @@ class AnalysisReport:
     dongbian_results: Dict = field(default_factory=dict)
     jixiong_result: Dict = field(default_factory=dict)
     yingqi_results: List[Dict] = field(default_factory=list)
+    liuchong_liuhe_results: Dict = field(default_factory=dict)
+    xunkong_results: Dict = field(default_factory=dict)
+    yuepo_results: Dict = field(default_factory=dict)
 
     # 用神信息
     yong_shen_lines: List = field(default_factory=list)
@@ -83,6 +89,22 @@ def run_analysis(hexagram, question_type="other"):
     report.yingqi_results = analyze_yingqi(
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results
+    )
+
+    # 6. 六冲六合分析
+    report.liuchong_liuhe_results = analyze_liuchong_liuhe(
+        hexagram, report.dongbian_results, report.wangshuai_results
+    )
+
+    # 7. 旬空分析
+    report.xunkong_results = analyze_xunkong(
+        hexagram, report.yong_shen_liu_qin, question_type,
+        report.wangshuai_results
+    )
+
+    # 8. 月破真假分析
+    report.yuepo_results = analyze_yuepo(
+        hexagram, report.dongbian_results, report.wangshuai_results
     )
 
     return report

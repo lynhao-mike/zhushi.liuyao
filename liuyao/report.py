@@ -200,4 +200,160 @@ def format_report(report):
     lines.append("")
     lines.append("=" * 60)
 
+    # =========================================================================
+    # 第七部分: 六冲六合卦分析
+    # =========================================================================
+    if report.liuchong_liuhe_results:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【六冲六合卦分析】")
+        lines.append("=" * 60)
+
+        lcr = report.liuchong_liuhe_results
+
+        # 六冲卦
+        liu_chong = lcr.get("liu_chong", {})
+        if liu_chong.get("is_liu_chong"):
+            chong_type = liu_chong.get("type", "")
+            type_map = {"main": "主卦六冲", "bian": "变卦六冲",
+                        "both": "主卦+变卦六冲"}
+            lines.append(f"  六冲卦: {type_map.get(chong_type, chong_type)}")
+
+        # 六合卦
+        liu_he = lcr.get("liu_he", {})
+        if liu_he.get("is_liu_he"):
+            he_type = liu_he.get("type", "")
+            type_map = {"main": "主卦六合", "bian": "变卦六合",
+                        "both": "主卦+变卦六合"}
+            lines.append(f"  六合卦: {type_map.get(he_type, he_type)}")
+
+        # 六冲六合互化
+        huhua = lcr.get("chong_he_huhua", {})
+        if huhua.get("pattern"):
+            lines.append(f"  互化模式: {huhua['pattern']}")
+            lines.append(f"    含义: {huhua['meaning']}")
+
+        # 动爻趋合
+        quhe = lcr.get("dong_yao_quhe", [])
+        if quhe:
+            lines.append("  动爻趋合:")
+            for q in quhe:
+                lines.append(
+                    f"    第{q['dong_position']}爻({q['dong_zhi']}) "
+                    f"趋合 第{q['jing_position']}爻({q['jing_zhi']}) "
+                    f"- {q['type']}: {q['note']}")
+
+        # 日绊
+        ri_ban = lcr.get("ri_ban", [])
+        if ri_ban:
+            lines.append("  日绊:")
+            for rb in ri_ban:
+                lines.append(
+                    f"    第{rb['position']}爻({rb['di_zhi']}) "
+                    f"{rb['ban_target']}被日合 - {rb['ban_type']}: "
+                    f"{rb['note']}")
+
+        if (not liu_chong.get("is_liu_chong") and
+                not liu_he.get("is_liu_he") and
+                not huhua.get("pattern") and not quhe and not ri_ban):
+            lines.append("  无六冲六合卦特征")
+
+    # =========================================================================
+    # 第八部分: 旬空分析
+    # =========================================================================
+    if report.xunkong_results:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【旬空分析】")
+        lines.append("=" * 60)
+
+        xkr = report.xunkong_results
+        kong_lines_analysis = xkr.get("kong_lines", [])
+
+        if not kong_lines_analysis:
+            lines.append("  卦中无旬空爻")
+        else:
+            for kl in kong_lines_analysis:
+                role = ""
+                if kl.get("is_shi"):
+                    role = "[世]"
+                elif kl.get("is_yong"):
+                    role = "[用]"
+
+                jia_kong = kl.get("jia_kong", {})
+                kong_status = "假空" if jia_kong.get("is_jia_kong") else "待定"
+
+                zhen_kong = kl.get("zhen_kong")
+                if zhen_kong and zhen_kong.get("is_zhen_kong"):
+                    kong_status = "真空"
+                elif zhen_kong and not zhen_kong.get("is_zhen_kong"):
+                    kong_status = "假空"
+
+                lines.append(
+                    f"  第{kl['position']}爻 {kl['liu_qin']}{kl['di_zhi']}"
+                    f"{role}: 【{kong_status}】")
+
+                if jia_kong.get("is_jia_kong"):
+                    lines.append(f"    {jia_kong['reason']}")
+                elif zhen_kong:
+                    lines.append(f"    {zhen_kong['reason']}")
+
+                chu_kong = kl.get("chu_kong", {})
+                if chu_kong.get("tian_kong"):
+                    lines.append(
+                        f"    出空: {chu_kong['tian_kong']}; "
+                        f"{chu_kong['chong_kong']}; {chu_kong['chu_xun']}")
+
+        # 特殊应用
+        specials = xkr.get("specials", [])
+        if specials:
+            lines.append("  特殊应用:")
+            for sp in specials:
+                lines.append(f"    [{sp['type']}] {sp['description']}")
+                if sp.get("note"):
+                    lines.append(f"      注: {sp['note']}")
+
+    # =========================================================================
+    # 第九部分: 月破真假分析
+    # =========================================================================
+    if report.yuepo_results:
+        ypr = report.yuepo_results
+        if ypr.get("has_po") or ypr.get("maodun_qushi"):
+            lines.append("")
+            lines.append("=" * 60)
+            lines.append("【月破真假分析】")
+            lines.append("=" * 60)
+
+            po_analyses = ypr.get("po_analyses", [])
+            if po_analyses:
+                for pa in po_analyses:
+                    analysis = pa.get("analysis", {})
+                    po_type = "真破" if analysis.get("is_zhen_po") else "假破"
+                    target = "本爻" if pa.get("is_yue_po") else "变爻"
+                    lines.append(
+                        f"  第{pa['position']}爻({pa['di_zhi']}) "
+                        f"{target}月破: 【{po_type}】")
+                    lines.append(f"    {analysis.get('reason', '')}")
+
+            # 矛盾趋势
+            maodun = ypr.get("maodun_qushi", [])
+            if maodun:
+                lines.append("  矛盾趋势分析:")
+                for md in maodun:
+                    shi_mark = "[世]" if md.get("is_shi") else ""
+                    lines.append(
+                        f"    第{md['position']}爻({md['di_zhi']})"
+                        f"{shi_mark}:")
+                    lines.append(
+                        f"      趋旺: {', '.join(md['wang_reasons'])}")
+                    lines.append(
+                        f"      趋衰: {', '.join(md['shuai_reasons'])}")
+                    lines.append(
+                        f"      原则: {md['principle']}")
+                    lines.append(
+                        f"      结论: {md['conclusion']}")
+
+    lines.append("")
+    lines.append("=" * 60)
+
     return "\n".join(lines)
