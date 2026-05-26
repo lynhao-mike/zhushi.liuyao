@@ -19,6 +19,8 @@ from .liuchong_liuhe import analyze_liuchong_liuhe
 from .xunkong import analyze_xunkong
 from .yuepo import analyze_yuepo
 from .liandong import analyze_liandong
+from .guayi import analyze_guayi
+from .shiyao_rules import analyze_shiyao_dongbian
 
 
 @dataclass
@@ -38,6 +40,8 @@ class AnalysisReport:
     liuchong_liuhe_results: Dict = field(default_factory=dict)
     xunkong_results: Dict = field(default_factory=dict)
     yuepo_results: Dict = field(default_factory=dict)
+    guayi_results: list = field(default_factory=list)
+    shiyao_analysis: Optional[Dict] = None
 
     # 用神信息
     yong_shen_lines: List = field(default_factory=list)
@@ -98,6 +102,20 @@ def run_analysis(hexagram, question_type="other"):
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results
     )
+
+    # 5.5 卦意分析(解读层)
+    report.guayi_results = analyze_guayi(
+        hexagram, report.dongbian_results, report.wangshuai_results,
+        report.yong_shen_liu_qin, question_type,
+        report.shi_line, report.yong_shen_lines
+    )
+
+    # 5.6 世爻特殊规则
+    if report.shi_line and report.shi_line.is_moving:
+        report.shiyao_analysis = analyze_shiyao_dongbian(
+            hexagram, report.shi_line, report.dongbian_results,
+            report.wangshuai_results, report.yong_shen_liu_qin
+        )
 
     # 6. 六冲六合分析
     report.liuchong_liuhe_results = analyze_liuchong_liuhe(

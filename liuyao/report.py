@@ -406,4 +406,39 @@ def format_report(report):
     lines.append("")
     lines.append("=" * 60)
 
+    # =========================================================================
+    # 第十一部分: 卦意分析
+    # =========================================================================
+    if hasattr(report, 'guayi_results') and report.guayi_results:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【卦意分析】")
+        lines.append("=" * 60)
+
+        for finding in report.guayi_results:
+            ji_mark = {"吉": "吉", "凶": "凶", "中性": "中"}[finding["ji_xiong"]]
+            lines.append(
+                f"  [{finding['method']}] 【{ji_mark}】")
+            lines.append(f"    {finding['description']}")
+            lines.append(f"    {finding['details']}")
+
+    # =========================================================================
+    # 第十二部分: 世爻特殊规则
+    # =========================================================================
+    if hasattr(report, 'shiyao_analysis') and report.shiyao_analysis:
+        sa = report.shiyao_analysis
+        if sa.get("override_reason") and sa["override_reason"] != "世爻未动":
+            lines.append("")
+            lines.append("=" * 60)
+            lines.append("【世爻特殊规则】")
+            lines.append("=" * 60)
+
+            if sa.get("hua_po_is_false"):
+                lines.append("  世爻化破: 不论破(假破)")
+            if sa.get("liu_qin_priority"):
+                lines.append(f"  六亲定性: {sa['liu_qin_priority']}")
+            lines.append(f"  规则: {sa['override_reason']}")
+            if sa.get("effective_trend"):
+                lines.append(f"  趋势: {sa['effective_trend']}")
+
     return "\n".join(lines)
