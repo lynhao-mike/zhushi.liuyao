@@ -14,7 +14,7 @@ from .jixiong import (
     judge_jixiong, determine_yong_shen,
     find_yong_shen_lines, find_shi_line,
 )
-from .yingqi import analyze_yingqi
+from .yingqi import analyze_yingqi, classify_event_duration
 from .liuchong_liuhe import analyze_liuchong_liuhe
 from .xunkong import analyze_xunkong
 from .yuepo import analyze_yuepo
@@ -97,10 +97,18 @@ def run_analysis(hexagram, question_type="other"):
         question_type, liandong_results=report.liandong_results
     )
 
+    # 4.5 六冲六合分析(移至应期前, 供应期参考)
+    report.liuchong_liuhe_results = analyze_liuchong_liuhe(
+        hexagram, report.dongbian_results, report.wangshuai_results
+    )
+
     # 5. 应期推断
     report.yingqi_results = analyze_yingqi(
         hexagram, report.yong_shen_lines,
-        report.wangshuai_results, report.dongbian_results
+        report.wangshuai_results, report.dongbian_results,
+        event_duration=classify_event_duration(question_type),
+        jixiong_result=report.jixiong_result,
+        liuchong_liuhe_results=report.liuchong_liuhe_results
     )
 
     # 5.5 卦意分析(解读层)
@@ -116,11 +124,6 @@ def run_analysis(hexagram, question_type="other"):
             hexagram, report.shi_line, report.dongbian_results,
             report.wangshuai_results, report.yong_shen_liu_qin
         )
-
-    # 6. 六冲六合分析
-    report.liuchong_liuhe_results = analyze_liuchong_liuhe(
-        hexagram, report.dongbian_results, report.wangshuai_results
-    )
 
     # 7. 旬空分析
     report.xunkong_results = analyze_xunkong(

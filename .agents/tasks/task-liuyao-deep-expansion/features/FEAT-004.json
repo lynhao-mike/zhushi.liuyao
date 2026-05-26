@@ -1,0 +1,31 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Deeply enhance the Ying-Qi (应期推断) system with advanced timing rules: andong timing, monthly timing, daily timing, yuan_shen role, and long/short event differentiation.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1: Significantly enhance liuyao/yingqi.py with advanced timing theory. Add new functions:\n  - estimate_andong_yingqi(line, an_dong_info): Andong timing rules per theory:\n    (1) 冲中逢值逢合 - yingqi at the time the andong line meets its value or合.\n    (2) 顺时而应 - sequential timing (if today is申日, andong may manifest next day酉日, or next month未月, or next year巳年).\n    (3) 冲空即时生效 - if andong is through冲空, it takes effect immediately (often same day or next day).\n  - estimate_yuepo_yingqi(line, wangshuai_result): Enhanced month-break timing:\n    (1) 填实(fill) - line逢值 day/month.\n    (2) 补破(repair) - line逢合 day/month.\n    (3) 出破(exit break) - after the current month passes.\n    (4) Moving line month-break tends to应 at fill or repair; static line month-break may应 at exit-break.\n  - estimate_yueling_yingqi(line, hexagram, wangshuai_result): Monthly timing rules:\n    (1) 临月建: may manifest this month for吉; if being克ed, this month is safe but后 is not.\n    (2) 月合: within 3 following months for吉/凶.\n    (3) Limitation: if临 line and月合 line are enemies, the 3-month rule doesn't apply.",
+    "Step 2: Add event-duration differentiation to yingqi.py:\n  - classify_event_duration(question_type, hexagram_info): Classify the divination question as 短事(short-term, days), 常事(medium-term, months), or 长事(long-term, years).\n    Short: acute illness, daily stock, today's plan, immediate confirmation.\n    Medium: job application, exam result, relationship development, monthly business.\n    Long: lifetime fortune, career trajectory, marriage longevity, chronic illness.\n  - Apply日令应期 rules per duration:\n    (1) 短事日转月不转: Day branch cycles matter, month doesn't shift.\n    (2) 常事月转日不转: Month branch cycles matter, day is fixed context.\n    (3) 长事日月皆不转: Only太岁(annual branch) matters.\n  - When short-term: 用事爻临日令 = may manifest today. 用事爻日破 = not today but needs补.\n  - When medium-term: 用事爻临日令 = be cautious of冲破日建 or忌神临值逢合 months.",
+    "Step 3: Enhance元神(yuan_shen) role in timing:\n  - In static hexagrams, sometimes yingqi focuses on yuan_shen rather than yong_shen.\n  - Add logic: if事吉, yingqi may be at yuan_shen出空 or临旺发力时; if事凶, yingqi at yuan_shen衰败被冲时.\n  - Add yuan_shen identification: the six-qin that generates yong_shen's five-element. E.g., if yong_shen is妻财(wood), yuan_shen is子孙(water, because water generates wood).",
+    "Step 4: Implement the 21 standard timing formulas as a reference engine in yingqi.py:\n  - Create a comprehensive function apply_standard_formulas(line, context) that checks all applicable formulas:\n    (1) Static line: 逢值逢冲 (旺逢冲, 衰逢值)\n    (2) Moving line: 逢合逢值\n    (3) Month-broken: 填实/补破/出月破\n    (4) Day-clashed: 填实/补破/当日次日\n    (5) Xunkong: 填空/冲空/出空\n    (6) 遇合: 逢两冲; 遇冲: 逢两合\n    (7) 月合: 数后三个月\n    (8) Single-attribute: 同属性时应\n    (9) Bian_yao non-回头: 逢值逢冲; with回头: 逢值逢合\n    (10) 化进神: 逢值/逢合/逢进\n    (11) 化退神: 逢两冲/逢退值\n    (12) 三合局: 破局之期(凶内) / 成局之期(凶外) / 补缺成局\n    (13) 三墓: 冲墓/冲爻/出墓\n    (14) 三刑: 补全三刑之期\n    (15) 反吟: 逢反吟元素值\n    (16) 伏吟: 目标爻逢值逢冲; 非目标爻逢值逢合\n    (17) 藏伏: 逢值逢合 / 冲飞露伏\n    (18) 吉而受克: 忌爻受冲克时\n    (19) 凶而受生: 生旺元素被冲克时\n    (20) 吉爻过旺: 逢墓或逢克 (太过者损之斯成)\n    (21) 元神/忌神多发: 逢重叠多发者之墓期\n  - Each formula returns candidates with confidence/priority level.",
+    "Step 5: Implement timing acceleration/deceleration signals:\n  - 加速信号: 暗动, 临日令而动, 卦变六冲 = faster manifestation.\n  - 减速信号: 三合局, 三绊, 卦变六合, 变出渐卦/恒卦 = slower manifestation.\n  - Add these as modifiers to the timing candidates.",
+    "Step 6: Add timing selection principles:\n  - 应众不应寡: Multiple converging timing points have higher probability.\n  - 应早不应迟: Earlier timing points have advantage.\n  - 应邻不应单: Adjacent timing points (like巳午) are more likely than isolated ones.\n  - Implement a ranking system that scores timing candidates and returns top candidates ordered by likelihood.",
+    "Step 7: Update analyzer.py and report.py:\n  - Pass event_duration classification to yingqi analysis.\n  - Report enhanced timing with ranked candidates and duration-based interpretation.\n  - Show acceleration/deceleration signals.\n  - Show which standard formulas applied.",
+    "Step 8: Write tests in tests/test_yingqi_advanced.py:\n  - Test andong timing: line with冲空 returns immediate timing.\n  - Test month-break timing: moving broken line returns fill/repair candidates.\n  - Test monthly timing: line with月合 returns 3-month window.\n  - Test event duration classification for different question types.\n  - Test日转月不转 rule for short events.\n  - Test yuan_shen role in static hexagram timing.\n  - Test timing formulas: at least 5 key formulas with constructed scenarios.\n  - Test acceleration/deceleration signals.\n  - Test candidate ranking (应众不应寡, 应邻不应单)."
+  ],
+  "acceptance_criteria": [
+    "All existing 94 tests continue to pass",
+    "Andong timing correctly applies 3 rules (冲值合, 顺时, 冲空即时)",
+    "Event duration classification correctly categorizes short/medium/long events",
+    "Standard timing formulas produce correct candidates for various line states",
+    "Timing acceleration/deceleration signals are correctly detected",
+    "Candidate ranking system produces reasonable ordering",
+    "Enhanced report shows ranked timing candidates with explanations",
+    "python3 -m pytest tests/ --tb=short passes all tests"
+  ],
+  "verification": [
+    "python3 -m pytest tests/ --tb=short -q"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

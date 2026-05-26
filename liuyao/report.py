@@ -192,8 +192,44 @@ def format_report(report):
     if report.yingqi_results:
         for yq in report.yingqi_results:
             lines.append(f"  用神第{yq['position']}爻({yq['di_zhi']} {yq['liu_qin']}):")
-            for candidate in yq["candidates"]:
-                lines.append(f"    - {candidate}")
+
+            # Show event duration if available
+            if "event_duration" in yq:
+                dur_names = {"short": "短事", "medium": "常事", "long": "长事"}
+                dur = dur_names.get(yq["event_duration"], yq["event_duration"])
+                lines.append(f"    事件类型: {dur}")
+
+            # Show ranked candidates if available
+            if "ranked_candidates" in yq and yq["ranked_candidates"]:
+                lines.append("    推荐应期:")
+                for i, rc in enumerate(yq["ranked_candidates"][:5]):
+                    formulas_str = ", ".join(rc["formulas"]) if rc["formulas"] else ""
+                    lines.append(
+                        f"      {i+1}. {rc['timing']} "
+                        f"(评分:{rc['score']})"
+                        f"{' [' + formulas_str + ']' if formulas_str else ''}"
+                    )
+            else:
+                # Fallback to original candidates
+                for candidate in yq["candidates"]:
+                    lines.append(f"    - {candidate}")
+
+            # Show modifiers if present
+            if "modifiers" in yq:
+                mod = yq["modifiers"]
+                if mod.get("acceleration"):
+                    lines.append(
+                        f"    加速信号: {', '.join(mod['acceleration'])}")
+                if mod.get("deceleration"):
+                    lines.append(
+                        f"    减速信号: {', '.join(mod['deceleration'])}")
+
+            # Show yuan_shen timing if present
+            if "yuan_shen_timing" in yq and yq["yuan_shen_timing"]:
+                lines.append("    元神应期:")
+                for yst in yq["yuan_shen_timing"]:
+                    lines.append(
+                        f"      {yst['timing']} ({yst['formula']})")
     else:
         lines.append("  无法推断应期(用神不现)")
 
