@@ -3,6 +3,7 @@
 
 使用方式:
     python3 -m liuyao.main --date 2024-01-15 --yao 8 7 7 9 7 8
+    python3 -m liuyao.main --date 2024-01-15 --yao 8 7 7 9 7 8 --question-type cai
     python3 -m liuyao.main --date 2024-01-15 --name 泽风大过 --moving 4
 """
 
@@ -11,11 +12,13 @@ import sys
 
 from .hexagram import Hexagram
 from .data import HEXAGRAM_BY_NAME, BINARY_TO_GUA, BA_GUA
+from .analyzer import run_analysis
+from .report import format_report
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="六爻排卦系统 - Liu Yao Hexagram Arrangement System"
+        description="六爻排卦分析系统 - Liu Yao Hexagram Analysis System"
     )
     parser.add_argument(
         "--date", required=True,
@@ -36,6 +39,15 @@ def parse_args():
     parser.add_argument(
         "--hour", type=int, default=12,
         help="时辰 (0-23), 默认12(午时)"
+    )
+    parser.add_argument(
+        "--question-type", dest="question_type",
+        choices=["cai", "guan", "hun_male", "hun_female", "bing",
+                 "kaoshi", "zinv", "xingRen", "youHuan", "other"],
+        default="other",
+        help="问事类型: cai(财运), guan(官运), hun_male(婚姻男问), "
+             "hun_female(婚姻女问), bing(疾病), kaoshi(考试), "
+             "zinv(子女), xingRen(行人), youHuan(忧患), other(其他)"
     )
     return parser.parse_args()
 
@@ -109,6 +121,19 @@ def main():
         h.display()
     except Exception as e:
         print(f"排卦错误: {e}")
+        sys.exit(1)
+
+    # 运行分析
+    print()
+    print(">>> 开始六爻分析 <<<")
+    print()
+
+    try:
+        report = run_analysis(h, args.question_type)
+        report_text = format_report(report)
+        print(report_text)
+    except Exception as e:
+        print(f"分析错误: {e}")
         sys.exit(1)
 
 
