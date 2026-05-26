@@ -1,7 +1,7 @@
 """
 分析编排器 - Analysis Orchestrator
 
-整合旺衰分析、动变分析、吉凶判断、应期推断, 生成完整分析报告。
+整合旺衰分析、动变分析、连动分析、吉凶判断、应期推断, 生成完整分析报告。
 """
 
 from dataclasses import dataclass, field
@@ -18,6 +18,7 @@ from .yingqi import analyze_yingqi
 from .liuchong_liuhe import analyze_liuchong_liuhe
 from .xunkong import analyze_xunkong
 from .yuepo import analyze_yuepo
+from .liandong import analyze_liandong
 
 
 @dataclass
@@ -31,6 +32,7 @@ class AnalysisReport:
     # 分析结果
     wangshuai_results: List[Dict] = field(default_factory=list)
     dongbian_results: Dict = field(default_factory=dict)
+    liandong_results: Dict = field(default_factory=dict)
     jixiong_result: Dict = field(default_factory=dict)
     yingqi_results: List[Dict] = field(default_factory=list)
     liuchong_liuhe_results: Dict = field(default_factory=dict)
@@ -78,11 +80,17 @@ def run_analysis(hexagram, question_type="other"):
     # 3. 动变分析
     report.dongbian_results = analyze_dongbian(hexagram, report.wangshuai_results)
 
+    # 3.5 连动分析(在动变之后, 吉凶之前)
+    report.liandong_results = analyze_liandong(
+        hexagram, report.dongbian_results, report.wangshuai_results,
+        report.yong_shen_lines, report.shi_line, question_type
+    )
+
     # 4. 吉凶判断
     report.jixiong_result = judge_jixiong(
         hexagram, report.yong_shen_liu_qin,
         report.wangshuai_results, report.dongbian_results,
-        question_type
+        question_type, liandong_results=report.liandong_results
     )
 
     # 5. 应期推断

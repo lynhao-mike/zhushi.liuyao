@@ -201,7 +201,57 @@ def format_report(report):
     lines.append("=" * 60)
 
     # =========================================================================
-    # 第七部分: 六冲六合卦分析
+    # 第七部分: 连动分析
+    # =========================================================================
+    if hasattr(report, 'liandong_results') and report.liandong_results:
+        ldr = report.liandong_results
+        has_content = (ldr.get("san_he_jixiong") or
+                       ldr.get("jia_san_he") or
+                       ldr.get("liandong_chains"))
+        if has_content:
+            lines.append("")
+            lines.append("=" * 60)
+            lines.append("【连动分析】")
+            lines.append("=" * 60)
+
+            # 三合局吉凶
+            san_he_jx = ldr.get("san_he_jixiong", [])
+            if san_he_jx:
+                lines.append("  三合局吉凶:")
+                for shj in san_he_jx:
+                    ji_mark = {"吉": "吉", "凶": "凶", "平": "平"}[shj["ji_xiong"]]
+                    lines.append(
+                        f"    {' '.join(shj['members'])}合{shj['wu_xing']}局 "
+                        f"【{ji_mark}】 {shj['pattern']}")
+                    lines.append(f"      {shj['explanation']}")
+
+            # 假三合局
+            jia_sh = ldr.get("jia_san_he", [])
+            if jia_sh:
+                lines.append("  假三合局:")
+                for jsh in jia_sh:
+                    lines.append(
+                        f"    {' '.join(jsh['members'])}合{jsh['wu_xing']}局 "
+                        f"(假) - {jsh['reason']}")
+
+            # 连动链
+            chains = ldr.get("liandong_chains", [])
+            if chains:
+                lines.append("  连动链:")
+                for chain in chains:
+                    lines.append(
+                        f"    [{chain['type']}] "
+                        f"{' -> '.join(chain['chain'])} -> {chain['target']}")
+                    lines.append(f"      效果: {chain['effect']}")
+                    lines.append(f"      {chain['explanation']}")
+
+            if ldr.get("san_he_priority"):
+                lines.append("  注: 三合局优先于单爻判断")
+            if ldr.get("san_he_override_individual"):
+                lines.append("  注: 三合局成员不受个体规则(回头克/化破绝)约束(世爻除外)")
+
+    # =========================================================================
+    # 第八部分: 六冲六合卦分析
     # =========================================================================
     if report.liuchong_liuhe_results:
         lines.append("")
@@ -259,7 +309,7 @@ def format_report(report):
             lines.append("  无六冲六合卦特征")
 
     # =========================================================================
-    # 第八部分: 旬空分析
+    # 第九部分: 旬空分析
     # =========================================================================
     if report.xunkong_results:
         lines.append("")
@@ -314,7 +364,7 @@ def format_report(report):
                     lines.append(f"      注: {sp['note']}")
 
     # =========================================================================
-    # 第九部分: 月破真假分析
+    # 第十部分: 月破真假分析
     # =========================================================================
     if report.yuepo_results:
         ypr = report.yuepo_results

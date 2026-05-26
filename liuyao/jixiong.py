@@ -99,7 +99,7 @@ def _line_has_day_month_support(line_zhi, month_zhi, day_zhi):
     return month_support or day_support or month_lin or day_lin
 
 
-def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type):
+def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type, liandong_results=None):
     """
     动卦吉凶判断。
 
@@ -114,6 +114,8 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
     3. 世用受克局: 用=世, 受克
     4. 用旺世衰局: 用旺但世无日月扶
     5. 用神克世局: 用神动克世
+
+    三合局优先于单爻判断。
 
     Returns:
         dict: {"pattern": 卦局名, "ji_xiong": "吉"/"凶"/"平", "explanation": 说明}
@@ -130,6 +132,17 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
             "ji_xiong": "平",
             "explanation": "未找到用神或世爻",
         }
+
+    # 三合局优先于单爻判断
+    if liandong_results and liandong_results.get("san_he_jixiong"):
+        san_he_results = liandong_results["san_he_jixiong"]
+        for shr in san_he_results:
+            if shr["ji_xiong"] != "平":
+                return {
+                    "pattern": shr["pattern"],
+                    "ji_xiong": shr["ji_xiong"],
+                    "explanation": shr["explanation"],
+                }
 
     # 获取世爻旺衰
     shi_ws = wangshuai_results[shi_line.position - 1]
@@ -350,14 +363,25 @@ def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
     return None
 
 
-def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type):
+def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type, dongbian_results=None):
     """
     静卦吉凶判断 (无动爻时)。
 
     三步判断:
-    1. 用忌持世: 用神持世 = 吉(除非无根逢破); 忌神持世 = 凶(有特例)
-    2. 用神生克世: 用生世 = 吉; 用克世 = 凶
+    1. 用忌持世:
+       - 用神持世 + 无根 = 短期吉长期凶
+       - 用神持世 + 逢破 = 即凶
+       - 忌神持世 + 逢破 特例: 求财/疾病/行人/忧患 = 吉
+       - 忌神持世 normal = 凶
+    2. 用神生克世:
+       - 用生世 + 用得日月扶 = 吉
+       - 用生世 + 用衰无扶 = 平
+       - 用克世 = 凶 (求财+世有扶=吉, 行人=吉)
     3. 用旺世兴: 各自独立分析旺衰
+    4. 暗动:
+       - 长期问题: 只有用神/元神/忌神暗动影响吉凶
+       - 短期问题: 所有暗动可参与判断
+    5. 静卦急兆: 暗动或用神带日月
 
     Returns:
         dict: {"pattern": 卦局名, "ji_xiong": "吉"/"凶"/"平", "explanation": 说明}
@@ -383,13 +407,24 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 用神持世
     if shi_liu_qin == yong_shen_liu_qin:
-        # 检查是否无根(月破)
+        # 检查是否逢月破
         is_yue_po = "月破" in shi_ws.get("month_shuai", [])
         if is_yue_po:
             return {
                 "pattern": "用神持世逢月破",
                 "ji_xiong": "凶",
-                "explanation": "用神持世但逢月破, 无根之象, 凶",
+                "explanation": "用神持世但逢月破, 即刻凶象",
+            }
+        # 检查是否无根(日月都不扶)
+        has_month_support = any(r in ("临月令", "月令生", "月令扶", "月令合")
+                                for r in shi_ws.get("month_wang", []))
+        has_day_support = any(r in ("临日建", "日令生", "日令扶", "日令合")
+                              for r in shi_ws.get("day_wang", []))
+        if not has_month_support and not has_day_support:
+            return {
+                "pattern": "用神持世无根",
+                "ji_xiong": "平",
+                "explanation": "用神持世但无根(日月皆不扶), 短期尚可长期凶",
             }
         return {
             "pattern": "用神持世",
@@ -399,7 +434,23 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 忌神持世
     if shi_liu_qin == ji_shen_liu_qin:
-        # 检查特例
+        # 检查是否逢月破
+        is_yue_po = "月破" in shi_ws.get("month_shuai", [])
+        if is_yue_po:
+            # 4个特例: 求财/疾病/行人/忧患 = 吉
+            exception_types = ("cai", "bing", "xingRen", "youHuan")
+            if question_type in exception_types:
+                return {
+                    "pattern": f"忌神持世逢破({question_type}特例吉)",
+                    "ji_xiong": "吉",
+                    "explanation": f"忌神持世逢月破, {question_type}类为特例, 反为吉",
+                }
+            return {
+                "pattern": "忌神持世逢破",
+                "ji_xiong": "凶",
+                "explanation": "忌神持世逢月破, 大凶",
+            }
+        # 非逢破的忌神持世特例检查
         if question_type in ("cai", "xingRen", "youHuan"):
             return {
                 "pattern": f"忌神持世({question_type}特例)",
@@ -448,12 +499,19 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 用克世
     if WU_XING_KE[yong_wx] == shi_wx:
-        # 特例
+        # 特例: 求财 + 世有扶
         if question_type == "cai" and shi_has_support:
             return {
                 "pattern": "静卦用克世(求财特例)",
                 "ji_xiong": "吉",
                 "explanation": "求财卦, 财克世但世有日月扶, 财来就我",
+            }
+        # 特例: 行人
+        if question_type == "xingRen":
+            return {
+                "pattern": "静卦用克世(行人特例)",
+                "ji_xiong": "吉",
+                "explanation": "行人卦, 用神克世, 人即将归来, 吉",
             }
         return {
             "pattern": "静卦用克世",
@@ -478,6 +536,16 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
             "explanation": "用神旺但世衰无扶, 事可成但于己不利",
         }
     elif not yong_is_wang:
+        # Step 4: 检查暗动(静卦中的暗动)
+        if dongbian_results:
+            an_dong = dongbian_results.get("an_dong", [])
+            an_dong_effect = _check_jing_gua_andong(
+                an_dong, hexagram, yong_shen_liu_qin, ji_shen_liu_qin,
+                shi_line, question_type
+            )
+            if an_dong_effect:
+                return an_dong_effect
+
         return {
             "pattern": "静卦用衰",
             "ji_xiong": "凶",
@@ -491,7 +559,73 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
     }
 
 
-def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type):
+def _check_jing_gua_andong(an_dong, hexagram, yong_shen_liu_qin, ji_shen_liu_qin,
+                            shi_line, question_type):
+    """
+    检查静卦中暗动对吉凶的影响。
+
+    长期问题: 只有用神/元神/忌神暗动影响吉凶。
+    短期问题: 所有暗动可参与判断。
+    急兆: 暗动或用神带日月。
+    """
+    if not an_dong:
+        return None
+
+    # 元神六亲(生用神者)
+    # 六亲生克: 父母生兄弟, 兄弟生子孙, 子孙生妻财, 妻财生官鬼, 官鬼生父母
+    YUAN_SHEN_TABLE = {
+        "父母": "官鬼",
+        "兄弟": "父母",
+        "子孙": "兄弟",
+        "妻财": "子孙",
+        "官鬼": "妻财",
+    }
+
+    yuan_shen_liu_qin = YUAN_SHEN_TABLE.get(yong_shen_liu_qin, "")
+
+    # 短期问题类型
+    short_term_types = ("bing", "xingRen", "youHuan")
+    is_short_term = question_type in short_term_types
+
+    shi_wx = DI_ZHI_WU_XING[shi_line.di_zhi]
+
+    # 检查暗动中是否有关键六亲
+    for ad in an_dong:
+        if ad.get("type") != "暗动":
+            continue
+        pos = ad["position"]
+        line = hexagram.lines[pos - 1]
+        line_liu_qin = line.liu_qin
+
+        # 长期问题: 只关注用神/元神/忌神暗动
+        if not is_short_term:
+            if line_liu_qin not in (yong_shen_liu_qin, yuan_shen_liu_qin, ji_shen_liu_qin):
+                continue
+
+        # 暗动的爻对世爻的作用
+        line_wx = DI_ZHI_WU_XING[line.di_zhi]
+
+        if line_liu_qin == yong_shen_liu_qin:
+            # 用神暗动生世
+            if WU_XING_SHENG[line_wx] == shi_wx:
+                return {
+                    "pattern": "静卦用神暗动生世(急兆吉)",
+                    "ji_xiong": "吉",
+                    "explanation": f"静卦中用神{line.di_zhi}暗动生世, 急兆, 吉",
+                }
+        elif line_liu_qin == ji_shen_liu_qin:
+            # 忌神暗动克世
+            if WU_XING_KE[line_wx] == shi_wx:
+                return {
+                    "pattern": "静卦忌神暗动克世(急兆凶)",
+                    "ji_xiong": "凶",
+                    "explanation": f"静卦中忌神{line.di_zhi}暗动克世, 急兆, 凶",
+                }
+
+    return None
+
+
+def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type, liandong_results=None):
     """
     综合吉凶判断入口。
 
@@ -506,10 +640,12 @@ def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resul
     if has_moving:
         return judge_dong_gua(
             hexagram, yong_shen_liu_qin,
-            wangshuai_results, dongbian_results, question_type
+            wangshuai_results, dongbian_results, question_type,
+            liandong_results=liandong_results
         )
     else:
         return judge_jing_gua(
             hexagram, yong_shen_liu_qin,
-            wangshuai_results, question_type
+            wangshuai_results, question_type,
+            dongbian_results=dongbian_results
         )
