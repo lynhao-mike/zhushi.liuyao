@@ -722,7 +722,10 @@ def rank_timing_candidates(candidates):
     if not candidates:
         return []
 
-    # Group by timing (extract the first Chinese character sequence as key)
+    # Deduplicate: same timing string from the same formula source should only
+    # count once for the "应众不应寡" bonus. Group by timing, then within each
+    # group, deduplicate by formula_name/formula so overlapping formula paths
+    # don't inflate counts.
     timing_groups = {}
     for c in candidates:
         timing = c.get("timing", "")
@@ -734,10 +737,18 @@ def rank_timing_candidates(candidates):
                 "formulas": [],
                 "confidence_sum": 0,
                 "count": 0,
+                "_seen_formulas": set(),
             }
         group = timing_groups[timing]
         conf = c.get("confidence", 50)
         formula_name = c.get("formula_name", c.get("formula", ""))
+        # Deduplicate: only count each unique formula source once per timing
+        if formula_name and formula_name in group["_seen_formulas"]:
+            # Same formula already contributed to this timing - skip for count
+            # but still use the max confidence from this formula
+            continue
+        if formula_name:
+            group["_seen_formulas"].add(formula_name)
         group["confidence_sum"] += conf
         group["count"] += 1
         if formula_name and formula_name not in group["formulas"]:
@@ -979,9 +990,11 @@ def analyze_yingqi(hexagram, yong_shen_lines, wangshuai_results, dongbian_result
         # Yuan_shen timing
         yuan_shen_timing = []
         if jixiong_result:
-            # Determine yong_shen_liu_qin from the line
+            # Use the explicit yong_shen_liu_qin from kwargs (passed by analyzer)
+            # rather than line.liu_qin, which is fragile if line selection changes
+            explicit_yong_lq = kwargs.get("yong_shen_liu_qin", line.liu_qin)
             yuan_shen_timing = estimate_yuan_shen_yingqi(
-                hexagram, line.liu_qin, wangshuai_results, jixiong_result
+                hexagram, explicit_yong_lq, wangshuai_results, jixiong_result
             )
         result["yuan_shen_timing"] = yuan_shen_timing
 

@@ -371,14 +371,14 @@ def _da_qiao_qu_bian(hexagram, dongbian_results, shi_line, yong_lines):
                 if has_direct:
                     continue
 
-                # (2) no回头生克 from each bian toward world/yong
+                # (2) no回头生克 from each bian toward world/yong (target)
                 bian_a_wx = DI_ZHI_WU_XING[line_a.bian_di_zhi]
                 bian_b_wx = DI_ZHI_WU_XING[line_b.bian_di_zhi]
                 has_huitou_to_target = (
-                    WU_XING_SHENG[bian_a_wx] == a_wx or
-                    WU_XING_KE[bian_a_wx] == a_wx or
-                    WU_XING_SHENG[bian_b_wx] == b_wx or
-                    WU_XING_KE[bian_b_wx] == b_wx)
+                    WU_XING_SHENG[bian_a_wx] == shi_wx or
+                    WU_XING_KE[bian_a_wx] == shi_wx or
+                    WU_XING_SHENG[bian_b_wx] == shi_wx or
+                    WU_XING_KE[bian_b_wx] == shi_wx)
                 if has_huitou_to_target:
                     continue
 

@@ -625,7 +625,7 @@ def _check_jing_gua_andong(an_dong, hexagram, yong_shen_liu_qin, ji_shen_liu_qin
     return None
 
 
-def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type, liandong_results=None):
+def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type, liandong_results=None, shiyao_analysis=None, liuchong_liuhe_results=None):
     """
     综合吉凶判断入口。
 
@@ -638,14 +638,52 @@ def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resul
     has_moving = any(line.is_moving for line in hexagram.lines)
 
     if has_moving:
-        return judge_dong_gua(
+        result = judge_dong_gua(
             hexagram, yong_shen_liu_qin,
             wangshuai_results, dongbian_results, question_type,
             liandong_results=liandong_results
         )
     else:
-        return judge_jing_gua(
+        result = judge_jing_gua(
             hexagram, yong_shen_liu_qin,
             wangshuai_results, question_type,
             dongbian_results=dongbian_results
         )
+
+    # Wire shiyao_rules: if shi-yao's hua_po_is_false, and the shiyao
+    # effective_trend contradicts the verdict, apply override
+    if shiyao_analysis and shiyao_analysis.get("hua_po_is_false"):
+        effective_trend = shiyao_analysis.get("effective_trend", "")
+        # Only override if shiyao gives a clear signal different from current
+        if effective_trend == "吉" and result["ji_xiong"] == "凶":
+            result = {
+                "pattern": result["pattern"] + "(世爻化破不论破覆盖)",
+                "ji_xiong": "平",
+                "explanation": (
+                    result["explanation"] +
+                    "; 但世爻化破不论破, 变爻六亲趋吉, 减轻凶象"
+                ),
+            }
+        elif effective_trend == "凶" and result["ji_xiong"] == "吉":
+            result = {
+                "pattern": result["pattern"] + "(世爻化破不论破覆盖)",
+                "ji_xiong": "平",
+                "explanation": (
+                    result["explanation"] +
+                    "; 但世爻化破不论破, 变爻六亲趋凶, 减轻吉象"
+                ),
+            }
+
+    # Wire liuchong_liuhe: six-clash context can intensify凶 verdicts
+    if liuchong_liuhe_results:
+        liu_chong = liuchong_liuhe_results.get("liu_chong", {})
+        chong_he_huhua = liuchong_liuhe_results.get("chong_he_huhua", {})
+        # 六冲变六冲: 败事概率大于成事
+        if liu_chong.get("is_liu_chong"):
+            chong_type = liu_chong.get("type", "")
+            if chong_type == "both":
+                if result["ji_xiong"] == "平":
+                    result["ji_xiong"] = "凶"
+                    result["explanation"] += "; 六冲变六冲, 败事概率大于成事"
+
+    return result

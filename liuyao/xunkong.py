@@ -37,13 +37,19 @@ def is_jia_kong(line, hexagram, wangshuai_result):
     if line.is_moving:
         return {"is_jia_kong": True, "reason": "动不为空(动爻旬空为假空)"}
 
-    # 检查是否有其他动爻的变爻落入此地支(化空)
-    # 化空不为真空
+    # 检查是否有其他动爻的变爻落入此爻地支(化空不为真空)
+    # 当某动爻的变爻地支 == 本爻地支, 且该变爻地支在旬空中,
+    # 则本爻因"化空"而成为假空
     for other_line in hexagram.lines:
         if other_line.is_moving and other_line.bian_di_zhi:
-            if other_line.bian_di_zhi in hexagram.xun_kong:
-                # 这是变爻化空的情况, 对变爻而言是假空
-                pass
+            if other_line.bian_di_zhi == line.di_zhi and line.di_zhi in hexagram.xun_kong:
+                return {
+                    "is_jia_kong": True,
+                    "reason": (
+                        f"化空不为真空(第{other_line.position}爻动变"
+                        f"{other_line.bian_di_zhi}落入本爻地支, 为假空)"
+                    ),
+                }
 
     # 条件1: 旺相之静爻 - 旺不为空
     overall = wangshuai_result.get("overall", "平")

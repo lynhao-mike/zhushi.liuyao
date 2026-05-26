@@ -90,16 +90,40 @@ def run_analysis(hexagram, question_type="other"):
         report.yong_shen_lines, report.shi_line, question_type
     )
 
-    # 4. 吉凶判断
+    # 3.6 六冲六合分析(在吉凶判断之前, 供吉凶和应期参考)
+    report.liuchong_liuhe_results = analyze_liuchong_liuhe(
+        hexagram, report.dongbian_results, report.wangshuai_results
+    )
+
+    # 3.7 世爻特殊规则(在吉凶判断之前, 其结果可影响吉凶)
+    if report.shi_line and report.shi_line.is_moving:
+        report.shiyao_analysis = analyze_shiyao_dongbian(
+            hexagram, report.shi_line, report.dongbian_results,
+            report.wangshuai_results, report.yong_shen_liu_qin
+        )
+        # Wire hua_po_is_false into dongbian: if shi-yao's 化破 is ruled false,
+        # un-mark the shi line as useless in dongbian so jixiong sees it as useful
+        if report.shiyao_analysis and report.shiyao_analysis.get("hua_po_is_false"):
+            shi_pos = report.shi_line.position
+            ma = report.dongbian_results.get("moving_analyses", {}).get(shi_pos)
+            if ma and ma.get("is_useless") and ma.get("useless_reason") == "动而化破":
+                ma["is_useless"] = False
+                ma["useless_reason"] = "世爻化破不论破(假破)"
+                # Move shi from useless to useful list
+                useless = report.dongbian_results.get("useless_moving", [])
+                useful = report.dongbian_results.get("useful_moving", [])
+                if shi_pos in useless:
+                    useless.remove(shi_pos)
+                if shi_pos not in useful:
+                    useful.append(shi_pos)
+
+    # 4. 吉凶判断(已有六冲六合和世爻规则结果可参考)
     report.jixiong_result = judge_jixiong(
         hexagram, report.yong_shen_liu_qin,
         report.wangshuai_results, report.dongbian_results,
-        question_type, liandong_results=report.liandong_results
-    )
-
-    # 4.5 六冲六合分析(移至应期前, 供应期参考)
-    report.liuchong_liuhe_results = analyze_liuchong_liuhe(
-        hexagram, report.dongbian_results, report.wangshuai_results
+        question_type, liandong_results=report.liandong_results,
+        shiyao_analysis=report.shiyao_analysis,
+        liuchong_liuhe_results=report.liuchong_liuhe_results
     )
 
     # 5. 应期推断
@@ -108,7 +132,8 @@ def run_analysis(hexagram, question_type="other"):
         report.wangshuai_results, report.dongbian_results,
         event_duration=classify_event_duration(question_type),
         jixiong_result=report.jixiong_result,
-        liuchong_liuhe_results=report.liuchong_liuhe_results
+        liuchong_liuhe_results=report.liuchong_liuhe_results,
+        yong_shen_liu_qin=report.yong_shen_liu_qin
     )
 
     # 5.5 卦意分析(解读层)
@@ -117,13 +142,6 @@ def run_analysis(hexagram, question_type="other"):
         report.yong_shen_liu_qin, question_type,
         report.shi_line, report.yong_shen_lines
     )
-
-    # 5.6 世爻特殊规则
-    if report.shi_line and report.shi_line.is_moving:
-        report.shiyao_analysis = analyze_shiyao_dongbian(
-            hexagram, report.shi_line, report.dongbian_results,
-            report.wangshuai_results, report.yong_shen_liu_qin
-        )
 
     # 7. 旬空分析
     report.xunkong_results = analyze_xunkong(
