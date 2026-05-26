@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Implement the complete Liu Yao foundation data layer and hexagram arrangement (Pai Gua) engine. This includes all base data tables (Ba Gua, 64 hexagrams, Na Jia, Liu Qin, Wu Xing, Tian Gan Di Zhi, Shi Ying positions, Liu Shen, Xun Kong), the Gan-Zhi calendar conversion using sxtwl, and the hexagram arrangement logic that takes coin tosses + date and produces a fully annotated hexagram with all attributes.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create the package structure: /projects/sandbox/zhushi.liuyao/liuyao/__init__.py, liuyao/data.py (all static data), liuyao/calendar_utils.py (Gan-Zhi conversion), liuyao/hexagram.py (hexagram arrangement), liuyao/main.py (CLI entry point), tests/__init__.py, tests/test_hexagram.py",
     "In liuyao/data.py implement: (a) TIAN_GAN (10 Heavenly Stems with Wu Xing attributes), (b) DI_ZHI (12 Earthly Branches with Wu Xing attributes), (c) WU_XING cycle (sheng/ke relationships), (d) BA_GUA (8 trigrams with binary representation, name, Wu Xing attribute), (e) 64_HEXAGRAMS lookup (upper+lower trigram to hexagram name and palace), (f) NA_JIA table (the Heavenly Stem and Earthly Branch assigned to each line of each trigram per the Na Jia system), (g) LIU_QIN (Six Relations: derive from self-palace Wu Xing vs line Wu Xing), (h) SHI_YING positions (the world/response line positions for each of the 64 hexagrams based on palace change rules), (i) LIU_SHEN (Six Spirits assignment based on day stem), (j) XUN_KONG (void calculation based on day pillar), (k) SAN_HE (Three Harmony combinations: Si-You-Chou=Metal, Shen-Zi-Chen=Water, Hai-Mao-Wei=Wood, Yin-Wu-Xu=Fire), (l) LIU_CHONG (Six Clashes), (m) LIU_HE (Six Harmonies), (n) CHANG_SHENG_12 (Twelve Life Stages for each element), (o) HUA_JIN_SHEN/HUA_TUI_SHEN (advance/retreat patterns: Yin->Mao, Shen->You, Chou->Chen, Wei->Xu for advance; reverse for retreat)",
@@ -22,5 +22,5 @@
     "Run `python3 -c \"from liuyao.hexagram import Hexagram; h = Hexagram([8,7,7,9,7,8], 2024, 1, 15); h.display()\"` and verify output format"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 44 tests pass. pytest needed to be installed (pip3 install pytest). Fixed trigram binary encoding (initial values had 兑/巽/震/艮 swapped). The sxtwl library uses 0-indexed values for tg/dz. Calendar correctly handles Li Chun boundary for year pillar and Jie Qi for month pillar. The 64-hexagram palace generation algorithm works correctly with the palace derivation rules."
 }
