@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Implement complex moving-line (lian-dong) system and enhance the three-harmony (san-he) analysis with complete auspicious/inauspicious rules. Also implement static hexagram judgment improvements.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1: Create liuyao/liandong.py - Complex Moving Line (连动/复合动爻) system:\n  - analyze_liandong(hexagram, dongbian_results, wangshuai_results, yong_shen_lines, shi_line): Main entry point.\n  - _find_san_he_priority(hexagram, dongbian_results): Three-harmony formations have priority over individual lian-dong. If san-he is found, process it first before lian-dong.\n  - _analyze_liandong_sheng(moving_lines, target_line): When multiple moving lines form a chain of sheng (generating), integrate them and determine final direction toward shi_yao or yong_shen.\n  - _analyze_liandong_ke(moving_lines, target_line): When multiple moving lines form a chain of ke (overcoming), calculate mutual offsetting and determine net force direction.\n  - Key rule: In self-divination (自占自事), shi_yao does NOT participate in lian-dong - only other lines act around it.\n  - Key rule: Even if single lines could individually act on the target, if lian-dong chain direction still targets the same yao, they MUST form lian-dong first.",
     "Step 2: Enhance san-he (三合局) analysis in dongbian.py or create separate logic in liandong.py:\n  - Implement 5 auspicious san-he patterns per theory:\n    (1) 用神与世爻同在三合局内 + not忌神局 + 世爻no回头克\n    (2) 含用神在内的三合局动而生旺世爻\n    (3) 有用神动生世爻 + 世爻构成三合局 + no回头克\n    (4) 动爻构成三合局生旺用神 + 世爻得力\n    (5) 动爻构成三合局生旺世爻 + 用神旺相\n  - Implement 5 inauspicious san-he patterns:\n    (1) 世爻在三合局内但动变回头克\n    (2) 用神构成三合局动克世爻 (with exceptions: disease, worry, wealth, traveler)\n    (3) 动爻构成三合局动克用神\n    (4) 世爻与合局不存在生克 + 用神构成三合局 + 世爻在局外\n    (5) 世爻没与用神构成三合局 + 与用神相冲之爻合成三合局\n  - Implement 假三合局 (false san-he): When a moving line clashes one of the san-he members (both must be moving).\n  - Key rule: Once san-he forms, individual line rules (回头克, 化破绝) no longer apply to san-he members (except shi_yao).",
@@ -24,5 +24,5 @@
     "python3 -m pytest tests/ --tb=short -q"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Successfully implemented all components of FEAT-002. Key details: (1) The false san-he detection requires the clasher to be OUTSIDE the san-he group members - when all 6 lines are moving in Qian gua, both san-he groups (shen-zi-chen water, yin-wu-xu fire) are detected as false because their members are clashed by lines outside their respective groups. (2) The judge_jing_gua enhancement adds 'wu-gen' detection (no day/month support) returning pattern 'yong-shen-chi-shi-wu-gen' with ji_xiong='ping' (short-term OK, long-term xiong). (3) The liandong module integrates after dongbian and before jixiong in the analysis pipeline. (4) All 176 tests pass (152 existing + 24 new). (5) The judge_dong_gua and judge_jixiong functions gained optional liandong_results parameter to maintain backward compatibility."
 }
