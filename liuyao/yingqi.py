@@ -15,6 +15,7 @@ from .data import (
     DI_ZHI, DI_ZHI_WU_XING,
     LIU_CHONG, LIU_HE,
     JIN_SHEN, TUI_SHEN,
+    WU_XING_SHENG,
 )
 
 
@@ -97,7 +98,6 @@ def estimate_yingqi(line, wangshuai_result, moving_analysis=None):
     sheng_zhis = [z for z in DI_ZHI if DI_ZHI_WU_XING[z] != line_wx
                   and z != line_zhi]
     # 找生我的地支
-    from .data import WU_XING_SHENG
     sheng_wx = [wx for wx, target in WU_XING_SHENG.items() if target == line_wx]
     if sheng_wx:
         sheng_zhi_list = [z for z in DI_ZHI if DI_ZHI_WU_XING[z] == sheng_wx[0]]

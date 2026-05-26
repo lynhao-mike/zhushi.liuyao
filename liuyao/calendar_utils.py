@@ -35,12 +35,6 @@ def get_gan_zhi(year, month, day, hour=12):
     # 如果是23:00-23:59, 属于次日的子时
     if hour >= 23:
         # 使用次日的日柱
-        solar_day = sxtwl.fromSolar(year, month, day)
-        # 获取次日 (简单处理: 使用sxtwl)
-        next_jd = solar_day.getJD() + 1
-        # 重新创建次日对象
-        import math
-        # 简单方法: 直接计算次日日期
         from datetime import date, timedelta
         next_date = date(year, month, day) + timedelta(days=1)
         day_obj = sxtwl.fromSolar(next_date.year, next_date.month, next_date.day)

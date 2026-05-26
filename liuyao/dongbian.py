@@ -235,7 +235,7 @@ def detect_an_dong(hexagram, wangshuai_results):
 
         ws = wangshuai_results[i]
 
-        # 条件1: 得月令趋旺
+        # 条件1: 得月令趋旺 (临月令、月令生、月令扶)
         if ws["overall"] == "旺" or any(r in ("临月令", "月令生", "月令扶")
                                          for r in ws["month_wang"]):
             an_dong_list.append({
@@ -246,12 +246,18 @@ def detect_an_dong(hexagram, wangshuai_results):
             })
             continue
 
-        # 条件2: 有月气(月建同五行)
-        if "月令扶" in ws["month_wang"]:
+        # 条件2: 有月气(月建同五行但非临/生/扶, 即余气)
+        # "有气"指爻的五行在该月仍有余气, 如火在未月(未属土但火气未尽)
+        # 这里检查爻五行与月支五行相同但未被条件1捕获的情况不存在,
+        # 因此改为检查月支是否为爻五行的余气支(爻五行生月支五行, 即泄而非绝)
+        line_wx = DI_ZHI_WU_XING[line.di_zhi]
+        month_wx = DI_ZHI_WU_XING[month_zhi]
+        if WU_XING_SHENG[line_wx] == month_wx:
+            # 爻生月(泄气), 说明爻在该月仍有余气(未完全衰败)
             an_dong_list.append({
                 "position": line.position,
                 "di_zhi": line.di_zhi,
-                "reason": "有月气逢日冲(暗动)",
+                "reason": "有月气(余气)逢日冲(暗动)",
                 "type": "暗动",
             })
             continue
