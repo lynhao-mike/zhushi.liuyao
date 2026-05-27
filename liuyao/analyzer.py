@@ -25,6 +25,7 @@ from .fushen import (
     judge_fushen_jixiong, estimate_fushen_yingqi,
 )
 from .xintai import detect_xintai_gua, analyze_xintai
+from .guaci import analyze_guaci
 
 
 @dataclass
@@ -59,6 +60,9 @@ class AnalysisReport:
 
     # 心态卦分析
     xintai_result: Optional[Dict] = None
+
+    # 卦辞寓意分析
+    guaci_result: Optional[Dict] = None
 
 
 def run_analysis(hexagram, question_type="other", question_desc="",
@@ -123,6 +127,11 @@ def run_analysis(hexagram, question_type="other", question_desc="",
     report.yingqi_results = analyze_yingqi(
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results
+    )
+
+    # 5.5 卦辞寓意分析
+    report.guaci_result = analyze_guaci(
+        hexagram, report.jixiong_result, report.dongbian_results
     )
 
     # 6. 双合卦分析

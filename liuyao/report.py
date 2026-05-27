@@ -183,6 +183,68 @@ def format_report(report):
     lines.append("")
 
     # =========================================================================
+    # 第五部分(附): 卦辞寓意
+    # =========================================================================
+    if hasattr(report, 'guaci_result') and report.guaci_result:
+        lines.append("=" * 60)
+        lines.append("【卦辞寓意】")
+        lines.append("=" * 60)
+
+        gr = report.guaci_result
+
+        # 变卦卦辞解读
+        interp = gr.get("guaci_interpretation")
+        if interp:
+            keywords_str = ", ".join(interp["keywords"])
+            lines.append(f"  变卦寓意: {report.hexagram.bian_gua_name} - {keywords_str}")
+            if interp.get("guidance"):
+                lines.append(f"  卦辞指导: {interp['guidance']}")
+            polarity_names = {"positive": "正面", "negative": "负面", "neutral": "中性"}
+            lines.append(f"  卦象倾向: {polarity_names.get(interp['polarity'], '中性')}")
+
+        # 六冲/六合状态
+        liuchong = gr.get("liuchong", {})
+        liuhe = gr.get("liuhe", {})
+
+        if liuchong.get("ben_is_liuchong") or liuchong.get("bian_is_liuchong"):
+            lc_gua = liuchong.get("liuchong_gua", "")
+            impl = liuchong.get("implications", {})
+            lines.append(f"  六冲卦: {lc_gua}")
+            if impl.get("short_term"):
+                lines.append(f"    短期: {impl['short_term']}")
+            if impl.get("long_term"):
+                lines.append(f"    长期: {impl['long_term']}")
+
+        if liuhe.get("ben_is_liuhe") or liuhe.get("bian_is_liuhe"):
+            impl = liuhe.get("implications", {})
+            lines.append("  六合卦: 是")
+            if impl.get("short_term"):
+                lines.append(f"    短期: {impl['short_term']}")
+            if impl.get("long_term"):
+                lines.append(f"    长期: {impl['long_term']}")
+
+        # 特殊模式
+        sp = liuchong.get("special_pattern") or liuhe.get("special_pattern")
+        if sp:
+            pattern_names = {
+                "chong_bian_he": "六冲变六合 - 破后复合",
+                "he_bian_chong": "六合变六冲 - 合后散离",
+            }
+            lines.append(f"  特殊模式: {pattern_names.get(sp, sp)}")
+
+        # 指导建议
+        guidance = gr.get("guidance")
+        if guidance:
+            lines.append(f"  建议: {guidance}")
+
+        # 反吟/伏吟
+        fy = gr.get("fanyin_fuyin", {})
+        if fy.get("fan_yin") or fy.get("fu_yin"):
+            lines.append(f"  {fy['implications']}")
+
+        lines.append("")
+
+    # =========================================================================
     # 第六部分: 应期推断
     # =========================================================================
     lines.append("=" * 60)
