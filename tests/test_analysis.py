@@ -494,8 +494,8 @@ class TestReport:
         text = format_report(report)
 
         assert "动变分析" in text
-        # 应该列出多个动爻分析
-        assert "->" in text
+        # 应该列出多个动爻分析（箭头符号）
+        assert "→" in text
 
 
 # =============================================================================

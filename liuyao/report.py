@@ -2,8 +2,20 @@
 报告格式化模块 - Report Formatter
 
 将分析结果格式化为中文文本报告。
-- format_report: 单视角报告(六部分)
-- format_dual_report: 双(多)视角报告(共享+各视角对照)
+- format_report: 单视角报告（六部分）
+- format_dual_report: 双（多）视角报告（共享+各视角对照）
+
+【输出规范 — 第十章基础知识】
+─────────────────────────────────────────────────────
+六冲：统一使用"XY互冲"表述，绝不出现"X冲Y"单向写法。
+  正确：巳亥互冲、子午互冲、寅申互冲、卯酉互冲、丑未互冲、辰戌互冲
+  错误：亥冲巳、午冲子……
+
+月破描述："{爻支}受月破"（月令冲爻）
+日冲暗动："{爻支}与{日支}互冲冲起暗动"
+
+三合局输出：注明帝旺归宿，如"巳酉丑合酉金局（能量归酉）"
+─────────────────────────────────────────────────────
 """
 
 from .data import DI_ZHI_WU_XING
@@ -114,12 +126,12 @@ def _format_dongbian(hexagram, dongbian_results):
     moving_analyses = dongbian_results.get("moving_analyses", {})
 
     if not moving_analyses:
-        lines.append("  静卦, 无动爻。")
+        lines.append("  静卦，无动爻。")
     else:
         for pos, ma in sorted(moving_analyses.items()):
             line = hexagram.lines[pos - 1]
             useful_mark = "有用" if not ma["is_useless"] else f"无用({ma['useless_reason']})"
-            lines.append(f"  第{pos}爻 {line.di_zhi} -> {ma['bian_zhi']} [{useful_mark}]")
+            lines.append(f"  第{pos}爻 {line.di_zhi} → {ma['bian_zhi']} [{useful_mark}]")
             if ma["趋旺"]:
                 lines.append(f"    趋旺: {', '.join(ma['趋旺'])}")
             if ma["趋衰"]:
@@ -128,7 +140,12 @@ def _format_dongbian(hexagram, dongbian_results):
         san_he = dongbian_results.get("san_he_ju", [])
         if san_he:
             for sh in san_he:
-                lines.append(f"  三合局: {' '.join(sh['members'])} 合 {sh['wu_xing']}局")
+                wang_zhi = sh.get("wang_zhi", "")
+                wang_note = f"（能量归{wang_zhi}）" if wang_zhi else ""
+                members_str = "".join(sh["members"])
+                lines.append(
+                    f"  三合局: {members_str}合{sh['wu_xing']}局{wang_note}"
+                )
 
         interactions = dongbian_results.get("interactions", {})
         if interactions:
@@ -145,9 +162,10 @@ def _format_dongbian(hexagram, dongbian_results):
 
         an_dong = dongbian_results.get("an_dong", [])
         if an_dong:
-            lines.append("  暗动:")
+            lines.append("  暗动/冲起:")
             for ad in an_dong:
-                lines.append(f"    第{ad['position']}爻({ad['di_zhi']}): {ad['reason']}")
+                type_label = "【暗动】" if ad["type"] == "暗动" else "【冲起】"
+                lines.append(f"    第{ad['position']}爻({ad['di_zhi']}) {type_label} {ad['reason']}")
     lines.append("")
     return lines
 
@@ -168,18 +186,21 @@ def _format_jixiong_block(jixiong_result):
 
 
 def _format_yingqi_block(yingqi_results):
-    """格式化应期推断段落"""
+    """
+    格式化应期推断段落。
+    ★ 候选项已在 yingqi.py 中按"XY互冲"规范生成，此处直接输出。
+    """
     lines = []
     lines.append("=" * 60)
     lines.append("【应期推断】")
     lines.append("=" * 60)
     if yingqi_results:
         for yq in yingqi_results:
-            lines.append(f"  用神第{yq['position']}爻({yq['di_zhi']} {yq['liu_qin']}):")
+            lines.append(f"  用神第{yq['position']}爻（{yq['di_zhi']} {yq['liu_qin']}）:")
             for candidate in yq["candidates"]:
-                lines.append(f"    - {candidate}")
+                lines.append(f"    · {candidate}")
     else:
-        lines.append("  无法推断应期(用神不现)")
+        lines.append("  无法推断应期（用神不现）")
     lines.append("")
     return lines
 
