@@ -591,14 +591,14 @@ class TestDualPerspective:
     def test_yong_shen_table_includes_shiwu(self):
         """YONG_SHEN_TABLE 应包含 shiwu 类型"""
         assert "shiwu" in YONG_SHEN_TABLE
-        assert YONG_SHEN_TABLE["shiwu"] == "父母"
+        assert YONG_SHEN_TABLE["shiwu"] == "妻财"
 
     def test_dual_perspective_table_shiwu(self):
         """失物应配置双视角: 父母 + 妻财"""
         assert "shiwu" in DUAL_PERSPECTIVE_TABLE
         ys_list = [ys for ys, _ in DUAL_PERSPECTIVE_TABLE["shiwu"]]
-        assert "父母" in ys_list
         assert "妻财" in ys_list
+        assert "父母" in ys_list
 
     def test_dual_perspective_table_bing(self):
         """问病应配置双视角: 官鬼(病) + 子孙(药)"""
@@ -608,11 +608,13 @@ class TestDualPerspective:
         assert "子孙" in ys_list
 
     def test_get_dual_perspectives_shiwu(self):
-        """失物类型: 应返回两个视角"""
+        """失物类型: 应返回两个视角，妻财为主视角"""
         ps = get_dual_perspectives("shiwu")
         assert len(ps) == 2
         ys_set = {ys for ys, _ in ps}
-        assert ys_set == {"父母", "妻财"}
+        assert ys_set == {"妻财", "父母"}
+        # 主视角（第一个）应为妻财
+        assert ps[0][0] == "妻财"
 
     def test_get_dual_perspectives_single_type(self):
         """无双视角配置的类型(如 cai): 应退化为单元素列表"""
@@ -624,11 +626,11 @@ class TestDualPerspective:
     def test_run_analysis_with_yong_shen_override(self):
         """run_analysis 支持 yong_shen_override 参数"""
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
-        # shiwu 默认是父母, 这里强制覆盖为妻财
-        report = run_analysis(h, "shiwu", yong_shen_override="妻财")
-        assert report.yong_shen_liu_qin == "妻财"
+        # shiwu 默认是妻财, 这里强制覆盖为父母
+        report = run_analysis(h, "shiwu", yong_shen_override="父母")
+        assert report.yong_shen_liu_qin == "父母"
         for line in report.yong_shen_lines:
-            assert line.liu_qin == "妻财"
+            assert line.liu_qin == "父母"
 
     def test_run_analysis_perspective_label(self):
         """run_analysis 支持 perspective_label 参数"""
@@ -648,7 +650,7 @@ class TestDualPerspective:
 
         # 验证两个视角的用神不同
         ys_set = {p.yong_shen_liu_qin for p in dual.perspectives}
-        assert ys_set == {"父母", "妻财"}
+        assert ys_set == {"妻财", "父母"}
 
         # 共享部分应填充
         assert len(dual.wangshuai_results) == 6
@@ -716,8 +718,8 @@ class TestDualPerspective:
         assert "双视角吉凶判断" in text
         assert "视角1" in text
         assert "视角2" in text
-        assert "物件本相" in text  # 父母视角标签
-        assert "贵重财物" in text  # 妻财视角标签
+        assert "贵重财物" in text  # 妻财视角标签（主视角）
+        assert "物件本相" in text  # 父母视角标签（辅助）
 
         # 综合结论
         assert "综合" in text
@@ -750,5 +752,5 @@ class TestShiwuSpecialCase:
         """shiwu 应可作为有效的问事类型运行 run_analysis"""
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
         report = run_analysis(h, "shiwu")
-        assert report.yong_shen_liu_qin == "父母"
+        assert report.yong_shen_liu_qin == "妻财"
         assert report.jixiong_result["ji_xiong"] in ("吉", "凶", "平")
