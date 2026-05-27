@@ -24,6 +24,7 @@ from .fushen import (
     find_fu_shen, analyze_fu_shen_status,
     judge_fushen_jixiong, estimate_fushen_yingqi,
 )
+from .xintai import detect_xintai_gua, analyze_xintai
 
 
 @dataclass
@@ -55,6 +56,9 @@ class AnalysisReport:
 
     # 伏神分析
     fushen_result: Optional[Dict] = None
+
+    # 心态卦分析
+    xintai_result: Optional[Dict] = None
 
 
 def run_analysis(hexagram, question_type="other", question_desc="",
@@ -159,5 +163,19 @@ def run_analysis(hexagram, question_type="other", question_desc="",
                 "fu_jixiong": fu_jixiong,
                 "fu_yingqi": fu_yingqi,
             }
+
+    # 9. 心态卦识别
+    xintai_detection = detect_xintai_gua(
+        hexagram, question_type,
+        report.wangshuai_results, report.dongbian_results
+    )
+    if xintai_detection["is_xintai"] and xintai_detection["confidence"] >= 0.7:
+        xintai_analysis = analyze_xintai(
+            hexagram, report.wangshuai_results, report.dongbian_results
+        )
+        report.xintai_result = {
+            "detection": xintai_detection,
+            "analysis": xintai_analysis,
+        }
 
     return report

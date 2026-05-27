@@ -317,4 +317,48 @@ def format_report(report):
 
         lines.append("")
 
+    # =========================================================================
+    # 心态卦识别 (仅当检测到心态卦时)
+    # =========================================================================
+    if hasattr(report, 'xintai_result') and report.xintai_result:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【心态卦识别】")
+        lines.append("=" * 60)
+
+        xr = report.xintai_result
+        detection = xr["detection"]
+        analysis = xr["analysis"]
+
+        # 检测结果
+        xintai_type_names = {
+            "worry": "担心忧虑",
+            "hesitation": "犹豫不决",
+            "doubt": "怀疑",
+            "preference": "主观喜厌",
+            "event": "事卦",
+        }
+        type_name = xintai_type_names.get(detection["xintai_type"], "未知")
+        lines.append(f"  识别结果: 心态卦({type_name})")
+        lines.append(f"  置信度: {detection['confidence']:.0%}")
+
+        # 指标
+        lines.append("  识别指标:")
+        for ind in detection["indicators"]:
+            lines.append(f"    - {ind}")
+
+        # 分析结论
+        lines.append(f"  心态判断: 【{analysis['verdict']}】")
+        lines.append(f"  解释: {analysis['explanation']}")
+
+        # 详细模型分析
+        if analysis["details"]:
+            lines.append("  模型分析:")
+            for d in analysis["details"]:
+                lines.append(f"    [{d['model']}] {d['verdict']}: {d['explanation']}")
+
+        lines.append("  注: 心态卦以子孙(安心)和官鬼(忧虑)为核心, "
+                     "解读方式不同于事卦")
+        lines.append("")
+
     return "\n".join(lines)
