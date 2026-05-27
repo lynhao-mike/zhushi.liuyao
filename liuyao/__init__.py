@@ -23,6 +23,17 @@
     h = Hexagram([9, 8, 7, 9, 6, 6], 2026, 5, 25, hour=14)
     dual = run_dual_analysis(h, "shiwu")
     print(format_dual_report(dual))
+
+可读性报告（面向客户，供易师解读）:
+    from liuyao import Hexagram, run_dual_analysis, format_readable_report
+
+    h = Hexagram([9, 8, 7, 9, 6, 6], 2026, 5, 25, hour=14)
+    dual = run_dual_analysis(h, "shiwu")
+    print(format_readable_report(dual, meta={
+        "question":  "金首饰丢失能否找回",
+        "querent":   "张女士",
+        "datetime":  "2026-05-25 14:28",
+    }))
 """
 
 __version__ = "0.2.0"
@@ -34,7 +45,7 @@ from .analyzer import (
     AnalysisReport,
     DualPerspectiveReport,
 )
-from .report import format_report, format_dual_report
+from .report import format_report, format_dual_report, format_readable_report
 
 __all__ = [
     "Hexagram",
@@ -45,4 +56,5 @@ __all__ = [
     "DualPerspectiveReport",
     "format_report",
     "format_dual_report",
+    "format_readable_report",
 ]

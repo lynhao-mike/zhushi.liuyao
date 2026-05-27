@@ -2,8 +2,9 @@
 报告格式化模块 - Report Formatter
 
 将分析结果格式化为中文文本报告。
-- format_report: 单视角报告(六部分)
-- format_dual_report: 双(多)视角报告(共享+各视角对照)
+- format_report:          单视角技术报告(六部分，供研习/存档)
+- format_dual_report:     双(多)视角技术报告(共享+各视角对照)
+- format_readable_report: 可读性断卦报告(面向客户，供易师直接解读)
 """
 
 from .data import DI_ZHI_WU_XING
@@ -295,3 +296,457 @@ def format_dual_report(dual_report):
     lines.append("=" * 60)
 
     return "\n".join(lines)
+
+
+
+# ============================================================================
+# 可读性断卦报告 — 面向客户，供易师直接解读
+# ============================================================================
+
+# 六神描述（对客户友好）
+_LIU_SHEN_DESC = {
+    "青龙": "青龙（贵人、喜庆、财禄）",
+    "朱雀": "朱雀（口舌、文书、信息）",
+    "勾陈": "勾陈（拖延、纠缠、土地）",
+    "螣蛇": "螣蛇（虚惊、缠绕、暗动）",
+    "白虎": "白虎（凶险、官司、强硬）",
+    "玄武": "玄武（隐秘、盗贼、暗昧）",
+}
+
+# 六亲对失物占的物象含义
+_LIU_QIN_SHIWU_DESC = {
+    "父母": "所失物件本身（物之实体）",
+    "妻财": "所失物件的价值（财物之象）",
+    "官鬼": "持有者、阻碍力量",
+    "兄弟": "耗散、竞争、阻隔",
+    "子孙": "寻物者的疏忽/喜神",
+}
+
+# 卦局白话解释
+_GUA_JU_BAIHUA = {
+    "世用受克局":   "用神与世爻合一却遭受动爻克伤——失物与主人的缘分已断，凶。",
+    "世爻受伤局":   "世爻被有力的动爻克伤——主人追寻此物的力量受阻，凶。",
+    "世用受生局":   "用神与世爻合一且受动爻生扶——失物有归还之象，吉。",
+    "用神生世局":   "用神主动生旺世爻——物与主人气场相连，有望寻回，吉。",
+    "用旺世兴局":   "用神旺盛，世爻亦得日月扶助——天时地利俱备，可寻回，吉。",
+    "用旺世衰局":   "用神虽旺，世爻却衰弱——物虽存在，主人无力追回，凶。",
+    "用神克世局":   "用神动而克世——物事对主人有所伤损，凶（短期失物若世旺可酌情看吉）。",
+    "用神衰败局":   "用神本身衰弱——所失之物已残损或难觅踪迹，凶。",
+    "失物特例(用克世)": "用神动克世但世爻有日月扶助——短期内有望寻回（属特例之吉）。",
+    "静卦用旺世兴": "静卦中用神旺、世爻兴——物在某处静候，可寻，吉。",
+    "静卦用衰":     "静卦用神衰败——物已难觅，凶。",
+    "静卦用克世":   "静卦用神克世——寻物对主人构成损耗，凶。",
+    "用神持世":     "用神就是世爻——物与人同在，情形密切，可寻，吉。",
+    "平局":         "卦局平和，吉凶未明，需结合细节综合研判。",
+}
+
+# 应期候选白话前缀
+_YINGQI_PREFIX = "关键时节："
+
+
+def _readable_gua_tu(hexagram):
+    """生成可读性卦图（六神+六亲+爻符+世应+动变）"""
+    rows = []
+    rows.append("  六神    六亲 地支 爻符        变爻")
+    rows.append("  " + "─" * 46)
+    # 从上爻到初爻（卦图习惯由上至下）
+    for line in reversed(hexagram.lines):
+        pos = line.position
+        shen = line.liu_shen
+        qin  = line.liu_qin
+        zhi  = line.di_zhi
+
+        # 爻符
+        if line.yin_yang == 1:
+            yao_sym = "━━━━━━━"   # 阳爻
+        else:
+            yao_sym = "━━ ━━"     # 阴爻
+
+        # 动变标记
+        if line.is_moving:
+            if line.yao_type == 9:   # 老阳变阴
+                dong_mark = " ×"
+                bian_sym  = "━━ ━━"
+            else:                    # 老阴变阳
+                dong_mark = " ○"
+                bian_sym  = "━━━━━━━"
+            bian_str = f"  →  {line.bian_liu_qin or ''}{line.bian_di_zhi or ''} {bian_sym}"
+        else:
+            dong_mark = "  "
+            bian_str  = ""
+
+        # 世应标记
+        if line.is_shi:
+            role = "世"
+        elif line.is_ying:
+            role = "应"
+        else:
+            role = "  "
+
+        # 旬空标记
+        kong = "（空）" if line.is_xun_kong else "      "
+
+        rows.append(
+            f"  {shen:<4}  {qin}{zhi}  {yao_sym}{dong_mark} {role} {kong}{bian_str}"
+        )
+    rows.append("  " + "─" * 46)
+    return rows
+
+
+def _readable_wangshuai_summary(hexagram, wangshuai_results):
+    """生成旺衰白话摘要（一爻一行，用自然语言描述）"""
+    lines = []
+    for ws in wangshuai_results:
+        pos   = ws["position"]
+        line  = hexagram.lines[pos - 1]
+        level = ws["overall"]
+        level_word = {"旺": "当令旺相", "衰": "失令衰弱", "平": "平和中性"}[level]
+
+        role = ""
+        if line.is_shi:
+            role = "（世爻）"
+        elif line.is_ying:
+            role = "（应爻）"
+        dong = "动爻" if line.is_moving else "静爻"
+        kong = "，本旬旬空" if line.is_xun_kong else ""
+
+        lines.append(
+            f"  第{pos}爻  {line.liu_shen} {line.liu_qin}{line.di_zhi}{line.wu_xing}"
+            f"  {dong}{role}  ➜  {level_word}{kong}"
+        )
+    return lines
+
+
+def _readable_dongbian_summary(hexagram, dongbian_results):
+    """生成动变白话摘要"""
+    lines = []
+    moving_analyses = dongbian_results.get("moving_analyses", {})
+    if not moving_analyses:
+        lines.append("  本卦为纯静卦，六爻无一发动，卦象稳定，所问事宜处于静止状态。")
+        return lines
+
+    useful, useless = [], []
+    for pos, ma in sorted(moving_analyses.items()):
+        line = hexagram.lines[pos - 1]
+        entry = (
+            f"第{pos}爻 {line.liu_qin}{line.di_zhi} → {ma['bian_zhi']}"
+        )
+        if ma["is_useless"]:
+            useless.append(entry + f"（{ma['useless_reason']}，此动无效）")
+        else:
+            entry_str = entry
+            if ma["趋旺"]:
+                entry_str += "，动而趋旺（" + "、".join(ma["趋旺"]) + "）"
+            elif ma["趋衰"]:
+                entry_str += "，动而趋衰（" + "、".join(ma["趋衰"]) + "）"
+            useful.append(entry_str)
+
+    if useful:
+        lines.append("  ◎ 有效动爻（影响吉凶走势）：")
+        for u in useful:
+            lines.append(f"    · {u}")
+    if useless:
+        lines.append("  ○ 无效动爻（不参与吉凶定性）：")
+        for u in useless:
+            lines.append(f"    · {u}")
+
+    # 动爻克世
+    interactions = dongbian_results.get("interactions", {})
+    shi_line = None
+    for l in hexagram.lines:
+        if l.is_shi:
+            shi_line = l
+            break
+    if shi_line and shi_line.position in interactions:
+        inter = interactions[shi_line.position]
+        if inter["受克"]:
+            lines.append(f"  ⚠  世爻受克：{' / '.join(inter['受克'])}  克伤主人持物之力")
+        if inter["受生"]:
+            lines.append(f"  ✦  世爻受生：{' / '.join(inter['受生'])}  扶助主人追寻之力")
+    return lines
+
+
+def _readable_yingqi_summary(yingqi_results):
+    """生成应期白话摘要"""
+    lines = []
+    if not yingqi_results:
+        lines.append("  用神不现卦中，应期难以推算。")
+        return lines
+    for yq in yingqi_results:
+        cands = yq.get("candidates", [])
+        if cands:
+            lines.append(
+                f"  第{yq['position']}爻（{yq['di_zhi']} {yq.get('liu_qin','')}）"
+                f"  关键时节：{' / '.join(cands[:4])}"
+            )
+    return lines
+
+
+def _readable_conclusion(dual_report):
+    """
+    生成综合结论段落。
+    支持 DualPerspectiveReport（双视角）和 AnalysisReport（单视角）。
+    """
+    lines = []
+    is_dual = hasattr(dual_report, "perspectives") and dual_report.perspectives
+
+    if is_dual:
+        p1, p2 = dual_report.perspectives[0], dual_report.perspectives[1]
+        j1 = p1.jixiong_result
+        j2 = p2.jixiong_result
+        both_xiong = (j1.get("ji_xiong") == "凶" and j2.get("ji_xiong") == "凶")
+        both_ji    = (j1.get("ji_xiong") == "吉" and j2.get("ji_xiong") == "吉")
+
+        if both_xiong:
+            verdict = "凶——此物难以寻回"
+            tone = (
+                "从物件本相（父母爻）与财物价值（妻财爻）两个角度审视，"
+                "卦象均指向同一结论：\n"
+                f"  · {p1.perspective_label}：{_GUA_JU_BAIHUA.get(j1['pattern'], j1['explanation'])}\n"
+                f"  · {p2.perspective_label}：{_GUA_JU_BAIHUA.get(j2['pattern'], j2['explanation'])}\n"
+                "两路相验，结论趋同，说明卦象给出的信号相当确定。"
+            )
+        elif both_ji:
+            verdict = "吉——此物有望寻回"
+            tone = (
+                "两个视角均显示吉象：\n"
+                f"  · {p1.perspective_label}：{_GUA_JU_BAIHUA.get(j1['pattern'], j1['explanation'])}\n"
+                f"  · {p2.perspective_label}：{_GUA_JU_BAIHUA.get(j2['pattern'], j2['explanation'])}\n"
+                "双视角互证，寻回可期。"
+            )
+        else:
+            v1 = j1.get("ji_xiong", "平")
+            v2 = j2.get("ji_xiong", "平")
+            verdict = f"两视角分歧（{p1.yong_shen_liu_qin}视角：{v1} / {p2.yong_shen_liu_qin}视角：{v2}）"
+            tone = (
+                "两个用神角度给出不同信号，宜谨慎研判，\n"
+                "建议以吉凶更明显的一方为主，结合问卦人实际情况综合判断。"
+            )
+        lines.append(f"  综合断语：【{verdict}】")
+        lines.append("")
+        lines.append(f"  {tone}")
+
+        # 应期合并
+        all_yq = []
+        for p in dual_report.perspectives:
+            all_yq.extend(p.yingqi_results or [])
+        seen = set()
+        uniq_yq = []
+        for yq in all_yq:
+            key = yq["position"]
+            if key not in seen:
+                seen.add(key)
+                uniq_yq.append(yq)
+        if uniq_yq:
+            lines.append("")
+            lines.append("  应期参考（若有线索浮现，多在以下时节）：")
+            lines.extend(_readable_yingqi_summary(uniq_yq))
+
+    else:
+        # 单视角
+        jx = dual_report.jixiong_result
+        ji_xiong = jx.get("ji_xiong", "平")
+        pattern  = jx.get("pattern", "")
+        verdict_map = {"吉": "吉——事可成", "凶": "凶——事难成", "平": "平——尚待观望"}
+        lines.append(f"  综合断语：【{verdict_map.get(ji_xiong, ji_xiong)}】")
+        lines.append("")
+        lines.append(f"  {_GUA_JU_BAIHUA.get(pattern, jx.get('explanation', ''))}")
+        lines.append("")
+        lines.append("  应期参考：")
+        lines.extend(_readable_yingqi_summary(dual_report.yingqi_results or []))
+
+    return lines
+
+
+def format_readable_report(analysis, meta=None):
+    """
+    生成面向客户的可读性断卦报告。
+
+    报告风格：简洁、白话、结构清晰，方便易师向客户直接解读。
+    支持单视角（AnalysisReport）和双视角（DualPerspectiveReport）两种输入。
+
+    Args:
+        analysis : AnalysisReport 或 DualPerspectiveReport
+        meta     : 可选 dict，补充客户信息，支持以下键：
+                     question  (str)  占问事宜，如"金首饰丢失能否找回"
+                     querent   (str)  卦主姓名或称呼
+                     datetime  (str)  起卦时间，如"2026-05-25 14:28"
+                     note      (str)  额外备注
+
+    Returns:
+        str: 格式化后的可读性报告文本
+    """
+    meta = meta or {}
+    is_dual = hasattr(analysis, "perspectives") and analysis.perspectives
+    hexagram = analysis.hexagram
+    gz = hexagram.gan_zhi
+
+    W = 58  # 报告宽度
+
+    out = []
+
+    # ── 封面 ──────────────────────────────────────────────────────────
+    out.append("╔" + "═" * W + "╗")
+    out.append("║" + "  断  卦  报  告".center(W) + "║")
+    out.append("╚" + "═" * W + "╝")
+    out.append("")
+
+    # ── 一、基本信息 ──────────────────────────────────────────────────
+    out.append("▌ 一、基本信息")
+    out.append("─" * (W + 2))
+
+    question = meta.get("question", "（未填写）")
+    querent  = meta.get("querent",  "（未填写）")
+    dt_str   = meta.get("datetime", f"{hexagram.year}年{hexagram.month}月{hexagram.day}日")
+
+    out.append(f"  占问事宜：{question}")
+    out.append(f"  卦  主：  {querent}")
+    out.append(f"  起卦时间：{dt_str}")
+    out.append(f"  干支四柱：{gz['year_gan']}{gz['year_zhi']}年  "
+               f"{gz['month_gan']}{gz['month_zhi']}月  "
+               f"{gz['day_gan']}{gz['day_zhi']}日")
+    out.append(f"  旬    空：{hexagram.xun_kong[0]}、{hexagram.xun_kong[1]}")
+    out.append("")
+
+    # ── 二、卦象 ──────────────────────────────────────────────────────
+    out.append("▌ 二、卦象")
+    out.append("─" * (W + 2))
+    out.append(f"  本卦：{hexagram.ben_gua_name}（{hexagram.palace_name}宫）"
+               f"  →  变卦：{hexagram.bian_gua_name}")
+    out.append("")
+    out.extend(_readable_gua_tu(hexagram))
+    out.append("")
+    out.append("  说明：× 为老阳动爻（阳变阴），○ 为老阴动爻（阴变阳）；")
+    out.append("        世爻代表问卦人，应爻代表对方或所问之事；")
+    out.append("        旬空之爻暂时力量虚悬，待出空方能论其效用。")
+    out.append("")
+
+    # ── 三、旺衰总览 ──────────────────────────────────────────────────
+    out.append("▌ 三、各爻旺衰总览")
+    out.append("─" * (W + 2))
+    out.append(f"  月建：{gz['month_zhi']}（{DI_ZHI_WU_XING[gz['month_zhi']]}）"
+               f"  日辰：{gz['day_zhi']}（{DI_ZHI_WU_XING[gz['day_zhi']]}）")
+    out.append("")
+    if is_dual:
+        ws_results = analysis.wangshuai_results
+    else:
+        ws_results = analysis.wangshuai_results
+    out.extend(_readable_wangshuai_summary(hexagram, ws_results))
+    out.append("")
+    out.append("  旺相之爻力量充足，衰弱之爻力量不足，平和之爻不偏不倚。")
+    out.append("")
+
+    # ── 四、动变解析 ──────────────────────────────────────────────────
+    out.append("▌ 四、动变解析")
+    out.append("─" * (W + 2))
+    if is_dual:
+        db_results = analysis.dongbian_results
+    else:
+        db_results = analysis.dongbian_results
+    out.extend(_readable_dongbian_summary(hexagram, db_results))
+    out.append("")
+
+    # ── 五、用神分析 ──────────────────────────────────────────────────
+    out.append("▌ 五、用神分析")
+    out.append("─" * (W + 2))
+    if is_dual:
+        for idx, p in enumerate(analysis.perspectives, 1):
+            label = p.perspective_label
+            ys    = p.yong_shen_liu_qin
+            ys_lines = p.yong_shen_lines or []
+            jx    = p.jixiong_result
+            ji_mark = {"吉": "✓ 吉", "凶": "✗ 凶", "平": "— 平"}.get(
+                jx.get("ji_xiong", "平"), jx.get("ji_xiong", "平"))
+
+            out.append(f"  【视角{idx}】{label}")
+            if ys_lines:
+                for l in ys_lines:
+                    tags = []
+                    if l.is_moving: tags.append("动")
+                    if l.is_shi:    tags.append("世")
+                    if l.is_ying:   tags.append("应")
+                    if l.is_xun_kong: tags.append("旬空")
+                    ws_lv = ws_results[l.position - 1]["overall"]
+                    tag_s = "、".join(tags) if tags else "静"
+                    out.append(
+                        f"  用神：{ys}——第{l.position}爻 {l.liu_shen} {l.di_zhi}{l.wu_xing}"
+                        f"  （{tag_s}，{ws_lv}相）"
+                    )
+            else:
+                out.append(f"  用神：{ys}——卦中未现，用神不上卦（此为不利之象）")
+
+            out.append(f"  卦局：{jx.get('pattern', '-')}")
+            out.append(f"  判断：{ji_mark}")
+            baihua = _GUA_JU_BAIHUA.get(jx.get("pattern",""), jx.get("explanation",""))
+            out.append(f"  释义：{baihua}")
+            out.append("")
+    else:
+        ys = analysis.yong_shen_liu_qin
+        ys_lines = analysis.yong_shen_lines or []
+        jx = analysis.jixiong_result
+        ji_mark = {"吉": "✓ 吉", "凶": "✗ 凶", "平": "— 平"}.get(
+            jx.get("ji_xiong", "平"), jx.get("ji_xiong", "平"))
+        if ys_lines:
+            for l in ys_lines:
+                tags = []
+                if l.is_moving: tags.append("动")
+                if l.is_shi:    tags.append("世")
+                if l.is_ying:   tags.append("应")
+                ws_lv = ws_results[l.position - 1]["overall"]
+                tag_s = "、".join(tags) if tags else "静"
+                out.append(
+                    f"  用神：{ys}——第{l.position}爻 {l.liu_shen} {l.di_zhi}{l.wu_xing}"
+                    f"  （{tag_s}，{ws_lv}相）"
+                )
+        else:
+            out.append(f"  用神：{ys}——卦中未现")
+        out.append(f"  卦局：{jx.get('pattern', '-')}")
+        out.append(f"  判断：{ji_mark}")
+        out.append(f"  释义：{_GUA_JU_BAIHUA.get(jx.get('pattern',''), jx.get('explanation',''))}")
+        out.append("")
+
+    # ── 六、综合结论 ──────────────────────────────────────────────────
+    out.append("▌ 六、综合结论")
+    out.append("─" * (W + 2))
+    out.extend(_readable_conclusion(analysis))
+    out.append("")
+
+    # ── 七、建议 ──────────────────────────────────────────────────────
+    out.append("▌ 七、给卦主的建议")
+    out.append("─" * (W + 2))
+    # 取综合吉凶
+    if is_dual:
+        ji_set = {p.jixiong_result.get("ji_xiong") for p in analysis.perspectives}
+        overall_ji = ji_set.pop() if len(ji_set) == 1 else "平"
+    else:
+        overall_ji = analysis.jixiong_result.get("ji_xiong", "平")
+
+    if overall_ji == "凶":
+        out.append("  · 卦象显示寻回可能性极低，建议尽早放下执念，避免在追查上")
+        out.append("    投入过多时间与金钱，以免二次损耗。")
+        out.append("  · 若有保险或官方渠道（如报警备案），可走正规途径留存记录，")
+        out.append('    不宜轻信"帮忙寻物"的中间人，谨防再度受损。')
+        out.append("  · 将此次失物视为一次提醒：贵重物品宜妥善保管，出门前")
+        out.append("    养成清点携带物的习惯。")
+    elif overall_ji == "吉":
+        out.append("  · 卦象显示有望寻回，宜保持耐心，在应期所示时节留意线索。")
+        out.append("  · 可通过正规渠道（报警、发布寻物信息）主动出击，")
+        out.append("    增加寻回的机会。")
+        out.append("  · 寻回后宜多加小心，做好防范，避免再度遗失。")
+    else:
+        out.append("  · 卦象平和，吉凶未定，建议持续关注事态发展，")
+        out.append("    不宜过于急切，也不宜完全放弃。")
+        out.append("  · 在应期所示时节，留意是否有相关线索出现。")
+
+    if meta.get("note"):
+        out.append("")
+        out.append(f"  备注：{meta['note']}")
+    out.append("")
+
+    # ── 尾部 ──────────────────────────────────────────────────────────
+    out.append("═" * (W + 2))
+    out.append("  ※ 本报告依据纳甲六爻《古筮真诠》理论体系生成，")
+    out.append("    供易学研习与参考，最终判断以易师解读为准。")
+    out.append("═" * (W + 2))
+
+    return "\n".join(out)
