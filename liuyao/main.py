@@ -12,8 +12,9 @@ import sys
 
 from .hexagram import Hexagram
 from .data import HEXAGRAM_BY_NAME, BINARY_TO_GUA, BA_GUA
-from .analyzer import run_analysis
-from .report import format_report
+from .analyzer import run_analysis, run_dual_analysis
+from .jixiong import DUAL_PERSPECTIVE_TABLE
+from .report import format_report, format_dual_report
 
 
 def parse_args():
@@ -43,11 +44,20 @@ def parse_args():
     parser.add_argument(
         "--question-type", dest="question_type",
         choices=["cai", "guan", "hun_male", "hun_female", "bing",
-                 "kaoshi", "zinv", "xingRen", "youHuan", "other"],
+                 "kaoshi", "zinv", "xingRen", "youHuan", "shiwu", "other"],
         default="other",
         help="问事类型: cai(财运), guan(官运), hun_male(婚姻男问), "
              "hun_female(婚姻女问), bing(疾病), kaoshi(考试), "
-             "zinv(子女), xingRen(行人), youHuan(忧患), other(其他)"
+             "zinv(子女), xingRen(行人), youHuan(忧患), shiwu(失物), other(其他)"
+    )
+    parser.add_argument(
+        "--dual", dest="dual", action="store_true",
+        help="启用双(多)视角分析。失物、问病等多用神场景默认自动启用; "
+             "其他类型若指定本开关, 会退化为单视角输出。"
+    )
+    parser.add_argument(
+        "--no-dual", dest="no_dual", action="store_true",
+        help="对默认启用双视角的占类(如失物、问病)强制使用单视角输出。"
     )
     return parser.parse_args()
 
@@ -129,9 +139,21 @@ def main():
     print()
 
     try:
-        report = run_analysis(h, args.question_type)
-        report_text = format_report(report)
-        print(report_text)
+        # 决定使用单视角还是双视角:
+        #   - 显式 --no-dual: 强制单视角
+        #   - 显式 --dual 或 该占类在 DUAL_PERSPECTIVE_TABLE 中: 双视角
+        #   - 否则: 单视角
+        use_dual = (
+            (not args.no_dual) and
+            (args.dual or args.question_type in DUAL_PERSPECTIVE_TABLE)
+        )
+
+        if use_dual:
+            dual_report = run_dual_analysis(h, args.question_type)
+            print(format_dual_report(dual_report))
+        else:
+            report = run_analysis(h, args.question_type)
+            print(format_report(report))
     except Exception as e:
         print(f"分析错误: {e}")
         sys.exit(1)

@@ -570,3 +570,185 @@ class TestIntegration:
         for pos, inter in interactions.items():
             assert "受生" in inter
             assert "受克" in inter
+
+
+
+# =============================================================================
+# 双视角分析测试
+# =============================================================================
+
+from liuyao.analyzer import run_dual_analysis, DualPerspectiveReport
+from liuyao.jixiong import (
+    DUAL_PERSPECTIVE_TABLE, get_dual_perspectives,
+    YONG_SHEN_TABLE,
+)
+from liuyao.report import format_dual_report
+
+
+class TestDualPerspective:
+    """双(多)视角分析测试"""
+
+    def test_yong_shen_table_includes_shiwu(self):
+        """YONG_SHEN_TABLE 应包含 shiwu 类型"""
+        assert "shiwu" in YONG_SHEN_TABLE
+        assert YONG_SHEN_TABLE["shiwu"] == "父母"
+
+    def test_dual_perspective_table_shiwu(self):
+        """失物应配置双视角: 父母 + 妻财"""
+        assert "shiwu" in DUAL_PERSPECTIVE_TABLE
+        ys_list = [ys for ys, _ in DUAL_PERSPECTIVE_TABLE["shiwu"]]
+        assert "父母" in ys_list
+        assert "妻财" in ys_list
+
+    def test_dual_perspective_table_bing(self):
+        """问病应配置双视角: 官鬼(病) + 子孙(药)"""
+        assert "bing" in DUAL_PERSPECTIVE_TABLE
+        ys_list = [ys for ys, _ in DUAL_PERSPECTIVE_TABLE["bing"]]
+        assert "官鬼" in ys_list
+        assert "子孙" in ys_list
+
+    def test_get_dual_perspectives_shiwu(self):
+        """失物类型: 应返回两个视角"""
+        ps = get_dual_perspectives("shiwu")
+        assert len(ps) == 2
+        ys_set = {ys for ys, _ in ps}
+        assert ys_set == {"父母", "妻财"}
+
+    def test_get_dual_perspectives_single_type(self):
+        """无双视角配置的类型(如 cai): 应退化为单元素列表"""
+        ps = get_dual_perspectives("cai")
+        assert len(ps) == 1
+        assert ps[0][0] == "妻财"
+        assert ps[0][1] == "默认视角"
+
+    def test_run_analysis_with_yong_shen_override(self):
+        """run_analysis 支持 yong_shen_override 参数"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        # shiwu 默认是父母, 这里强制覆盖为妻财
+        report = run_analysis(h, "shiwu", yong_shen_override="妻财")
+        assert report.yong_shen_liu_qin == "妻财"
+        for line in report.yong_shen_lines:
+            assert line.liu_qin == "妻财"
+
+    def test_run_analysis_perspective_label(self):
+        """run_analysis 支持 perspective_label 参数"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "shiwu", perspective_label="测试视角")
+        assert report.perspective_label == "测试视角"
+
+    def test_run_dual_analysis_shiwu(self):
+        """失物类型: 双视角分析应产生两个视角"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+
+        assert isinstance(dual, DualPerspectiveReport)
+        assert dual.hexagram is h
+        assert dual.question_type == "shiwu"
+        assert len(dual.perspectives) == 2
+
+        # 验证两个视角的用神不同
+        ys_set = {p.yong_shen_liu_qin for p in dual.perspectives}
+        assert ys_set == {"父母", "妻财"}
+
+        # 共享部分应填充
+        assert len(dual.wangshuai_results) == 6
+        assert "moving_analyses" in dual.dongbian_results
+        assert dual.shi_line is not None
+
+        # 每个视角应有完整分析
+        for p in dual.perspectives:
+            assert p.perspective_label != ""
+            assert "ji_xiong" in p.jixiong_result
+            assert p.jixiong_result["ji_xiong"] in ("吉", "凶", "平")
+
+    def test_run_dual_analysis_bing(self):
+        """问病类型: 双视角分析应产生官鬼+子孙两个视角"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "bing")
+
+        assert len(dual.perspectives) == 2
+        ys_set = {p.yong_shen_liu_qin for p in dual.perspectives}
+        assert ys_set == {"官鬼", "子孙"}
+
+    def test_run_dual_analysis_fallback(self):
+        """无双视角配置的类型: 应退化为单视角"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "cai")
+
+        assert len(dual.perspectives) == 1
+        assert dual.perspectives[0].yong_shen_liu_qin == "妻财"
+
+    def test_dual_consensus_calculation(self):
+        """consensus 应正确反映吉凶一致或分歧"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+
+        ji_xiong_set = {p.jixiong_result["ji_xiong"] for p in dual.perspectives}
+        if len(ji_xiong_set) == 1:
+            assert "一致" in dual.consensus
+        else:
+            assert "分歧" in dual.consensus
+
+    def test_dual_shared_computation_consistency(self):
+        """共享部分(旺衰/动变)在所有视角应一致"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+
+        # 各视角引用的旺衰结果应是同一个对象
+        for p in dual.perspectives:
+            assert p.wangshuai_results is dual.wangshuai_results
+            assert p.dongbian_results is dual.dongbian_results
+            assert p.shi_line is dual.shi_line
+
+    def test_format_dual_report_complete(self):
+        """双视角报告应包含所有必要部分"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+        text = format_dual_report(dual)
+
+        # 共享部分
+        assert "排卦信息" in text
+        assert "日月信息" in text
+        assert "各爻旺衰" in text
+        assert "动变分析" in text
+
+        # 双视角对照
+        assert "双视角吉凶判断" in text
+        assert "视角1" in text
+        assert "视角2" in text
+        assert "物件本相" in text  # 父母视角标签
+        assert "贵重财物" in text  # 妻财视角标签
+
+        # 综合结论
+        assert "综合" in text
+
+    def test_format_dual_report_bing(self):
+        """问病双视角报告"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "bing")
+        text = format_dual_report(dual)
+
+        assert "病情视角" in text
+        assert "药效视角" in text
+
+    def test_format_dual_report_no_redundancy(self):
+        """共享段落只出现一次, 不应在视角块中重复"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+        text = format_dual_report(dual)
+
+        # 各爻旺衰段落标题只出现一次
+        assert text.count("【各爻旺衰】") == 1
+        assert text.count("【动变分析】") == 1
+        assert text.count("【日月信息】") == 1
+
+
+class TestShiwuSpecialCase:
+    """失物用克世特例测试"""
+
+    def test_shiwu_in_question_type_choices(self):
+        """shiwu 应可作为有效的问事类型运行 run_analysis"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "shiwu")
+        assert report.yong_shen_liu_qin == "父母"
+        assert report.jixiong_result["ji_xiong"] in ("吉", "凶", "平")
