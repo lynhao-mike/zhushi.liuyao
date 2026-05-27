@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-001",
+  "type": "chore",
+  "description": "Add package management (pyproject.toml), independent unit tests for core modules (wangshuai, dongbian, jixiong), and GitHub Actions CI. Also move documentation files to docs/reference/ directory.",
+  "status": "in_progress",
+  "steps": [
+    "Create pyproject.toml at project root declaring: project name 'zhushi-liuyao', version '0.2.0', requires-python '>=3.9', dependency on 'sxtwl', optional test dependencies [test] = ['pytest>=7.0']. Configure the project as installable with pip install -e . Include [tool.pytest.ini_options] with testpaths=['tests'].",
+    "Create tests/test_wangshuai.py with dedicated unit tests for liuyao/wangshuai.py. Test yue_jian_wangshuai with all 8 conditions (4 wang + 4 shuai), test ri_chen_wangshuai with all 7 conditions (5 wang + 2 shuai) including is_static parameter behavior, test analyze_line_wangshuai comprehensive scenarios (overall wang/shuai/ping, yue_po override, jue treated as ping when wang), test analyze_hexagram_wangshuai with a known hexagram. Use direct function calls with known di_zhi values - do NOT require Hexagram objects for unit tests of individual functions.",
+    "Create tests/test_dongbian.py with dedicated unit tests for liuyao/dongbian.py. Test all predicate functions (is_hui_tou_sheng, is_hui_tou_ke, is_hua_jin_shen, is_hua_tui_shen, is_hua_jue, is_hua_po) with positive AND negative cases. Test analyze_moving_line by constructing a minimal mock YaoLine with is_moving=True and bian_di_zhi set. Test detect_an_dong with a real Hexagram that triggers each of the 4 an_dong conditions plus the 'chong qi' (moving line hit by day). Test analyze_dongbian end-to-end with a multi-moving-line hexagram.",
+    "Create tests/test_jixiong.py with dedicated unit tests for liuyao/jixiong.py. Test determine_yong_shen for all entries in YONG_SHEN_TABLE. Test find_yong_shen_lines with a known hexagram. Test judge_dong_gua patterns by constructing hexagrams that trigger specific patterns (world-use-receives-sheng, use-generates-world, use-wang-world-xing, use-shuai). Test judge_jing_gua patterns (use-holds-world, ji-holds-world, use-generates-world, use-overcomes-world). Test judge_jixiong dispatching (has_moving -> dong_gua, no_moving -> jing_gua).",
+    "Create .github/workflows/ci.yml that runs on push and pull_request, sets up Python 3.9+, installs dependencies via pip install -e '.[test]' and pip install sxtwl, then runs pytest tests/ -v.",
+    "Create docs/reference/ directory. Move all liuyao-gushizhenquan_part*.md (23 files), zhishidianzongjie.md, and 第十章.md to docs/reference/ using git mv."
+  ],
+  "acceptance_criteria": [
+    "pip install -e . succeeds after pyproject.toml is created",
+    "python3 -m pytest tests/test_wangshuai.py -v passes with at least 15 test cases covering all function signatures",
+    "python3 -m pytest tests/test_dongbian.py -v passes with at least 15 test cases covering all exported functions",
+    "python3 -m pytest tests/test_jixiong.py -v passes with at least 12 test cases covering determine_yong_shen, find_yong_shen_lines, judge_dong_gua, judge_jing_gua, judge_jixiong",
+    ".github/workflows/ci.yml exists and is valid YAML",
+    "All 23 part files plus zhishidianzongjie.md and 第十章.md are moved to docs/reference/",
+    "The full test suite (python3 -m pytest tests/ -v) still passes with all 347+ original tests"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/ -v and confirm all tests pass (347 original + new tests)",
+    "Run pip install -e . and confirm it installs successfully",
+    "Verify docs/reference/ contains 25 markdown files"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

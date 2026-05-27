@@ -1,0 +1,33 @@
+{
+  "id": "FEAT-002",
+  "type": "refactor",
+  "description": "Add TypedDict annotations for analysis result types and create a custom exception hierarchy. Update hexagram.py, calendar_utils.py, and analyzer.py to use custom exceptions while maintaining backward compatibility.",
+  "status": "pending",
+  "steps": [
+    "In liuyao/wangshuai.py, add a WangShuaiResult TypedDict (using typing_extensions for Python 3.9 compat if needed, or typing.TypedDict) with fields: overall (str), month_wang (List[str]), month_shuai (List[str]), day_wang (List[str]), day_shuai (List[str]), details (str). Add return type annotation to analyze_line_wangshuai. The analyze_hexagram_wangshuai return adds position/di_zhi/wu_xing/liu_qin fields so define a HexagramWangShuaiResult that extends WangShuaiResult.",
+    "In liuyao/dongbian.py, define MovingAnalysis TypedDict with fields: position (int), ben_zhi (str), bian_zhi (str), qu_wang (List[str] for '趋旺'), qu_shuai (List[str] for '趋衰'), is_useless (bool), useless_reason (str). Define DongbianResult TypedDict with fields: moving_analyses (Dict[int, MovingAnalysis]), san_he_ju (List), an_dong (List), useful_moving (List[int]), useless_moving (List[int]), interactions (Dict). Add return type annotations to analyze_moving_line and analyze_dongbian.",
+    "Create liuyao/exceptions.py with: LiuyaoError(Exception) as base, ArrangementError(LiuyaoError) for arrangement/排卦 errors, AnalysisError(LiuyaoError) for analysis errors, CalendarError(LiuyaoError) for calendar computation errors. Each should have a brief Chinese + English docstring.",
+    "Update liuyao/hexagram.py: import ArrangementError from exceptions. Change the ValueError raises in _validate_date and _arrange (invalid yao value) to raise ArrangementError instead. Keep the same error message strings.",
+    "Update liuyao/calendar_utils.py: import CalendarError from exceptions. Wrap sxtwl calls in try/except and raise CalendarError with a descriptive message if they fail.",
+    "Update liuyao/analyzer.py: import AnalysisError and the custom exceptions. In run_analysis, wrap the analysis steps in try/except for LiuyaoError subclasses, providing graceful degradation (e.g., if dongbian fails, set dongbian_results to empty dict and continue; if jixiong fails, set jixiong_result to a default 'unable to determine' dict).",
+    "Update liuyao/__init__.py to export the new exception classes.",
+    "Add tests in the existing test files or a new tests/test_exceptions.py to verify: (a) ArrangementError is raised for invalid yao values, (b) ArrangementError is raised for invalid dates, (c) the exceptions inherit from LiuyaoError, (d) analyzer graceful degradation works."
+  ],
+  "acceptance_criteria": [
+    "WangShuaiResult and HexagramWangShuaiResult TypedDicts are defined in wangshuai.py with correct field types",
+    "MovingAnalysis and DongbianResult TypedDicts are defined in dongbian.py",
+    "liuyao/exceptions.py exists with LiuyaoError, ArrangementError, AnalysisError, CalendarError",
+    "Hexagram([1,2,3,4,5,6], 2024, 1, 1) raises ArrangementError (not ValueError)",
+    "Hexagram([7,7,7,7,7,7], 2024, 13, 1) raises ArrangementError (not ValueError)",
+    "All exception classes are subclasses of LiuyaoError",
+    "All 347+ existing tests still pass (backward compatibility maintained since ArrangementError inherits from ValueError would break - so we keep backward compat by also inheriting from ValueError OR by updating test assertions)",
+    "python3 -m pytest tests/ -v passes all tests"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/ -v and confirm all tests pass",
+    "Run python3 -c \"from liuyao.exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError; print('OK')\"",
+    "Run python3 -c \"from liuyao.hexagram import Hexagram; try:\\n    Hexagram([1,2,3], 2024, 1, 1)\\nexcept Exception as e:\\n    print(type(e).__name__)\" and confirm ArrangementError"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

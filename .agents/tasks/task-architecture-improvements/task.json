@@ -1,0 +1,7 @@
+{
+  "task_id": "task-architecture-improvements",
+  "task_description": "Implement architecture improvements for the zhushi.liuyao project: add package management (pyproject.toml), independent unit tests for core modules, GitHub Actions CI, move documentation to docs/, add TypedDict annotations, and create custom exception hierarchy.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002"],
+  "blocked_reason": null
+}
