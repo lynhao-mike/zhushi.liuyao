@@ -22,6 +22,7 @@ YONG_SHEN_TABLE = {
     "zinv": "子孙",       # 子女
     "xingRen": "官鬼",    # 行人(默认, 实际需看关系)
     "youHuan": "子孙",    # 忧患(子孙为喜神)
+    "shiwu": "父母",      # 失物(默认: 父母 - 物件本相)
     "other": "官鬼",      # 其他(默认)
 }
 
@@ -33,6 +34,37 @@ JI_SHEN_TABLE = {
     "子孙": "官鬼",   # 官鬼克子孙
     "兄弟": "官鬼",   # 官鬼克兄弟
 }
+
+# 双(多)视角用神配置: 问事类型 -> [(用神六亲, 视角标签), ...]
+# 仅在某些问事类型存在多个合理用神选择时启用。
+# - 失物: 父母(物件本相) + 妻财(贵重财物之价值属性)
+# - 疾病: 官鬼(病势消长) + 子孙(药效医疗)
+DUAL_PERSPECTIVE_TABLE = {
+    "shiwu": [
+        ("父母", "物件本相视角(物之载体)"),
+        ("妻财", "贵重财物视角(物之价值)"),
+    ],
+    "bing": [
+        ("官鬼", "病情视角(病势消长)"),
+        ("子孙", "药效视角(医疗成效)"),
+    ],
+}
+
+
+def get_dual_perspectives(question_type):
+    """
+    获取问事类型的双(多)视角用神配置。
+
+    Args:
+        question_type: 问事类型
+
+    Returns:
+        list of (yong_shen_liu_qin, perspective_label) tuples
+        若该类型未配置多视角, 则返回单元素列表(仅默认视角)
+    """
+    if question_type in DUAL_PERSPECTIVE_TABLE:
+        return list(DUAL_PERSPECTIVE_TABLE[question_type])
+    return [(determine_yong_shen(question_type), "默认视角")]
 
 
 def determine_yong_shen(question_type):
@@ -312,6 +344,16 @@ def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
                 "ji_xiong": "吉",
                 "explanation": "求财卦, 妻财克世但世有日月扶助, 财来就我, 吉",
             }
+
+    # 失物: 用神动克世, 世有日月扶 -> 吉(短期可寻回)
+    # 据《知识点总结》: "用神发动克旺相世爻可视为成事之兆,
+    # 如占短期失物、短期工作、短期考试等等"
+    if question_type == "shiwu" and shi_has_support:
+        return {
+            "pattern": "失物特例(用克世)",
+            "ji_xiong": "吉",
+            "explanation": f"失物卦, 用神{primary_yong.di_zhi}动克世但世有日月扶, 短期可寻回",
+        }
 
     # 疾病: 子孙克世 -> 吉(药效)
     if question_type == "bing":
