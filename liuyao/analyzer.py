@@ -22,6 +22,7 @@ from .jixiong import (
 )
 from .yingqi import analyze_yingqi
 from .patterns import analyze_all_patterns
+from .fushen import analyze_fushen
 from .exceptions import AnalysisError
 
 
@@ -40,6 +41,7 @@ class AnalysisReport:
     dongbian_results: Dict = field(default_factory=dict)
     patterns_results: Dict = field(default_factory=dict)
     star_spirits: Dict = field(default_factory=dict)
+    fushen_analysis: Optional[Dict] = None  # 伏神分析(仅用神不上卦时存在)
     jixiong_result: Dict = field(default_factory=dict)
     yingqi_results: List[Dict] = field(default_factory=list)
 
@@ -144,7 +146,18 @@ def run_analysis(hexagram, question_type="other",
     except Exception:
         report.star_spirits = {}
 
-    # 6. 吉凶判断
+    # 6. 伏神分析 (仅当用神不上卦时启用)
+    if not report.yong_shen_lines:
+        try:
+            report.fushen_analysis = analyze_fushen(
+                hexagram, report.yong_shen_liu_qin,
+                report.wangshuai_results, report.dongbian_results,
+                question_type,
+            )
+        except Exception:
+            report.fushen_analysis = None
+
+    # 7. 吉凶判断
     try:
         report.jixiong_result = judge_jixiong(
             hexagram, report.yong_shen_liu_qin,
@@ -155,19 +168,31 @@ def run_analysis(hexagram, question_type="other",
         kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
         if kuayi_patterns:
             report.jixiong_result["kuayi_supplements"] = kuayi_patterns
+        # 注入伏神判断作为补充 (用神不上卦时)
+        if report.fushen_analysis:
+            report.jixiong_result["fushen_supplement"] = report.fushen_analysis
     except Exception as e:
         report.jixiong_result = {
             "pattern": "分析异常", "ji_xiong": "平",
             "explanation": f"吉凶判断过程异常: {e}",
         }
 
-    # 7. 应期推断 (使用 patterns 结果增强)
+    # 8. 应期推断 (使用 patterns 结果增强 + 伏神应期)
     try:
         report.yingqi_results = analyze_yingqi(
             hexagram, report.yong_shen_lines,
             report.wangshuai_results, report.dongbian_results,
             patterns_results=report.patterns_results,
         )
+        # 追加伏神应期
+        if report.fushen_analysis:
+            fa = report.fushen_analysis
+            report.yingqi_results.append({
+                "position": fa["fushen_info"]["position"],
+                "di_zhi": fa["fushen_info"]["fu_di_zhi"],
+                "liu_qin": f"伏神{report.yong_shen_liu_qin}",
+                "candidates": fa["yingqi_candidates"],
+            })
     except Exception as e:
         report.yingqi_results = []
 
@@ -234,6 +259,15 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         except Exception:
             report.patterns_results = {}
 
+        # 各视角的伏神分析 (仅用神不上卦时)
+        if not report.yong_shen_lines:
+            try:
+                report.fushen_analysis = analyze_fushen(
+                    hexagram, yong_shen, shared_ws, shared_db, question_type
+                )
+            except Exception:
+                report.fushen_analysis = None
+
         try:
             report.jixiong_result = judge_jixiong(
                 hexagram, yong_shen, shared_ws, shared_db, question_type
@@ -241,6 +275,8 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
             kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
             if kuayi_patterns:
                 report.jixiong_result["kuayi_supplements"] = kuayi_patterns
+            if report.fushen_analysis:
+                report.jixiong_result["fushen_supplement"] = report.fushen_analysis
         except Exception as e:
             report.jixiong_result = {
                 "pattern": "分析异常", "ji_xiong": "平",
@@ -252,6 +288,14 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
                 hexagram, report.yong_shen_lines, shared_ws, shared_db,
                 patterns_results=report.patterns_results,
             )
+            if report.fushen_analysis:
+                fa = report.fushen_analysis
+                report.yingqi_results.append({
+                    "position": fa["fushen_info"]["position"],
+                    "di_zhi": fa["fushen_info"]["fu_di_zhi"],
+                    "liu_qin": f"伏神{yong_shen}",
+                    "candidates": fa["yingqi_candidates"],
+                })
         except Exception as e:
             report.yingqi_results = []
 

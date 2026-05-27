@@ -367,6 +367,62 @@ def _format_kuayi_supplements(jixiong_result):
     return lines
 
 
+def _format_fushen_block(fushen_analysis):
+    """
+    格式化伏神(藏伏)分析段落.
+
+    据《古筮真诠》第三十九章, 仅当用神不上卦时启用.
+    """
+    if not fushen_analysis:
+        return []
+
+    fa = fushen_analysis
+    fi = fa["fushen_info"]
+    cang = fi["cang_yao"]
+    fei = fi["fei_shen"]
+
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【伏神分析 — 用神不上卦, 启用藏伏理论】")
+    lines.append("=" * 60)
+    lines.append(
+        f"  伏神: {cang.liu_qin}{cang.tian_gan}{cang.di_zhi}{cang.wu_xing} "
+        f"(伏于第{fi['position']}爻)"
+    )
+    lines.append(
+        f"  飞神: 第{fi['position']}爻 {fei.liu_qin}{fei.tian_gan}"
+        f"{fei.di_zhi}{fei.wu_xing} (盖在伏神上)"
+    )
+
+    # 飞伏关系 (信息性, 非主导)
+    rel = fa.get("fei_fu_relation", "")
+    alias = fa.get("fei_fu_alias", "")
+    impl = fa.get("fei_fu_implication", "")
+    lines.append(f"  飞伏关系: {rel} (\"{alias}\") - {impl}")
+
+    # 卦理定性
+    lines.append("  卦理定性:")
+    for ev in fa.get("jixiong_evaluations", []):
+        result_mark = {
+            "凶": "✗ 凶",
+            "吉": "✓ 吉",
+            "吉(短期)": "✓ 吉(短期)",
+            "中性": "— 中性",
+        }.get(ev["result"], ev["result"])
+        lines.append(f"    · {ev['rule']}: 【{result_mark}】 {ev['detail']}")
+
+    # 应期 (应期块也会单独展示, 这里仅做提示)
+    lines.append("  应期总则: 冲飞露伏 (《黄金策》: 伏无提挈终徒尔, 飞不推开亦枉然)")
+
+    if cang.is_xun_kong:
+        lines.append("  ⚠ 伏神旬空")
+
+    short_term = "短期" if fa.get("is_short_term") else "长期"
+    lines.append(f"  事态时效: {short_term}事占")
+    lines.append("")
+    return lines
+
+
 # ============================================================================
 # 单视角报告
 # ============================================================================
@@ -389,6 +445,9 @@ def format_report(report):
     # 新增: 13星煞
     if getattr(report, "star_spirits", None):
         lines.extend(_format_star_spirits_block(report.star_spirits, report.hexagram))
+    # 新增: 伏神分析 (仅用神不上卦时)
+    if getattr(report, "fushen_analysis", None):
+        lines.extend(_format_fushen_block(report.fushen_analysis))
     lines.extend(_format_jixiong_block(report.jixiong_result))
     # 新增: 卦意法补充判断 (附在吉凶判断块)
     kuayi_lines = _format_kuayi_supplements(report.jixiong_result)
@@ -430,7 +489,22 @@ def _format_perspective_block(idx, perspective):
             yong_pos.append(f"第{l.position}爻({l.di_zhi}{l.wu_xing}){tag_str}")
         lines.append(f"    用神爻: {', '.join(yong_pos)}")
     else:
-        lines.append("    用神爻: 卦中不现")
+        # 用神不上卦, 显示伏神信息
+        fa = getattr(p, "fushen_analysis", None)
+        if fa:
+            fi = fa["fushen_info"]
+            cang = fi["cang_yao"]
+            kong_mark = "[空]" if cang.is_xun_kong else ""
+            lines.append(
+                f"    用神爻: 卦中不现, 伏于第{fi['position']}爻下"
+                f"({cang.di_zhi}{cang.wu_xing}){kong_mark}"
+            )
+            lines.append(
+                f"    飞伏关系: {fa.get('fei_fu_relation', '')}"
+                f" ({fa.get('fei_fu_alias', '')})"
+            )
+        else:
+            lines.append("    用神爻: 卦中不现, 藏爻中亦无")
 
     # 吉凶
     jx = p.jixiong_result
@@ -454,6 +528,18 @@ def _format_perspective_block(idx, perspective):
         lines.append("    卦意法补充:")
         for k in kuayi:
             lines.append(f"      · {k['method']} → 【{k['result']}】 {k['detail']}")
+
+    # 伏神卦理定性补充
+    fa = getattr(p, "fushen_analysis", None)
+    if fa:
+        evals = fa.get("jixiong_evaluations", [])
+        non_neutral = [e for e in evals if e["result"] != "中性"]
+        if non_neutral:
+            lines.append("    伏神卦理:")
+            for ev in non_neutral:
+                rmark = {"凶": "✗ 凶", "吉": "✓ 吉", "吉(短期)": "✓ 吉(短期)"}.get(
+                    ev["result"], ev["result"])
+                lines.append(f"      · {ev['rule']} 【{rmark}】 {ev['detail']}")
 
     # 视角专属模式信号 (心态卦 / 间爻阻隔 / 反伏吟)
     pat = getattr(p, "patterns_results", None) or {}
