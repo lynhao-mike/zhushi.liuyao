@@ -209,9 +209,163 @@ def _format_yingqi_block(yingqi_results):
 # 单视角报告
 # ============================================================================
 
+def _format_shuanghe_block(report):
+    """格式化双合卦分析段落"""
+    lines = []
+    if report.shuanghe_type == "normal":
+        return lines
+    lines.append("=" * 60)
+    lines.append("【双合卦分析】")
+    lines.append("=" * 60)
+    type_label = {"te_zhi": "特指", "jia_jie": "嫁接"}.get(report.shuanghe_type, "")
+    lines.append(f"  类型: {type_label}")
+    if report.shuanghe_ying_role:
+        role = report.shuanghe_ying_role["role"]
+        role_label = {"wu_guan": "无关", "dui_bi": "对比", "guan_lian": "关联"}.get(role, role)
+        lines.append(f"  应爻参与度: {role_label}")
+        lines.append(f"  说明: {report.shuanghe_ying_role['details']}")
+    if report.shuanghe_jixiong:
+        sj = report.shuanghe_jixiong
+        match_label = "一致" if sj["te_zhi_match"] else "偏离"
+        lines.append(f"  与指定目标: {match_label}")
+        lines.append(f"  应爻强度: {sj['ying_strength']}")
+        lines.append(f"  解释: {sj['explanation']}")
+    lines.append("")
+    return lines
+
+
+def _format_tuopu_block(report):
+    """格式化拓扑用神段落"""
+    lines = []
+    if not report.tuopu_result:
+        return lines
+    lines.append("=" * 60)
+    lines.append("【拓扑用神选择】")
+    lines.append("=" * 60)
+    tr = report.tuopu_result
+    lines.append(f"  方法: {tr['details']}")
+    if tr["lines"]:
+        pos_list = [f"第{l.position}爻({l.di_zhi})" for l in tr["lines"]]
+        lines.append(f"  选取爻: {', '.join(pos_list)}")
+    else:
+        lines.append("  选取爻: 无")
+    lines.append("")
+    return lines
+
+
+def _format_fushen_block(report):
+    """格式化伏神分析段落"""
+    lines = []
+    if not report.fushen_result:
+        return lines
+    lines.append("=" * 60)
+    lines.append("【伏神分析】")
+    lines.append("=" * 60)
+    fr = report.fushen_result
+    fi = fr["fu_shen_info"]
+    lines.append(f"  伏神: {fi['fu_liu_qin']} {fi['fu_tian_gan']}{fi['fu_di_zhi']}"
+                 f"({fi['fu_wu_xing']}) 伏于第{fi['position']}爻下")
+    lines.append(f"  飞神: {fi['fei_liu_qin']} {fi['fei_di_zhi']}({fi['fei_wu_xing']})")
+
+    fs = fr["fu_status"]
+    status_items = []
+    if fs["fu_kong"]:
+        status_items.append("伏空")
+    if fs["fu_po"]:
+        status_items.append("伏破")
+    if fs["fei_kong"]:
+        status_items.append("飞空")
+    if fs["fei_po"]:
+        status_items.append("飞破")
+    if not status_items:
+        status_items.append("正常")
+    lines.append(f"  状态: {', '.join(status_items)}")
+
+    fj = fr["fu_jixiong"]
+    lines.append(f"  吉凶: {fj['ji_xiong']}({fj['pattern']})")
+    lines.append(f"  解释: {fj['explanation']}")
+
+    fy = fr["fu_yingqi"]
+    lines.append(f"  应期:")
+    for cand in fy["candidates"]:
+        lines.append(f"    - {cand}")
+    lines.append("")
+    return lines
+
+
+def _format_xintai_block(report):
+    """格式化心态卦识别段落"""
+    lines = []
+    if not report.xintai_result:
+        return lines
+    lines.append("=" * 60)
+    lines.append("【心态卦识别】")
+    lines.append("=" * 60)
+    det = report.xintai_result["detection"]
+    ana = report.xintai_result["analysis"]
+    lines.append(f"  置信度: {det['confidence']:.0%}")
+    lines.append(f"  心态类型: {det['xintai_type']}")
+    lines.append(f"  指标:")
+    for ind in det["indicators"]:
+        lines.append(f"    - {ind}")
+    lines.append(f"  判定: {ana['verdict']}")
+    lines.append(f"  解释: {ana['explanation']}")
+    lines.append("")
+    return lines
+
+
+def _format_guaci_block(report):
+    """格式化卦辞寓意段落"""
+    lines = []
+    if not report.guaci_result:
+        return lines
+    lines.append("=" * 60)
+    lines.append("【卦辞寓意】")
+    lines.append("=" * 60)
+    gr = report.guaci_result
+
+    # 卦辞解读
+    gi = gr.get("guaci_interpretation")
+    if gi:
+        lines.append(f"  变卦寓意: {', '.join(gi['keywords'])}")
+        lines.append(f"  指导: {gi['guidance']}")
+
+    # 六冲/六合
+    lc = gr.get("liuchong", {})
+    if lc.get("ben_is_liuchong") or lc.get("bian_is_liuchong"):
+        lines.append(f"  六冲卦: {lc.get('liuchong_gua', '')}")
+        if lc.get("special_pattern"):
+            lines.append(f"    特殊模式: {lc['special_pattern']}")
+        imp = lc.get("implications", {})
+        if imp.get("short_term"):
+            lines.append(f"    短期: {imp['short_term']}")
+
+    lh = gr.get("liuhe", {})
+    if lh.get("ben_is_liuhe") or lh.get("bian_is_liuhe"):
+        lines.append(f"  六合卦: 是")
+        imp = lh.get("implications", {})
+        if imp.get("short_term"):
+            lines.append(f"    短期: {imp['short_term']}")
+
+    # 反吟/伏吟
+    ff = gr.get("fanyin_fuyin", {})
+    if ff.get("fan_yin"):
+        lines.append(f"  反吟: {ff['implications']}")
+    if ff.get("fu_yin"):
+        lines.append(f"  伏吟: {ff['implications']}")
+
+    # 指导建议
+    guidance = gr.get("guidance")
+    if guidance:
+        lines.append(f"  建议: {guidance}")
+    lines.append("")
+    return lines
+
+
 def format_report(report):
     """
-    将AnalysisReport格式化为中文文本(六部分: 排卦/日月/旺衰/动变/吉凶/应期)。
+    将AnalysisReport格式化为中文文本。
+    包含: 排卦/日月/旺衰/动变/吉凶/应期, 以及扩展模块(如有)。
     """
     lines = []
     lines.extend(_format_paigua_header(
@@ -223,6 +377,11 @@ def format_report(report):
     lines.extend(_format_dongbian(report.hexagram, report.dongbian_results))
     lines.extend(_format_jixiong_block(report.jixiong_result))
     lines.extend(_format_yingqi_block(report.yingqi_results))
+    lines.extend(_format_guaci_block(report))
+    lines.extend(_format_shuanghe_block(report))
+    lines.extend(_format_tuopu_block(report))
+    lines.extend(_format_fushen_block(report))
+    lines.extend(_format_xintai_block(report))
     lines.append("=" * 60)
     return "\n".join(lines)
 
