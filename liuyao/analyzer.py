@@ -17,6 +17,7 @@ from .jixiong import (
     get_dual_perspectives,
 )
 from .yingqi import analyze_yingqi
+from .exceptions import AnalysisError
 
 
 @dataclass
@@ -106,20 +107,35 @@ def run_analysis(hexagram, question_type="other",
     report.wangshuai_results = analyze_hexagram_wangshuai(hexagram)
 
     # 3. 动变分析
-    report.dongbian_results = analyze_dongbian(hexagram, report.wangshuai_results)
+    try:
+        report.dongbian_results = analyze_dongbian(hexagram, report.wangshuai_results)
+    except Exception as e:
+        report.dongbian_results = {
+            "moving_analyses": {}, "san_he_ju": [], "an_dong": [],
+            "useful_moving": [], "useless_moving": [], "interactions": {},
+        }
 
     # 4. 吉凶判断
-    report.jixiong_result = judge_jixiong(
-        hexagram, report.yong_shen_liu_qin,
-        report.wangshuai_results, report.dongbian_results,
-        question_type
-    )
+    try:
+        report.jixiong_result = judge_jixiong(
+            hexagram, report.yong_shen_liu_qin,
+            report.wangshuai_results, report.dongbian_results,
+            question_type
+        )
+    except Exception as e:
+        report.jixiong_result = {
+            "pattern": "分析异常", "ji_xiong": "平",
+            "explanation": f"吉凶判断过程异常: {e}",
+        }
 
     # 5. 应期推断
-    report.yingqi_results = analyze_yingqi(
-        hexagram, report.yong_shen_lines,
-        report.wangshuai_results, report.dongbian_results
-    )
+    try:
+        report.yingqi_results = analyze_yingqi(
+            hexagram, report.yong_shen_lines,
+            report.wangshuai_results, report.dongbian_results
+        )
+    except Exception as e:
+        report.yingqi_results = []
 
     return report
 
@@ -165,12 +181,24 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.shi_line = shi_line
         report.wangshuai_results = shared_ws
         report.dongbian_results = shared_db
-        report.jixiong_result = judge_jixiong(
-            hexagram, yong_shen, shared_ws, shared_db, question_type
-        )
-        report.yingqi_results = analyze_yingqi(
-            hexagram, report.yong_shen_lines, shared_ws, shared_db
-        )
+
+        try:
+            report.jixiong_result = judge_jixiong(
+                hexagram, yong_shen, shared_ws, shared_db, question_type
+            )
+        except Exception as e:
+            report.jixiong_result = {
+                "pattern": "分析异常", "ji_xiong": "平",
+                "explanation": f"吉凶判断过程异常: {e}",
+            }
+
+        try:
+            report.yingqi_results = analyze_yingqi(
+                hexagram, report.yong_shen_lines, shared_ws, shared_db
+            )
+        except Exception as e:
+            report.yingqi_results = []
+
         dual.perspectives.append(report)
 
     # 综合结论
