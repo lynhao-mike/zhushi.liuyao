@@ -358,3 +358,39 @@ class TestTuopuIntegration:
                     text = format_report(report)
                     assert "拓扑用神选择" in text
                 break
+
+    def test_tuopu_triggered_when_all_yongshen_xunkong(self):
+        """所有用神爻皆旬空时触发拓扑用神作为补充分析"""
+        # [7,7,7,7,7,7] date=(2024,7,20) qt=guan
+        # yong_shen_lines has 官鬼(午) which is xun_kong
+        from liuyao.jixiong import find_yong_shen_lines, determine_yong_shen
+        h = Hexagram([7, 7, 7, 7, 7, 7], 2024, 7, 20)
+        yong_lq = determine_yong_shen("guan")
+        yong_lines = find_yong_shen_lines(h, yong_lq)
+        # Verify precondition: lines exist but all xun_kong
+        assert len(yong_lines) > 0
+        assert all(l.is_xun_kong for l in yong_lines)
+
+        # Run analysis with keywords - tuopu should fire
+        report = run_analysis(
+            h, question_type="guan",
+            question_keywords=["金融"]
+        )
+        # yong_shen_lines should be non-empty (they exist in the hexagram)
+        assert len(report.yong_shen_lines) > 0
+        # tuopu_result should be populated as supplementary analysis
+        assert report.tuopu_result is not None
+        assert report.tuopu_result["method"] != "none"
+
+    def test_tuopu_not_triggered_when_yongshen_not_all_xunkong(self):
+        """用神爻存在且非全部旬空时, 不触发拓扑用神"""
+        from liuyao.jixiong import find_yong_shen_lines, determine_yong_shen
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(
+            h, question_type="cai",
+            question_keywords=["金融"]
+        )
+        if report.yong_shen_lines:
+            # If not all are xun_kong, tuopu should NOT fire
+            if not all(l.is_xun_kong for l in report.yong_shen_lines):
+                assert report.tuopu_result is None

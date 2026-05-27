@@ -445,3 +445,186 @@ class TestIntegration:
         result = analyze_xintai(h, ws, db)
         assert "verdict" in result
         assert isinstance(result["details"], list)
+
+
+class TestConfidenceBoundary:
+    """测试置信度边界(0.7阈值)"""
+
+    def test_below_threshold_no_xintai_analysis(self):
+        """置信度0.65(低于0.7): 检测为is_xintai但analyzer不触发分析"""
+        # [8,8,8,9,8,8] date=(2024,1,15) qt=kaoshi => conf=0.65
+        h = Hexagram([8, 8, 8, 9, 8, 8], 2024, 1, 15)
+        ws = analyze_hexagram_wangshuai(h)
+        db = analyze_dongbian(h, ws)
+        result = detect_xintai_gua(h, "kaoshi", ws, db)
+        # confidence should be 0.65 (below 0.7)
+        assert result["is_xintai"] is True
+        assert result["confidence"] < 0.7
+
+        # Analyzer should NOT trigger xintai_result
+        report = run_analysis(h, question_type="kaoshi")
+        assert report.xintai_result is None
+
+    def test_above_threshold_triggers_xintai_analysis(self):
+        """置信度0.75(高于0.7): analyzer触发心态卦分析"""
+        # [9,8,9,8,9,8] date=(2024,1,15) qt=cai => conf=0.75
+        h = Hexagram([9, 8, 9, 8, 9, 8], 2024, 1, 15)
+        ws = analyze_hexagram_wangshuai(h)
+        db = analyze_dongbian(h, ws)
+        result = detect_xintai_gua(h, "cai", ws, db)
+        assert result["confidence"] >= 0.7
+
+        # Analyzer should trigger xintai_result
+        report = run_analysis(h, question_type="cai")
+        assert report.xintai_result is not None
+        assert "detection" in report.xintai_result
+        assert "analysis" in report.xintai_result
+
+    def test_exact_threshold_triggers(self):
+        """置信度恰好为1.0(明确心态类问事): analyzer触发分析"""
+        # Explicit mindset question type always gives confidence=1.0
+        h = Hexagram([7, 7, 7, 8, 8, 8], 2024, 1, 15)
+        report = run_analysis(h, question_type="youHuan")
+        assert report.xintai_result is not None
+        assert report.xintai_result["detection"]["confidence"] == 1.0
+
+
+class TestXintaiTypeRelief:
+    """测试心态类型正确返回relief"""
+
+    def test_only_zisun_indicators_returns_relief(self):
+        """仅有子孙指标时返回relief而非worry"""
+        # [9,8,9,8,9,8] date=(2024,1,15) qt=cai
+        # indicators: 伏藏不现 + 世爻动化子孙 + 子孙独发 (all 子孙-related)
+        h = Hexagram([9, 8, 9, 8, 9, 8], 2024, 1, 15)
+        ws = analyze_hexagram_wangshuai(h)
+        db = analyze_dongbian(h, ws)
+        result = detect_xintai_gua(h, "cai", ws, db)
+        assert result["is_xintai"] is True
+        assert result["xintai_type"] == "relief"
+        # Verify no guan-gui indicators
+        assert not any("官鬼" in ind for ind in result["indicators"])
+
+    def test_only_guangui_indicators_returns_worry(self):
+        """仅有官鬼指标时返回worry"""
+        # [9,9,9,8,8,8] date=(2024,1,15) qt=kaoshi => conf=0.90
+        # indicators: 伏藏 + 世爻动化官鬼 + 官鬼独发 + 应爻临子孙
+        h = Hexagram([9, 9, 9, 8, 8, 8], 2024, 1, 15)
+        ws = analyze_hexagram_wangshuai(h)
+        db = analyze_dongbian(h, ws)
+        result = detect_xintai_gua(h, "kaoshi", ws, db)
+        assert result["is_xintai"] is True
+        # Check it has worry indicators
+        has_worry = any("官鬼" in ind for ind in result["indicators"])
+        has_relief = any("子孙" in ind for ind in result["indicators"])
+        if has_worry and has_relief:
+            assert result["xintai_type"] == "hesitation"
+        elif has_worry:
+            assert result["xintai_type"] == "worry"
+
+    def test_mixed_indicators_returns_hesitation(self):
+        """同时有子孙和官鬼指标时返回hesitation"""
+        from liuyao.xintai import _determine_xintai_type
+        # Direct test of the helper function
+        indicators = ["世爻动化子孙(趋向安心)", "官鬼独发(第2爻动)"]
+        result = _determine_xintai_type(None, None, indicators)
+        assert result == "hesitation"
+
+    def test_determine_xintai_type_relief_only(self):
+        """_determine_xintai_type: 仅有子孙 -> relief"""
+        from liuyao.xintai import _determine_xintai_type
+        indicators = ["子孙独发(第1爻动)", "世爻动化子孙(趋向安心)"]
+        result = _determine_xintai_type(None, None, indicators)
+        assert result == "relief"
+
+    def test_determine_xintai_type_worry_only(self):
+        """_determine_xintai_type: 仅有官鬼 -> worry"""
+        from liuyao.xintai import _determine_xintai_type
+        indicators = ["官鬼独发(第4爻动)", "世爻动化官鬼(趋向忧虑)"]
+        result = _determine_xintai_type(None, None, indicators)
+        assert result == "worry"
+
+    def test_determine_xintai_type_neither(self):
+        """_determine_xintai_type: 无子孙无官鬼 -> worry(默认)"""
+        from liuyao.xintai import _determine_xintai_type
+        indicators = ["事用神(妻财)伏藏不现", "六冲卦(冲散忧虑之象)"]
+        result = _determine_xintai_type(None, None, indicators)
+        assert result == "worry"
+
+
+class TestFindXinnianYaoStepPriority:
+    """测试find_xinnian_yao的Step 1优先级"""
+
+    def test_step1_priority_over_step2(self):
+        """世爻不动时Step 1(变卦对位爻)优先于Step 2(藏爻)"""
+        # [7,7,7,9,7,7]: shi at pos 6 (not moving), line 4 moves
+        # Bian_gua has different di_zhi at pos 6 (卯 vs 戌)
+        h = Hexagram([7, 7, 7, 9, 7, 7], 2024, 3, 15)
+        shi = find_shi_line(h)
+        assert shi.position == 6
+        assert not shi.is_moving
+
+        from liuyao.xintai import _get_bian_gua_line_at
+        from liuyao.fushen import get_cang_yao
+
+        # Step 1 should find bian line with di_zhi different from shi
+        bian_info = _get_bian_gua_line_at(h, shi.position)
+        assert bian_info is not None
+        assert bian_info["di_zhi"] != shi.di_zhi
+
+        # Get result - should match step 1 (bian), not step 2 (cang)
+        result = find_xinnian_yao(h)
+        assert result is not None
+        assert result["di_zhi"] == bian_info["di_zhi"]
+        assert result["position"] == shi.position
+
+    def test_step2_when_shi_is_moving(self):
+        """世爻动时使用Step 2(藏爻)"""
+        # [7,7,7,7,7,9]: shi at pos 6, moving (old yang)
+        h = Hexagram([7, 7, 7, 7, 7, 9], 2024, 3, 15)
+        shi = find_shi_line(h)
+        assert shi.position == 6
+        assert shi.is_moving
+
+        # Step 1 is skipped because shi is moving
+        # Step 2 checks cang_yao - if same di_zhi, falls through to step 3
+        from liuyao.fushen import get_cang_yao
+        cang = get_cang_yao(h)
+        cang_at_shi = cang[shi.position - 1]
+
+        result = find_xinnian_yao(h)
+        assert result is not None
+        # Since cang at shi has same di_zhi as shi (戌==戌),
+        # step 2 fails and falls to step 3 (jun_yao)
+        if cang_at_shi["di_zhi"] == shi.di_zhi:
+            # Should have gone to step 3 (jun_yao at pos 5)
+            jun_line = h.lines[4]
+            if not jun_line.is_moving and jun_line.liu_qin != shi.liu_qin:
+                assert result["position"] == 5
+
+    def test_step1_fallthrough_when_bian_same(self):
+        """Step 1对位爻与世爻相同时落入Step 2"""
+        # Pure static hexagram: bian = ben, so bian line at shi pos = shi itself
+        # [7,7,7,7,7,7] (乾为天, all static, bian=乾为天)
+        h = Hexagram([7, 7, 7, 7, 7, 7], 2024, 3, 15)
+        shi = find_shi_line(h)
+        assert not shi.is_moving
+
+        from liuyao.xintai import _get_bian_gua_line_at
+        bian_info = _get_bian_gua_line_at(h, shi.position)
+        # Bian = same hexagram, so same di_zhi
+        assert bian_info["di_zhi"] == shi.di_zhi
+
+        # Should fall through to step 2 (cang_yao)
+        from liuyao.fushen import get_cang_yao
+        cang = get_cang_yao(h)
+        cang_at_shi = cang[shi.position - 1]
+
+        result = find_xinnian_yao(h)
+        # If cang also same, falls to step 3
+        if cang_at_shi["di_zhi"] == shi.di_zhi:
+            # Step 3: jun_yao (pos 5) static and different liu_qin
+            jun_line = h.lines[4]
+            if not jun_line.is_moving and jun_line.liu_qin != shi.liu_qin:
+                assert result is not None
+                assert result["position"] == 5

@@ -302,13 +302,16 @@ def find_xinnian_yao(hexagram):
     palace_wu_xing = hexagram.palace_wu_xing
 
     # Step 1: 世爻不动时, 查变卦对位爻
+    step1_found = False
     if not shi_line.is_moving:
         bian_line_info = _get_bian_gua_line_at(hexagram, shi_pos)
         if bian_line_info and bian_line_info["di_zhi"] != shi_line.di_zhi:
             return bian_line_info
+        # Step 1 checked but found no different dui-wei-yao; fall through to Step 2
+        step1_found = True
 
-    # Step 2: 世爻动(或step1对位同), 查世爻藏爻
-    if shi_line.is_moving or True:  # fallthrough from step 1
+    # Step 2: 世爻动, 或Step 1未找到不同对位爻, 查世爻藏爻
+    if shi_line.is_moving or step1_found:
         cang_yao = get_cang_yao(hexagram)
         cang_at_shi = cang_yao[shi_pos - 1]
         if cang_at_shi["di_zhi"] != shi_line.di_zhi:
@@ -370,7 +373,7 @@ def _determine_xintai_type(hexagram, shi_line, indicators):
     elif has_worry:
         return "worry"
     elif has_relief:
-        return "worry"  # 有子孙动通常是担心某事故寻求安心
+        return "relief"
     return "worry"
 
 

@@ -150,11 +150,18 @@ def run_analysis(hexagram, question_type="other", question_desc="",
                 question_type
             )
 
-    # 7. 拓扑用神选择 (当标准用神为空时)
+    # 7. 拓扑用神选择 (当标准用神为空时, 或所有用神爻皆旬空时)
     if not report.yong_shen_lines and question_keywords:
         report.tuopu_result = determine_tuopu_yongshen(
             hexagram, base_question_type, question_keywords
         )
+    elif report.yong_shen_lines and question_keywords:
+        # 所有用神爻皆旬空时, 拓扑用神作为补充分析
+        all_xun_kong = all(l.is_xun_kong for l in report.yong_shen_lines)
+        if all_xun_kong:
+            report.tuopu_result = determine_tuopu_yongshen(
+                hexagram, base_question_type, question_keywords
+            )
 
     # 8. 伏神分析 (当用神不现于卦中时)
     if not report.yong_shen_lines:
