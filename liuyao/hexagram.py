@@ -16,6 +16,7 @@ from .data import (
     get_liu_qin, get_liu_shen, get_xun_kong,
 )
 from .calendar_utils import get_gan_zhi
+from .exceptions import ArrangementError
 
 
 @dataclass
@@ -77,19 +78,19 @@ class Hexagram:
     def _validate_date(self):
         """验证日期参数的基本范围"""
         if not isinstance(self.year, int) or self.year < 1 or self.year > 9999:
-            raise ValueError(f"无效年份: {self.year}, 必须为1-9999的整数")
+            raise ArrangementError(f"无效年份: {self.year}, 必须为1-9999的整数")
         if not isinstance(self.month, int) or self.month < 1 or self.month > 12:
-            raise ValueError(f"无效月份: {self.month}, 必须为1-12的整数")
+            raise ArrangementError(f"无效月份: {self.month}, 必须为1-12的整数")
         # 每月最大天数检查
         days_in_month = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
         max_day = days_in_month[self.month - 1]
         if not isinstance(self.day, int) or self.day < 1 or self.day > max_day:
-            raise ValueError(f"无效日期: {self.year}年{self.month}月{self.day}日, 日必须为1-{max_day}的整数")
+            raise ArrangementError(f"无效日期: {self.year}年{self.month}月{self.day}日, 日必须为1-{max_day}的整数")
         # 闰年2月检查
         if self.month == 2 and self.day == 29:
             is_leap = (self.year % 4 == 0 and self.year % 100 != 0) or (self.year % 400 == 0)
             if not is_leap:
-                raise ValueError(f"无效日期: {self.year}年不是闰年, 2月没有29日")
+                raise ArrangementError(f"无效日期: {self.year}年不是闰年, 2月没有29日")
 
     def _arrange(self):
         """执行完整排卦流程"""
@@ -113,7 +114,7 @@ class Hexagram:
                 ben_lines.append(0)
                 bian_lines.append(0)
             else:
-                raise ValueError(f"无效摇卦值: {val}, 必须为6/7/8/9")
+                raise ArrangementError(f"无效摇卦值: {val}, 必须为6/7/8/9")
 
         # 3. 确定上下卦
         lower_binary = tuple(ben_lines[0:3])
