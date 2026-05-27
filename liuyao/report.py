@@ -254,4 +254,52 @@ def format_report(report):
 
         lines.append("")
 
+    # =========================================================================
+    # 伏神分析 (仅当伏神分析结果存在时)
+    # =========================================================================
+    if hasattr(report, 'fushen_result') and report.fushen_result:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【伏神分析】")
+        lines.append("=" * 60)
+
+        fr = report.fushen_result
+        fu_info = fr["fu_shen_info"]
+        fu_status = fr["fu_status"]
+        fu_jixiong = fr["fu_jixiong"]
+        fu_yingqi = fr["fu_yingqi"]
+
+        # 伏神位置
+        lines.append(f"  伏神: {fu_info['fu_liu_qin']}{fu_info['fu_tian_gan']}"
+                     f"{fu_info['fu_di_zhi']}{fu_info['fu_wu_xing']}"
+                     f" (藏于第{fu_info['position']}爻下)")
+        lines.append(f"  飞神: {fu_info['fei_liu_qin']}"
+                     f"{fu_info['fei_di_zhi']}{fu_info['fei_wu_xing']}")
+
+        # 状态
+        status_flags = []
+        if fu_status["fu_kong"]:
+            status_flags.append("伏神旬空")
+        if fu_status["fu_po"]:
+            status_flags.append("伏神月破")
+        if fu_status["fei_kong"]:
+            status_flags.append("飞神旬空")
+        if fu_status["fei_po"]:
+            status_flags.append("飞神月破")
+        if not status_flags:
+            status_flags.append("正常")
+        lines.append(f"  状态: {', '.join(status_flags)}")
+
+        # 吉凶
+        lines.append(f"  判断: 【{fu_jixiong['ji_xiong']}】{fu_jixiong['pattern']}")
+        lines.append(f"  解释: {fu_jixiong['explanation']}")
+
+        # 应期
+        if fu_yingqi["candidates"]:
+            lines.append("  应期:")
+            for c in fu_yingqi["candidates"]:
+                lines.append(f"    - {c}")
+
+        lines.append("")
+
     return "\n".join(lines)

@@ -20,6 +20,10 @@ from .shuanghe import (
     detect_shuanghe_type, analyze_ying_yao_role, judge_shuanghe_jixiong,
 )
 from .tuopu_yongshen import determine_tuopu_yongshen
+from .fushen import (
+    find_fu_shen, analyze_fu_shen_status,
+    judge_fushen_jixiong, estimate_fushen_yingqi,
+)
 
 
 @dataclass
@@ -48,6 +52,9 @@ class AnalysisReport:
 
     # 拓扑用神
     tuopu_result: Optional[Dict] = None
+
+    # 伏神分析
+    fushen_result: Optional[Dict] = None
 
 
 def run_analysis(hexagram, question_type="other", question_desc="",
@@ -135,5 +142,22 @@ def run_analysis(hexagram, question_type="other", question_desc="",
         report.tuopu_result = determine_tuopu_yongshen(
             hexagram, base_question_type, question_keywords
         )
+
+    # 8. 伏神分析 (当用神不现于卦中时)
+    if not report.yong_shen_lines:
+        fu_shen_info = find_fu_shen(hexagram, report.yong_shen_liu_qin)
+        if fu_shen_info:
+            fu_status = analyze_fu_shen_status(fu_shen_info, hexagram)
+            fu_jixiong = judge_fushen_jixiong(
+                fu_shen_info, fu_status, hexagram,
+                report.wangshuai_results, report.dongbian_results
+            )
+            fu_yingqi = estimate_fushen_yingqi(fu_shen_info, fu_status, hexagram)
+            report.fushen_result = {
+                "fu_shen_info": fu_shen_info,
+                "fu_status": fu_status,
+                "fu_jixiong": fu_jixiong,
+                "fu_yingqi": fu_yingqi,
+            }
 
     return report
