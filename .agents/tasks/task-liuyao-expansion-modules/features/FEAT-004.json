@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-004",
+  "type": "feat",
+  "description": "Implement the Xin-Tai-Gua (Mindset Hexagram) vs Shi-Gua (Event Hexagram) automatic identification system. According to the theory, many questions that appear to be about events are actually reflecting the querent's anxious mindset. The system must detect this and switch analysis mode accordingly, using Zi-Sun (offspring) as the 'relief spirit' and Guan-Gui (officer/ghost) as the 'worry spirit'.",
+  "status": "pending",
+  "steps": [
+    "Create liuyao/xintai.py with: (a) Define MINDSET_QUESTION_TYPES: explicit mindset questions ('worry', 'doubt', 'hesitation', 'preference') that are directly identified as xin-tai-gua. (b) Define detection function detect_xintai_gua(hexagram, question_type, wangshuai_results, dongbian_results) that checks for 'dark mindset hexagram' (an-xin-tai-gua) indicators: Indicator 1: event use-spirit is hidden (fu-shen) or is a 'false use-spirit' (none of 5 true-yongshen criteria met), while mindset features are prominent. Indicator 2: World-line or Ying-line carries Zi-Sun or Guan-Gui in prominent position (moving, or uniquely highlighted by day/month). Indicator 3: World changes to Zi-Sun (relief) or Guan-Gui (worry). Indicator 4: Zi-Sun or Guan-Gui independently moving. Indicator 5: Six-chong-gua presence supports mindset identification (chong = relief of worry). Six-he-gua supports event identification (he = entanglement persists). Returns: {is_xintai: bool, confidence: float, indicators: list, xintai_type: str}.",
+    "Implement mindset hexagram analysis logic in xintai.py: function analyze_xintai(hexagram, wangshuai_results, dongbian_results) that follows the 6 model patterns from the knowledge base: Model 1 - targeting world line: (a) Zi-Sun moving to generate world / Zi-Sun holds world receiving generation = relief. (b) Guan-Gui moving to generate world / Guan-Gui holds world receiving generation = worry exists but no real harm. (c) Zi-Sun holds world receiving dynamic克 = worry confirmed. (d) Guan-Gui moving to克world = real danger confirmed. Model 2 - World line changes: (a) World changes to Zi-Sun = relief. (b) World changes to Guan-Gui = worry/danger. (c) World changes to Zi-Sun with hui-tou-sheng = double relief. (d) World changes to Guan-Gui with hui-tou-ke = great danger. Model 3 - Independent moving: (a) Guan-Gui independently moves but becomes useless (hui-tou-ke, hua-jue, hua-po) = relief. (b) Zi-Sun independently moves but becomes useless = worry. Model 4 - Multiple dynamics: Zi-Sun克s moving Guan-Gui = worry resolved. Model 5 - Static hexagram: Zi-Sun holds world = relief; Guan-Gui holds world = worry. Add feng-po reversal rule. Model 6 - Xun-kong special: Zi-Sun void = short-term worry persists; Guan-Gui void = short-term safe.",
+    "Implement the 'true use-spirit' (zhen-yong-shen) detection referenced in the knowledge base: function is_true_yongshen(line, hexagram, wangshuai_results, dongbian_results) checking 5 criteria: (1) Has dynamic lines acting on it (yuan-shen sheng or ji-shen ke). (2) Is itself a moving line targeting world. (3) Holds shi or ying position. (4) Related to day/month (lin-ri, lin-yue, he-ri, he-yue, chong-ri, chong-yue). (5) Is xun-kong or ru-mu. If none of 5 criteria met, it is a false use-spirit.",
+    "Implement xin-nian-yao (mind-intention line) detection: function find_xinnian_yao(hexagram) following the 4-step priority from knowledge base: (1) If world not moving AND world's dui-wei-yao (opposite position in bian-gua) differs from world, that dui-wei is xin-nian. (2) If world moves OR dui-wei same as world, check world's cang-yao (hidden line); if different from world, it is xin-nian. (3) If neither above, check jun-yao (5th line for upper trigram dominant, 2nd for lower); if static and different from world, it is xin-nian. (4) If jun-yao moves, check jun's cang-yao. Use xin-nian-yao to disambiguate: if xin-nian carries Zi-Sun/Guan-Gui, lean toward mindset hexagram.",
+    "Integrate xintai module into analyzer.py: After standard analysis, call detect_xintai_gua(). If is_xintai with high confidence (>=0.7), add xintai analysis to report and flag that standard jixiong result should be interpreted through mindset lens. Add xintai_result field to AnalysisReport.",
+    "Update report.py to include '【心态卦识别】' section showing: detection result, confidence level, indicators found, mindset analysis verdict (relief/worry/danger), and note about interpretation difference from event hexagram.",
+    "Write tests in tests/test_xintai.py: (a) Test explicit mindset question detection, (b) Test dark mindset indicators (hidden use-spirit + prominent zi-sun/guan-gui), (c) Test each of the 6 mindset analysis models, (d) Test true/false use-spirit detection, (e) Test xin-nian-yao location logic, (f) Test integration with analyzer pipeline, (g) Test that six-chong-gua boosts mindset confidence."
+  ],
+  "acceptance_criteria": [
+    "python3 -m pytest tests/test_xintai.py -v passes all tests",
+    "A hexagram with Zi-Sun moving to generate world-line is detected as mindset=relief",
+    "A hexagram with Guan-Gui moving to克 world-line is detected as mindset=danger",
+    "When event use-spirit is not a 'true use-spirit' and Zi-Sun/Guan-Gui is prominent, is_xintai returns True",
+    "find_xinnian_yao correctly identifies the mind-intention line per the 4-step priority",
+    "All existing tests still pass"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/test_xintai.py -v",
+    "Run python3 -m pytest tests/ -v to confirm no regressions"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

@@ -1,0 +1,30 @@
+{
+  "project_type": "Python six-line divination (Liu Yao) analysis system based on Zhu Chenbin's theory",
+  "language": "Python 3.9",
+  "build_system": "None (pure Python package, no build tooling)",
+  "test_framework": "pytest with class-based test organization in tests/ directory",
+  "build_command": "python3 -c 'import liuyao'",
+  "test_command": "python3 -m pytest tests/ -v",
+  "verification_instructions": "Run pytest on all tests. Also run python3 -m liuyao.main --date 2024-01-15 --yao 8 7 7 9 7 8 --question-type cai to verify end-to-end.",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "pip3 install pytest sxtwl",
+  "environment_constraints": "sxtwl library required for calendar conversion. No other external dependencies.",
+  "contribution_requirements": "Follow existing code patterns: Chinese docstrings, dataclass-based data structures, modular architecture with each analysis aspect in its own file.",
+  "key_patterns": "Each module exports a main analysis function (e.g., analyze_dongbian, analyze_hexagram_wangshuai). The analyzer.py orchestrates all modules. report.py formats output. data.py contains all static tables and utility functions. hexagram.py defines Hexagram and YaoLine dataclasses. Tests mirror source structure with class-based grouping.",
+  "relevant_files": [
+    "liuyao/analyzer.py",
+    "liuyao/hexagram.py",
+    "liuyao/data.py",
+    "liuyao/jixiong.py",
+    "liuyao/yingqi.py",
+    "liuyao/dongbian.py",
+    "liuyao/wangshuai.py",
+    "liuyao/report.py",
+    "liuyao/main.py",
+    "liuyao/__init__.py",
+    "tests/test_analysis.py",
+    "tests/test_hexagram.py",
+    "zhishidianzongjie.md"
+  ],
+  "directory_structure": "liuyao/ - main package with modules for each analysis aspect. tests/ - pytest test files. Root has .md knowledge base files."
+}

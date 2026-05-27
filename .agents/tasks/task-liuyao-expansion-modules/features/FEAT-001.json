@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Implement the Shuang-He Gua (Dual-Core Hexagram) analysis module and the Tuo-Pu Yong-Shen (Topological Use-Spirit) method. These two features extend the existing jixiong.py system with: (1) Recognition of 'special-target' (te-zhi) and 'grafted' (jia-jie) divinations where the Ying-yao (response line) acts as 'half a use-spirit' and must be analyzed alongside the primary use-spirit for correct determination. (2) Topological use-spirit selection via Wu-Xing class-imagery, star-sha, and Liu-Shen based selection when the standard Liu-Qin use-spirit method does not match the question context.",
+  "status": "in_progress",
+  "steps": [
+    "Create liuyao/shuanghe.py (Dual-Core Hexagram Analysis Module) with the following components: (a) A function detect_shuanghe_type(question_type, question_desc) that identifies whether a question is 'te_zhi' (special-target, e.g., 'can I succeed at THIS specific company'), 'jia_jie' (grafted, e.g., 'will cooperating with THIS person bring profit'), or 'normal' (standard single-core). (b) A function analyze_ying_yao_role(hexagram, yong_shen_lines, dongbian_results, wangshuai_results) that evaluates the ying-yao's involvement: check if ying-yao is moving, if dynamic lines target only ying-yao, if ying-yao forms comparative relationships (xiang-chong/tong-lei/xiang-tong) with dong-bian or yong-shen. Returns classification: 'wu_guan' (no involvement), 'dui_bi' (comparative - interferes with determination), 'guan_lian' (associated - interferes). (c) A function judge_shuanghe_jixiong(hexagram, yong_shen_liu_qin, ying_role, wangshuai_results, dongbian_results, question_type) that when ying_role is 'dui_bi' or 'guan_lian', performs dual-core analysis: compares dynamic-line targets between yong-shen and ying-yao to determine if success relates to the specified target or to an alternative. Returns enriched jixiong result with 'te_zhi_match' boolean indicating whether the outcome aligns with the specified target.",
+    "Create liuyao/tuopu_yongshen.py (Topological Use-Spirit Selection Module) with: (a) WU_XING_LEI_XIANG dict mapping question keywords to Wu-Xing elements (e.g., 'metal finance' -> Jin, 'water transport' -> Shui, 'wood furniture' -> Mu, 'fire electricity' -> Huo, 'earth building' -> Tu). A function select_by_wuxing_leixiang(hexagram, target_wuxing) that finds lines matching the target wu-xing and returns them as alternative use-spirit candidates. (b) XING_SHA data: Ma-Xing (travel star, from year-zhi: Shen-Zi-Chen->Yin, Yin-Wu-Xu->Shen, Hai-Mao-Wei->Si, Si-You-Chou->Hai), Wen-Chang star, Lu-Shen (prosperity star), Tao-Hua (peach blossom: Shen-Zi-Chen->You, Yin-Wu-Xu->Mao, Hai-Mao-Wei->Zi, Si-You-Chou->Wu), Jiang-Xing (general star). Functions to calculate each star from year-zhi, and select_by_xingsha(hexagram, star_type) that returns lines carrying the specified star. (c) A function select_by_liushen(hexagram, target_liushen) that returns lines carrying the specified Liu-Shen (e.g., Xuan-Wu for hidden matters, Zhu-Que for communication, Bai-Hu for injuries). (d) A master function determine_tuopu_yongshen(hexagram, question_type, question_keywords) that attempts standard Liu-Qin selection first, and if it yields no usable lines (empty or all hidden/void), falls back to Wu-Xing class-imagery, then star-sha, then Liu-Shen selection.",
+    "Add star/sha calculation functions to liuyao/data.py: get_ma_xing(year_zhi), get_tao_hua(year_zhi), get_wen_chang(day_gan), get_lu_shen(day_gan), get_jiang_xing(year_zhi). Each returns the di-zhi that carries that star for the given pillar.",
+    "Integrate shuanghe module into analyzer.py: add question_desc parameter to run_analysis(). After standard jixiong judgment, if shuanghe type is detected (question_type has 'te_zhi_' or 'jia_jie_' prefix, or question_desc contains target keywords), run shuanghe analysis and append dual-core findings to the report.",
+    "Integrate tuopu_yongshen into analyzer.py: when find_yong_shen_lines returns empty AND question has keywords suggesting non-standard use-spirit, call determine_tuopu_yongshen() as fallback.",
+    "Update report.py to display shuanghe analysis results (ying-yao role, te-zhi match) and tuopu yongshen selection info when applicable.",
+    "Write tests in tests/test_shuanghe.py and tests/test_tuopu.py covering: (a) Detection of shuanghe type from question parameters, (b) Ying-yao role classification for various hexagram configurations, (c) Star/sha calculations for known year-zhi values, (d) Wu-Xing class-imagery selection, (e) Fallback use-spirit selection when standard Liu-Qin yields nothing."
+  ],
+  "acceptance_criteria": [
+    "python3 -m pytest tests/test_shuanghe.py tests/test_tuopu.py -v passes all tests",
+    "run_analysis with question_type='te_zhi_cai' returns a report containing shuanghe analysis with ying-yao role",
+    "get_ma_xing('子') returns '寅' (Shen-Zi-Chen group -> Ma at Yin)",
+    "get_tao_hua('子') returns '酉' (Shen-Zi-Chen group -> Tao-Hua at You)",
+    "determine_tuopu_yongshen correctly falls back to wu-xing selection when standard liu-qin yields empty"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/test_shuanghe.py tests/test_tuopu.py -v",
+    "Run python3 -m pytest tests/ -v to confirm no regressions in existing 94 tests"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

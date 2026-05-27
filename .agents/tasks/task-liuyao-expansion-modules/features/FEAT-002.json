@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Implement the Cang-Yao/Fu-Shen (Hidden Lines / Hidden Spirit) system. When the use-spirit (yong-shen) is not present in the hexagram's visible lines (i.e., none of the 6 lines carry the required Liu-Qin), the system must locate the Fu-Shen (hidden spirit) from the palace's pure hexagram, determine its relationship with the Fei-Shen (flying spirit/host line), and apply special analysis rules. This includes: fu-shen void/broken detection, fei-shen void/broken special handling, chong-fei-lu-fu (clash flying to reveal hidden) timing, and the distinction between fu-shen (use-spirit hidden) vs cang-yao (all hidden lines for detail analysis).",
+  "status": "pending",
+  "steps": [
+    "Create liuyao/fushen.py with: (a) A function get_cang_yao(hexagram) that retrieves all 6 lines of the palace's pure hexagram (the Ben-Gong-Gua). These are the 'cang-yao' (hidden lines) that underlie each position. Use HEXAGRAM_BY_NAME and NA_JIA data to construct the pure hexagram's lines with their di-zhi and wu-xing. Return a list of 6 dicts: [{position, di_zhi, wu_xing, liu_qin, tian_gan}, ...]. (b) A function find_fu_shen(hexagram, target_liu_qin) that: checks if target_liu_qin exists in hexagram.lines (if so, returns None - no fu-shen needed). If not found, gets cang_yao and finds which hidden line carries the target liu-qin. Returns dict: {position (where it hides), fu_di_zhi, fu_wu_xing, fu_liu_qin, fei_di_zhi (the host/flying line's di-zhi), fei_wu_xing, fei_liu_qin}. (c) A function analyze_fu_shen_status(fu_shen_info, hexagram) that evaluates: is fu-shen xun-kong (fu_di_zhi in hexagram.xun_kong)? is fu-shen yue-po (month-zhi clashes fu_di_zhi)? is fei-shen xun-kong? is fei-shen yue-po? Returns status dict with boolean flags and implications.",
+    "Add fu-shen jixiong analysis in fushen.py: (a) function judge_fushen_jixiong(fu_shen_info, fu_status, hexagram, wangshuai_results, dongbian_results) implementing the three assessment paths from the knowledge base: Path 1 'Gua-Li Jian-Xiong' (theory-based bad omens): fu-kong (hidden+void = aspiration unfulfilled), fu-po (hidden+broken = hopeless), yong-cang-shi-shang (use-spirit hidden while world-line is injured by dynamic lines = bad). Path 2 'Gua-Yi Yu-Zhao' (imagery-based omens): the cang-yao-que-ren-fa (hidden-line confirmation method) where fu-shen position relative to shi/ying lines is analyzed. Path 3 'Xin-Tai Fan-Ying' (mindset reflection): if event use-spirit is hidden but mindset use-spirit (zi-sun or guan-gui) is prominent on surface, flag as possible xin-tai-gua (mindset hexagram).",
+    "Add fu-shen yingqi (timing) analysis: function estimate_fushen_yingqi(fu_shen_info, fu_status, hexagram) implementing: (a) chong-fei timing (when will fei-shen be clashed away to reveal fu-shen), (b) lu-fu timing (when fu-shen's value/combination arrives to emerge), (c) fei-kong-fu-xian (if fei-shen is void, fu-shen emerges during void period).",
+    "Integrate fushen into analyzer.py: In run_analysis(), after find_yong_shen_lines(), if result is empty, call find_fu_shen(). If fu-shen is found, run fushen analysis and store results in report.fushen_result (new field on AnalysisReport). Adjust yingqi analysis to use fu-shen timing when applicable.",
+    "Update AnalysisReport dataclass to include: fushen_result: Optional[Dict] = None. Update report.py format_report() to include a '【伏神分析】' section when fushen_result is present, showing: fu-shen location, fei-shen relationship, status assessment, jixiong implication, and emergence timing.",
+    "Write tests in tests/test_fushen.py: (a) Test get_cang_yao returns correct palace pure hexagram lines for various hexagrams, (b) Test find_fu_shen correctly identifies missing liu-qin and locates it in cang-yao, (c) Test fu-shen status detection (void, broken), (d) Test fushen jixiong paths, (e) Test fushen yingqi timing calculations, (f) Test integration: run_analysis on a hexagram where yong-shen is hidden produces fushen analysis in report."
+  ],
+  "acceptance_criteria": [
+    "python3 -m pytest tests/test_fushen.py -v passes all tests",
+    "For a hexagram where '妻财' is not present in any of the 6 lines, find_fu_shen correctly identifies which cang-yao position holds it",
+    "get_cang_yao for a hexagram in Qian palace returns the 6 lines of Qian-Wei-Tian (pure Qian)",
+    "When fu-shen is xun-kong, status correctly flags fu_kong=True",
+    "run_analysis with a hexagram missing the use-spirit produces a report with fushen analysis section",
+    "All existing 94 tests still pass (no regressions)"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/test_fushen.py -v",
+    "Run python3 -m pytest tests/ -v to confirm no regressions"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

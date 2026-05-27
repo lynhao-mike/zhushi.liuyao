@@ -1,0 +1,7 @@
+{
+  "task_id": "task-liuyao-expansion-modules",
+  "task_description": "Implement 6 expansion modules for the Liu Yao divination system: (1) Dual-Core Hexagram analysis with ying-yao as half use-spirit for special-target/grafted questions, (2) Topological Use-Spirit selection via Wu-Xing class-imagery, star-sha, and Liu-Shen, (3) Hidden Line/Fu-Shen system for when use-spirit is not visible in hexagram, (4) Refined timing (ying-qi) with all 21 standard formulas and speed modifiers, (5) Mindset vs Event hexagram automatic identification, (6) Changed hexagram text significance and guidance system.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004", "FEAT-005"],
+  "blocked_reason": null
+}

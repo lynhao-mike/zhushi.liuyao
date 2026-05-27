@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Implement the refined Ying-Qi (Response Period) system with more granular day/month/hour timing calculations, incorporating all 21 standard timing formulas from the knowledge base, plus speed modifiers (acceleration from an-dong/liu-chong-gua, deceleration from san-he/san-ban/liu-he-gua), and the near-far (jin-yuan) timing distinction.",
+  "status": "pending",
+  "steps": [
+    "Refactor liuyao/yingqi.py to implement all 21 standard timing formulas from zhishidianzongjie.md section '常用应期公式归纳': (1) Static line: feng-zhi/feng-chong (wang=chong, shuai=zhi). (2) Moving line: feng-he/feng-zhi. (3) Yue-po: tian-shi/bu-po/chu-yue-po. (4) Ri-chong: tian-shi/bu-po, possibly same day or next. (5) Xun-kong: tian-shi/chong-shi/chu-kong. (6) Yu-he: feng-liang-chong; yu-chong: feng-liang-he. (7) Dong-feng-yue-he: within 3 months. (8) Single attribute: same-element period. (9) Bian-yao: if no hui-tou, feng-zhi/feng-chong; if hui-tou, feng-zhi/feng-he. (10) Hua-jin-shen: feng-zhi/feng-he/feng-jin. (11) Hua-tui-shen: feng-liang-chong/feng-tui-zhi. (12) San-he-ju: internal=break timing, external=complete timing. (13) San-mu: chong-mu/chong-yao/chu-mu. (14) San-xing: fill missing element timing. (15) Fan-yin: element feng-zhi period. (16) Fu-yin: target=feng-zhi/feng-chong; non-target=feng-zhi/feng-he. (17) Fu-shen: feng-zhi/feng-he/chong-fei. (18) Ji-xiong-shou-ke: wait for ji-yao clash. (19) Ji-xiong-shou-sheng: wait for sheng-element clash. (20) Shi-ji-guo-wang: feng-mu/feng-ke period. (21) Yong-shen-duo-xian: feng-mu period.",
+    "Add a YingqiCandidate dataclass: {di_zhi: str, timing_type: str (day/month/year), formula_source: str, priority: int, reasoning: str}. Refactor estimate_yingqi to return List[YingqiCandidate] instead of List[str].",
+    "Implement timing speed modifiers: (a) Acceleration indicators: an-dong present, liu-shen moving with day, gua-bian-liu-chong. When detected, add note that timing is likely earlier than calculated, potentially same-day or next-period. (b) Deceleration indicators: san-he-ju formed, san-ban present, gua-bian-liu-he. When detected, add note that timing will be delayed. (c) Store these as 'speed_modifier' field in each YingqiCandidate.",
+    "Implement near-far (jin-yuan) distinction: (a) Add parameter 'time_scope' to analyze_yingqi() with values 'short' (days), 'medium' (months), 'long' (years). (b) For short scope: prioritize ri-level candidates, an-dong timing, day-value formulas. (c) For medium scope: prioritize yue-level candidates. (d) For long scope: prioritize nian-level candidates, san-he timing. (e) Apply filtering: for short scope, exclude nian-level candidates unless no others exist; for long scope, exclude ri-level candidates that represent transient states.",
+    "Add candidate ranking logic: function rank_yingqi_candidates(candidates) implementing the 5 principles from the knowledge base: (1) ji-duan-ji-ying/xiong-duan-xiong-ying (auspicious timing for auspicious verdict, inauspicious for inauspicious). (2) Ding-mian-bu-ding-dian (range not point). (3) Ying-zhong-bu-ying-gua (multiple occurrences = higher probability). (4) Ying-zao-bu-ying-chi (earlier = higher priority). (5) Ying-lin-bu-ying-dan (adjacent periods = higher probability). Return sorted candidates with rank scores.",
+    "Update report.py to display refined yingqi results: show top 3 ranked candidates with their formula source, reasoning, and speed modifiers. Group by day/month/year scope.",
+    "Write tests in tests/test_yingqi_refined.py: (a) Test each of the 21 formulas produces correct candidate di-zhi, (b) Test ranking logic with multiple candidates, (c) Test speed modifier detection, (d) Test near-far filtering, (e) Test integration with full analysis pipeline."
+  ],
+  "acceptance_criteria": [
+    "python3 -m pytest tests/test_yingqi_refined.py -v passes all tests",
+    "For a moving line at position with di-zhi '酉', formula (2) produces candidates '辰' (feng-he) and '酉' (feng-zhi)",
+    "For a hua-jin-shen '申->酉', formula (10) produces candidates '申' (feng-zhi), '巳' (feng-he), '酉' (feng-jin)",
+    "Ranking places multiply-occurring candidates higher than single-occurrence ones",
+    "All existing tests still pass"
+  ],
+  "verification": [
+    "Run python3 -m pytest tests/test_yingqi_refined.py -v",
+    "Run python3 -m pytest tests/ -v to confirm no regressions"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

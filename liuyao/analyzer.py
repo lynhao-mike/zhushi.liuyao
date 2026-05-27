@@ -2,6 +2,7 @@
 分析编排器 - Analysis Orchestrator
 
 整合旺衰分析、动变分析、吉凶判断、应期推断, 生成完整分析报告。
+支持双合卦分析和拓扑用神选择。
 """
 
 from dataclasses import dataclass, field
@@ -15,6 +16,10 @@ from .jixiong import (
     find_yong_shen_lines, find_shi_line,
 )
 from .yingqi import analyze_yingqi
+from .shuanghe import (
+    detect_shuanghe_type, analyze_ying_yao_role, judge_shuanghe_jixiong,
+)
+from .tuopu_yongshen import determine_tuopu_yongshen
 
 
 @dataclass
@@ -23,6 +28,7 @@ class AnalysisReport:
     # 基本信息
     hexagram: Hexagram = None
     question_type: str = ""
+    question_desc: str = ""
     yong_shen_liu_qin: str = ""
 
     # 分析结果
@@ -35,8 +41,17 @@ class AnalysisReport:
     yong_shen_lines: List = field(default_factory=list)
     shi_line: Optional[object] = None
 
+    # 双合卦分析
+    shuanghe_type: str = "normal"
+    shuanghe_ying_role: Optional[Dict] = None
+    shuanghe_jixiong: Optional[Dict] = None
 
-def run_analysis(hexagram, question_type="other"):
+    # 拓扑用神
+    tuopu_result: Optional[Dict] = None
+
+
+def run_analysis(hexagram, question_type="other", question_desc="",
+                 question_keywords=None):
     """
     执行完整六爻分析流程。
 
@@ -52,17 +67,31 @@ def run_analysis(hexagram, question_type="other"):
             zinv - 子女
             xingRen - 行人
             youHuan - 忧患
+            te_zhi_* - 特指类 (如 te_zhi_cai)
+            jia_jie_* - 嫁接类 (如 jia_jie_cai)
             other - 其他
+        question_desc: 问事描述文本 (用于双合卦检测)
+        question_keywords: 问事关键词列表 (用于拓扑用神选择)
 
     Returns:
         AnalysisReport: 完整分析报告
     """
+    if question_keywords is None:
+        question_keywords = []
+
     report = AnalysisReport()
     report.hexagram = hexagram
     report.question_type = question_type
+    report.question_desc = question_desc
 
-    # 1. 确定用神
-    report.yong_shen_liu_qin = determine_yong_shen(question_type)
+    # 1. 确定用神 (处理 te_zhi_/jia_jie_ 前缀)
+    base_question_type = question_type
+    if question_type.startswith("te_zhi_"):
+        base_question_type = question_type[7:]
+    elif question_type.startswith("jia_jie_"):
+        base_question_type = question_type[8:]
+
+    report.yong_shen_liu_qin = determine_yong_shen(base_question_type)
     report.yong_shen_lines = find_yong_shen_lines(hexagram, report.yong_shen_liu_qin)
     report.shi_line = find_shi_line(hexagram)
 
@@ -76,7 +105,7 @@ def run_analysis(hexagram, question_type="other"):
     report.jixiong_result = judge_jixiong(
         hexagram, report.yong_shen_liu_qin,
         report.wangshuai_results, report.dongbian_results,
-        question_type
+        base_question_type
     )
 
     # 5. 应期推断
@@ -84,5 +113,27 @@ def run_analysis(hexagram, question_type="other"):
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results
     )
+
+    # 6. 双合卦分析
+    report.shuanghe_type = detect_shuanghe_type(question_type, question_desc)
+    if report.shuanghe_type != "normal":
+        report.shuanghe_ying_role = analyze_ying_yao_role(
+            hexagram, report.yong_shen_lines,
+            report.dongbian_results, report.wangshuai_results
+        )
+        # 仅当应爻参与时进行双核吉凶判断
+        if report.shuanghe_ying_role["role"] in ("dui_bi", "guan_lian"):
+            report.shuanghe_jixiong = judge_shuanghe_jixiong(
+                hexagram, report.yong_shen_liu_qin,
+                report.shuanghe_ying_role,
+                report.wangshuai_results, report.dongbian_results,
+                question_type
+            )
+
+    # 7. 拓扑用神选择 (当标准用神为空时)
+    if not report.yong_shen_lines and question_keywords:
+        report.tuopu_result = determine_tuopu_yongshen(
+            hexagram, base_question_type, question_keywords
+        )
 
     return report

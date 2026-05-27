@@ -200,4 +200,58 @@ def format_report(report):
     lines.append("")
     lines.append("=" * 60)
 
+    # =========================================================================
+    # 第七部分: 双合卦分析 (仅当检测到双合卦时)
+    # =========================================================================
+    if hasattr(report, 'shuanghe_type') and report.shuanghe_type != "normal":
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【双合卦分析】")
+        lines.append("=" * 60)
+
+        type_name = "特指" if report.shuanghe_type == "te_zhi" else "嫁接"
+        lines.append(f"  类型: {type_name}卦")
+
+        if report.shuanghe_ying_role:
+            role = report.shuanghe_ying_role["role"]
+            role_names = {"wu_guan": "无关", "dui_bi": "对比", "guan_lian": "关联"}
+            lines.append(f"  应爻参与度: {role_names.get(role, role)}")
+            lines.append(f"  详情: {report.shuanghe_ying_role['details']}")
+
+        if report.shuanghe_jixiong:
+            sj = report.shuanghe_jixiong
+            match_str = "是" if sj["te_zhi_match"] else "否"
+            lines.append(f"  指定目标一致: {match_str}")
+            lines.append(f"  应爻强度: {sj['ying_strength']}")
+            lines.append(f"  判断: {sj['explanation']}")
+
+        lines.append("")
+
+    # =========================================================================
+    # 第八部分: 拓扑用神 (仅当启用时)
+    # =========================================================================
+    if hasattr(report, 'tuopu_result') and report.tuopu_result:
+        lines.append("")
+        lines.append("=" * 60)
+        lines.append("【拓扑用神选择】")
+        lines.append("=" * 60)
+
+        tr = report.tuopu_result
+        method_names = {
+            "liu_qin": "标准六亲法",
+            "wuxing": "五行类象法",
+            "xingsha": "星煞法",
+            "liushen": "六神法",
+            "none": "无匹配",
+        }
+        lines.append(f"  选择方法: {method_names.get(tr['method'], tr['method'])}")
+        lines.append(f"  详情: {tr['details']}")
+        if tr["lines"]:
+            tuopu_pos = [f"第{l.position}爻({l.di_zhi}{l.wu_xing})" for l in tr["lines"]]
+            lines.append(f"  选取爻位: {', '.join(tuopu_pos)}")
+        else:
+            lines.append("  选取爻位: 无")
+
+        lines.append("")
+
     return "\n".join(lines)
