@@ -192,8 +192,23 @@ def format_report(report):
     if report.yingqi_results:
         for yq in report.yingqi_results:
             lines.append(f"  用神第{yq['position']}爻({yq['di_zhi']} {yq['liu_qin']}):")
-            for candidate in yq["candidates"]:
-                lines.append(f"    - {candidate}")
+            # Show top ranked candidates with formula info
+            ranked = yq.get("ranked_candidates", [])
+            if ranked:
+                top_n = ranked[:3]
+                for i, c in enumerate(top_n, 1):
+                    speed_tag = ""
+                    if c.speed_modifier:
+                        speed_tag = " [加速]" if c.speed_modifier == "accelerated" else " [减速]"
+                    lines.append(
+                        f"    {i}. [{c.formula_name}] {c.di_zhi}"
+                        f"({c.timing_type}){speed_tag} - {c.reasoning}"
+                    )
+                if len(ranked) > 3:
+                    lines.append(f"    ... 共{len(ranked)}个候选")
+            else:
+                for candidate in yq["candidates"]:
+                    lines.append(f"    - {candidate}")
     else:
         lines.append("  无法推断应期(用神不现)")
 
