@@ -43,6 +43,24 @@ class YaoLine:
 
 
 @dataclass
+class CangYao:
+    """
+    藏爻 - 主卦下藏伏的本宫纯卦对应位置之爻。
+
+    据《古筮真诠》第三十九章: 藏爻是把整个本宫纯卦的爻套入主卦相应爻位之下,
+    用于补全五行六亲缺漏, 同时也是细节分析层面"读心术"的重要工具。
+
+    伏神 = 藏爻中被取为用神者; 伏爻 = 藏爻中作为补缺存在但非用神者。
+    """
+    position: int          # 爻位 1-6
+    tian_gan: str          # 纳甲天干 (本宫纯卦的纳甲)
+    di_zhi: str            # 纳甲地支
+    wu_xing: str           # 地支五行
+    liu_qin: str           # 六亲 (与本宫五行计算)
+    is_xun_kong: bool = False  # 是否旬空 (藏爻也受日令旬空影响)
+
+
+@dataclass
 class Hexagram:
     """
     六爻卦象完整信息。
@@ -65,6 +83,7 @@ class Hexagram:
     palace_order: int = 0        # 宫内序号
 
     lines: List[YaoLine] = field(default_factory=list)
+    cang_yao: List[CangYao] = field(default_factory=list)  # 6个藏爻 (本宫纯卦各爻)
     gan_zhi: dict = field(default_factory=dict)
     xun_kong: Tuple[str, str] = ("", "")
     shi_pos: int = 0
@@ -211,6 +230,47 @@ class Hexagram:
                 bian_liu_qin=bian_lq,
             )
             self.lines.append(line)
+
+        # 11. 计算藏爻 (本宫纯卦的6爻)
+        self._compute_cang_yao()
+
+    def _compute_cang_yao(self):
+        """
+        计算藏爻: 本宫纯卦各爻的纳甲六亲。
+
+        据《古筮真诠》第三十九章: 藏爻是把本宫纯卦的全部爻套入主卦相应爻位下,
+        无论主卦五行六亲是否缺漏, 都计算完整的6个藏爻。
+
+        伏神 = 藏爻中所取的用神。当主卦中找不到所需用神(六亲), 即从藏爻中查找。
+        """
+        # 本宫纯卦的上下卦都是 palace_name 经卦
+        pure_na_jia = NA_JIA[self.palace_name]
+        # pure_na_jia = (天干, [初/二/三爻地支], [四/五/上爻地支])
+        # 注: 纯卦上下卦同, 但纳甲遵循同一经卦的内外两套 (内卦下半, 外卦上半)
+
+        cang_lines = []
+        for i in range(6):
+            pos = i + 1
+            if i < 3:
+                tian_gan = pure_na_jia[0]
+                di_zhi = pure_na_jia[1][i]
+            else:
+                tian_gan = pure_na_jia[0]
+                di_zhi = pure_na_jia[2][i - 3]
+
+            wu_xing = DI_ZHI_WU_XING[di_zhi]
+            liu_qin_val = get_liu_qin(self.palace_wu_xing, wu_xing)
+
+            cang = CangYao(
+                position=pos,
+                tian_gan=tian_gan,
+                di_zhi=di_zhi,
+                wu_xing=wu_xing,
+                liu_qin=liu_qin_val,
+                is_xun_kong=(di_zhi in self.xun_kong),
+            )
+            cang_lines.append(cang)
+        self.cang_yao = cang_lines
 
     def display(self):
         """以传统格式显示排卦结果"""
