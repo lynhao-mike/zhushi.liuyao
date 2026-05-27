@@ -296,12 +296,19 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.shi_line = shi_line
         report.wangshuai_results = shared_ws
         report.dongbian_results = shared_db
-        report.jixiong_result = judge_jixiong(
-            hexagram, yong_shen, shared_ws, shared_db, question_type
-        )
-        report.yingqi_results = analyze_yingqi(
-            hexagram, report.yong_shen_lines, shared_ws, shared_db
-        )
+        try:
+            report.jixiong_result = judge_jixiong(
+                hexagram, yong_shen, shared_ws, shared_db, question_type
+            )
+        except LiuyaoError:
+            report.jixiong_result = {"pattern": "分析异常", "ji_xiong": "平", "explanation": "吉凶判断过程出现异常"}
+
+        try:
+            report.yingqi_results = analyze_yingqi(
+                hexagram, report.yong_shen_lines, shared_ws, shared_db
+            )
+        except LiuyaoError:
+            report.yingqi_results = []
         dual.perspectives.append(report)
 
     # 综合结论

@@ -2,11 +2,14 @@
 自定义异常测试 - Custom Exception Hierarchy Tests
 
 验证异常继承关系、向后兼容性、以及排卦时的异常行为。
+验证分析编排器在子分析异常时的优雅降级行为。
 """
 
 import pytest
+from unittest.mock import patch
 from liuyao.exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
 from liuyao.hexagram import Hexagram
+from liuyao.analyzer import run_analysis, run_dual_analysis
 
 
 class TestExceptionHierarchy:
@@ -134,3 +137,39 @@ class TestExceptionImportFromPackage:
         assert ArrangementError is not None
         assert AnalysisError is not None
         assert CalendarError is not None
+
+
+class TestGracefulDegradation:
+    """测试分析编排器在子分析异常时的优雅降级行为"""
+
+    def test_jixiong_failure_degrades_in_run_analysis(self):
+        """吉凶判断异常时报告仍可生成"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        with patch('liuyao.analyzer.judge_jixiong', side_effect=LiuyaoError("test")):
+            report = run_analysis(h, "cai")
+        assert report.jixiong_result["ji_xiong"] == "平"
+        assert report.jixiong_result["pattern"] == "分析异常"
+
+    def test_yingqi_failure_degrades_in_run_analysis(self):
+        """应期推断异常时报告仍可生成"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        with patch('liuyao.analyzer.analyze_yingqi', side_effect=LiuyaoError("test")):
+            report = run_analysis(h, "cai")
+        assert report.yingqi_results == []
+
+    def test_dual_analysis_jixiong_failure_degrades(self):
+        """双视角分析中吉凶判断异常时仍可完成"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        with patch('liuyao.analyzer.judge_jixiong', side_effect=LiuyaoError("test")):
+            dual = run_dual_analysis(h, "shiwu")
+        for p in dual.perspectives:
+            assert p.jixiong_result["ji_xiong"] == "平"
+            assert p.jixiong_result["pattern"] == "分析异常"
+
+    def test_dual_analysis_yingqi_failure_degrades(self):
+        """双视角分析中应期推断异常时仍可完成"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        with patch('liuyao.analyzer.analyze_yingqi', side_effect=LiuyaoError("test")):
+            dual = run_dual_analysis(h, "shiwu")
+        for p in dual.perspectives:
+            assert p.yingqi_results == []

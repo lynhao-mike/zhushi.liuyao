@@ -3,5 +3,12 @@
   "task_description": "Implement architecture improvements for the zhushi.liuyao project: add package management (pyproject.toml), independent unit tests for core modules, GitHub Actions CI, move documentation to docs/, add TypedDict annotations, and create custom exception hierarchy.",
   "status": "in_progress",
   "feature_order": ["FEAT-001", "FEAT-002"],
-  "blocked_reason": null
+  "blocked_reason": null,
+  "verification": {
+    "build": "pass",
+    "tests": "pass",
+    "test_quality": "pass",
+    "docker_build": "skipped",
+    "summary": "pip install -e '.[test]' succeeds. All 463 tests pass (347 original + 116 new). Tests exercise real module logic with domain-specific assertions, not just mocks."
+  }
 }

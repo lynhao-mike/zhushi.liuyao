@@ -16,5 +16,4 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - run: pip install -e '.[test]'
-      - run: pip install sxtwl
       - run: pytest tests/ -v
