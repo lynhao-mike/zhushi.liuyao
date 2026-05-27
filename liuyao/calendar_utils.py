@@ -7,6 +7,7 @@
 
 import sxtwl
 from .data import TIAN_GAN, DI_ZHI
+from .exceptions import CalendarError
 
 
 def get_gan_zhi(year, month, day, hour=12):
@@ -37,9 +38,15 @@ def get_gan_zhi(year, month, day, hour=12):
         # 使用次日的日柱
         from datetime import date, timedelta
         next_date = date(year, month, day) + timedelta(days=1)
-        day_obj = sxtwl.fromSolar(next_date.year, next_date.month, next_date.day)
+        try:
+            day_obj = sxtwl.fromSolar(next_date.year, next_date.month, next_date.day)
+        except Exception as e:
+            raise CalendarError(f"干支历法计算失败: {year}年{month}月{day}日 - {e}")
     else:
-        day_obj = sxtwl.fromSolar(year, month, day)
+        try:
+            day_obj = sxtwl.fromSolar(year, month, day)
+        except Exception as e:
+            raise CalendarError(f"干支历法计算失败: {year}年{month}月{day}日 - {e}")
 
     # 获取年干支 (以立春为界, sxtwl 的 getYearGZ 已按此规则)
     year_gz = day_obj.getYearGZ()

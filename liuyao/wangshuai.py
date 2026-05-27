@@ -28,12 +28,32 @@
 ─────────────────────────────────────────────────────
 """
 
+from typing import List, TypedDict
+
 from .data import (
     DI_ZHI, DI_ZHI_WU_XING,
     WU_XING_SHENG, WU_XING_KE,
     LIU_CHONG, LIU_HE,
     get_chang_sheng,
 )
+
+
+class WangShuaiResult(TypedDict):
+    """单爻旺衰分析结果类型"""
+    overall: str
+    month_wang: List[str]
+    month_shuai: List[str]
+    day_wang: List[str]
+    day_shuai: List[str]
+    details: str
+
+
+class HexagramWangShuaiResult(WangShuaiResult):
+    """整卦旺衰分析结果类型（含爻位信息）"""
+    position: int
+    di_zhi: str
+    wu_xing: str
+    liu_qin: str
 
 
 # 旺衰状态常量
@@ -178,7 +198,7 @@ def ri_chen_wangshuai(line_zhi, day_zhi, is_static=True):
     return wang_reasons, shuai_reasons
 
 
-def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
+def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True) -> WangShuaiResult:
     """
     综合分析单爻旺衰。
 
@@ -186,7 +206,7 @@ def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
     特殊规则：如整体趋旺，日绝当平看；月破为重度衰，优先级高于其余因素。
 
     Returns:
-        dict: {
+        WangShuaiResult: {
             "overall": "旺"/"衰"/"平",
             "month_wang": [旺因],
             "month_shuai": [衰因],
@@ -255,7 +275,7 @@ def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
     }
 
 
-def analyze_hexagram_wangshuai(hexagram):
+def analyze_hexagram_wangshuai(hexagram) -> List[HexagramWangShuaiResult]:
     """
     分析整卦所有爻的旺衰。
 
@@ -263,7 +283,7 @@ def analyze_hexagram_wangshuai(hexagram):
         hexagram: Hexagram对象
 
     Returns:
-        list[dict]: 每爻的旺衰分析结果，索引0=初爻，索引5=上爻
+        List[HexagramWangShuaiResult]: 每爻的旺衰分析结果，索引0=初爻，索引5=上爻
     """
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]

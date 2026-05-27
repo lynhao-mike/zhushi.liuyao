@@ -30,6 +30,8 @@
 ─────────────────────────────────────────────────────
 """
 
+from typing import Dict, List, Optional
+
 from .data import (
     DI_ZHI, DI_ZHI_WU_XING,
     WU_XING_SHENG, WU_XING_KE,
@@ -39,6 +41,27 @@ from .data import (
     get_chang_sheng,
 )
 from .wangshuai import analyze_line_wangshuai
+
+from typing import TypedDict
+
+MovingAnalysis = TypedDict('MovingAnalysis', {
+    'position': int,
+    'ben_zhi': str,
+    'bian_zhi': str,
+    '趋旺': List[str],
+    '趋衰': List[str],
+    'is_useless': bool,
+    'useless_reason': str,
+})
+
+DongbianResult = TypedDict('DongbianResult', {
+    'moving_analyses': Dict[int, MovingAnalysis],
+    'san_he_ju': List[Dict],
+    'an_dong': List[Dict],
+    'useful_moving': List[int],
+    'useless_moving': List[int],
+    'interactions': Dict[int, Dict],
+})
 
 
 def is_hui_tou_sheng(line_zhi, bian_zhi):
@@ -88,7 +111,7 @@ def get_chong_zhi(zhi):
     return LIU_CHONG.get(zhi, "")
 
 
-def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
+def analyze_moving_line(line, hexagram, month_zhi, day_zhi) -> Optional[MovingAnalysis]:
     """
     分析单个动爻的变化趋势。
 
@@ -99,7 +122,7 @@ def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
         day_zhi: 日支
 
     Returns:
-        dict: 动爻分析结果，包含趋旺/趋衰标签及无用标记
+        Optional[MovingAnalysis]: 动爻分析结果，包含趋旺/趋衰标签及无用标记
     """
     if not line.is_moving or not line.bian_di_zhi:
         return None
@@ -334,7 +357,7 @@ def detect_an_dong(hexagram, wangshuai_results):
     return an_dong_list
 
 
-def analyze_dongbian(hexagram, wangshuai_results):
+def analyze_dongbian(hexagram, wangshuai_results) -> DongbianResult:
     """
     完整动变分析。
 
@@ -343,7 +366,7 @@ def analyze_dongbian(hexagram, wangshuai_results):
         wangshuai_results: 各爻旺衰分析结果
 
     Returns:
-        dict: {
+        DongbianResult: {
             "moving_analyses": {pos: 动爻分析},
             "san_he_ju": [三合局],
             "an_dong": [暗动],

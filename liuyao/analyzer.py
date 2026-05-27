@@ -28,6 +28,7 @@ from .fushen import (
 )
 from .xintai import detect_xintai_gua, analyze_xintai
 from .guaci import analyze_guaci
+from .exceptions import LiuyaoError, AnalysisError
 
 
 @dataclass
@@ -153,82 +154,103 @@ def run_analysis(hexagram, question_type="other",
     report.dongbian_results = analyze_dongbian(hexagram, report.wangshuai_results)
 
     # 4. 吉凶判断
-    report.jixiong_result = judge_jixiong(
-        hexagram, report.yong_shen_liu_qin,
-        report.wangshuai_results, report.dongbian_results,
-        base_question_type
-    )
+    try:
+        report.jixiong_result = judge_jixiong(
+            hexagram, report.yong_shen_liu_qin,
+            report.wangshuai_results, report.dongbian_results,
+            base_question_type
+        )
+    except LiuyaoError:
+        report.jixiong_result = {"pattern": "分析异常", "ji_xiong": "平", "explanation": "吉凶判断过程出现异常"}
 
     # 5. 应期推断
-    report.yingqi_results = analyze_yingqi(
-        hexagram, report.yong_shen_lines,
-        report.wangshuai_results, report.dongbian_results
-    )
+    try:
+        report.yingqi_results = analyze_yingqi(
+            hexagram, report.yong_shen_lines,
+            report.wangshuai_results, report.dongbian_results
+        )
+    except LiuyaoError:
+        report.yingqi_results = []
 
     # 5.5 卦辞寓意分析
-    report.guaci_result = analyze_guaci(
-        hexagram, report.jixiong_result, report.dongbian_results
-    )
+    try:
+        report.guaci_result = analyze_guaci(
+            hexagram, report.jixiong_result, report.dongbian_results
+        )
+    except LiuyaoError:
+        report.guaci_result = None
 
     # 6. 双合卦分析
-    report.shuanghe_type = detect_shuanghe_type(question_type, question_desc)
-    if report.shuanghe_type != "normal":
-        report.shuanghe_ying_role = analyze_ying_yao_role(
-            hexagram, report.yong_shen_lines,
-            report.dongbian_results, report.wangshuai_results
-        )
-        # 仅当应爻参与时进行双核吉凶判断
-        if report.shuanghe_ying_role["role"] in ("dui_bi", "guan_lian"):
-            report.shuanghe_jixiong = judge_shuanghe_jixiong(
-                hexagram, report.yong_shen_liu_qin,
-                report.shuanghe_ying_role,
-                report.wangshuai_results, report.dongbian_results,
-                question_type
+    try:
+        report.shuanghe_type = detect_shuanghe_type(question_type, question_desc)
+        if report.shuanghe_type != "normal":
+            report.shuanghe_ying_role = analyze_ying_yao_role(
+                hexagram, report.yong_shen_lines,
+                report.dongbian_results, report.wangshuai_results
             )
+            # 仅当应爻参与时进行双核吉凶判断
+            if report.shuanghe_ying_role["role"] in ("dui_bi", "guan_lian"):
+                report.shuanghe_jixiong = judge_shuanghe_jixiong(
+                    hexagram, report.yong_shen_liu_qin,
+                    report.shuanghe_ying_role,
+                    report.wangshuai_results, report.dongbian_results,
+                    question_type
+                )
+    except LiuyaoError:
+        report.shuanghe_type = "normal"
 
     # 7. 拓扑用神选择 (当标准用神为空时, 或所有用神爻皆旬空时)
-    if not report.yong_shen_lines and question_keywords:
-        report.tuopu_result = determine_tuopu_yongshen(
-            hexagram, base_question_type, question_keywords
-        )
-    elif report.yong_shen_lines and question_keywords:
-        # 所有用神爻皆旬空时, 拓扑用神作为补充分析
-        all_xun_kong = all(l.is_xun_kong for l in report.yong_shen_lines)
-        if all_xun_kong:
+    try:
+        if not report.yong_shen_lines and question_keywords:
             report.tuopu_result = determine_tuopu_yongshen(
                 hexagram, base_question_type, question_keywords
             )
+        elif report.yong_shen_lines and question_keywords:
+            # 所有用神爻皆旬空时, 拓扑用神作为补充分析
+            all_xun_kong = all(l.is_xun_kong for l in report.yong_shen_lines)
+            if all_xun_kong:
+                report.tuopu_result = determine_tuopu_yongshen(
+                    hexagram, base_question_type, question_keywords
+                )
+    except LiuyaoError:
+        report.tuopu_result = None
 
     # 8. 伏神分析 (当用神不现于卦中时)
-    if not report.yong_shen_lines:
-        fu_shen_info = find_fu_shen(hexagram, report.yong_shen_liu_qin)
-        if fu_shen_info:
-            fu_status = analyze_fu_shen_status(fu_shen_info, hexagram)
-            fu_jixiong = judge_fushen_jixiong(
-                fu_shen_info, fu_status, hexagram,
-                report.wangshuai_results, report.dongbian_results
-            )
-            fu_yingqi = estimate_fushen_yingqi(fu_shen_info, fu_status, hexagram)
-            report.fushen_result = {
-                "fu_shen_info": fu_shen_info,
-                "fu_status": fu_status,
-                "fu_jixiong": fu_jixiong,
-                "fu_yingqi": fu_yingqi,
-            }
+    try:
+        if not report.yong_shen_lines:
+            fu_shen_info = find_fu_shen(hexagram, report.yong_shen_liu_qin)
+            if fu_shen_info:
+                fu_status = analyze_fu_shen_status(fu_shen_info, hexagram)
+                fu_jixiong = judge_fushen_jixiong(
+                    fu_shen_info, fu_status, hexagram,
+                    report.wangshuai_results, report.dongbian_results
+                )
+                fu_yingqi = estimate_fushen_yingqi(fu_shen_info, fu_status, hexagram)
+                report.fushen_result = {
+                    "fu_shen_info": fu_shen_info,
+                    "fu_status": fu_status,
+                    "fu_jixiong": fu_jixiong,
+                    "fu_yingqi": fu_yingqi,
+                }
+    except LiuyaoError:
+        report.fushen_result = None
 
     # 9. 心态卦识别
-    xintai_detection = detect_xintai_gua(
-        hexagram, question_type,
-        report.wangshuai_results, report.dongbian_results
-    )
-    if xintai_detection["is_xintai"] and xintai_detection["confidence"] >= 0.7:
-        xintai_analysis = analyze_xintai(
-            hexagram, report.wangshuai_results, report.dongbian_results
+    try:
+        xintai_detection = detect_xintai_gua(
+            hexagram, question_type,
+            report.wangshuai_results, report.dongbian_results
         )
-        report.xintai_result = {
-            "detection": xintai_detection,
-            "analysis": xintai_analysis,
-        }
+        if xintai_detection["is_xintai"] and xintai_detection["confidence"] >= 0.7:
+            xintai_analysis = analyze_xintai(
+                hexagram, report.wangshuai_results, report.dongbian_results
+            )
+            report.xintai_result = {
+                "detection": xintai_detection,
+                "analysis": xintai_analysis,
+            }
+    except LiuyaoError:
+        report.xintai_result = None
 
     return report
 
@@ -274,12 +296,19 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.shi_line = shi_line
         report.wangshuai_results = shared_ws
         report.dongbian_results = shared_db
-        report.jixiong_result = judge_jixiong(
-            hexagram, yong_shen, shared_ws, shared_db, question_type
-        )
-        report.yingqi_results = analyze_yingqi(
-            hexagram, report.yong_shen_lines, shared_ws, shared_db
-        )
+        try:
+            report.jixiong_result = judge_jixiong(
+                hexagram, yong_shen, shared_ws, shared_db, question_type
+            )
+        except LiuyaoError:
+            report.jixiong_result = {"pattern": "分析异常", "ji_xiong": "平", "explanation": "吉凶判断过程出现异常"}
+
+        try:
+            report.yingqi_results = analyze_yingqi(
+                hexagram, report.yong_shen_lines, shared_ws, shared_db
+            )
+        except LiuyaoError:
+            report.yingqi_results = []
         dual.perspectives.append(report)
 
     # 综合结论

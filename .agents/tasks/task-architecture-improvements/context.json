@@ -1,0 +1,27 @@
+{
+  "project_type": "Python Liu Yao (six-line divination) analysis engine",
+  "language": "Python 3.9+",
+  "build_system": "pip (no pyproject.toml yet - one of the tasks is to create it)",
+  "test_framework": "pytest, tests in tests/ directory with class-based test organization",
+  "build_command": "pip install -e . (after pyproject.toml is created)",
+  "test_command": "python3 -m pytest tests/ -v",
+  "verification_instructions": "Run python3 -m pytest tests/ -v and confirm all tests pass (baseline: 347 tests)",
+  "snapshot_or_generated_files": null,
+  "setup_instructions": "pip install sxtwl pytest",
+  "environment_constraints": "Python 3.9, sxtwl and pytest already installed in environment",
+  "contribution_requirements": "No CONTRIBUTING.md exists. Follow existing patterns in tests/test_analysis.py for test style.",
+  "key_patterns": "Tests use class-based organization with descriptive Chinese docstrings. Source modules have detailed Chinese docstrings explaining domain theory. Imports are relative within liuyao package. data.py contains all static lookup tables. hexagram.py raises ValueError for invalid inputs. calendar_utils.py uses sxtwl library.",
+  "relevant_files": [
+    "liuyao/wangshuai.py",
+    "liuyao/dongbian.py",
+    "liuyao/jixiong.py",
+    "liuyao/hexagram.py",
+    "liuyao/calendar_utils.py",
+    "liuyao/analyzer.py",
+    "liuyao/__init__.py",
+    "liuyao/data.py",
+    "tests/test_analysis.py",
+    "tests/test_hexagram.py"
+  ],
+  "directory_structure": "liuyao/ - source package with __init__.py, __main__.py, main.py (CLI), hexagram.py (arrangement engine), data.py (static tables), wangshuai.py, dongbian.py, jixiong.py, yingqi.py, analyzer.py, report.py, and expansion modules (fushen, xintai, shuanghe, tuopu_yongshen, guaci). tests/ - pytest tests. Root has 23 markdown reference files and README.md."
+}
