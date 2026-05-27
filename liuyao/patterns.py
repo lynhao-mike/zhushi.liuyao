@@ -255,7 +255,9 @@ def detect_fan_yin(hexagram):
             if LIU_CHONG.get(l1.di_zhi) == l2.di_zhi:
                 result["爻动反吟"].append((l1.position, l2.position))
 
-    # 4. 爻化反吟: 动爻与变爻相冲
+    # 4. 爻化反吟: 动爻与变爻相冲 (反吟 = 动变相冲, 不同于化破)
+    # 化破 = 变爻被月/日令冲 (在 dongbian.py 已单独处理)
+    # 化反吟 = 动爻与变爻地支相冲 (动变两端相冲)
     for line in hexagram.lines:
         if line.is_moving and line.bian_di_zhi:
             if LIU_CHONG.get(line.di_zhi) == line.bian_di_zhi:

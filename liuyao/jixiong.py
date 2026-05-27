@@ -214,14 +214,22 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
 
     # =========================================================================
     # 按照传统理论优先级判断:
-    # 世用受克局 -> 世爻受伤局 -> 世用受生局 -> 用神生世局 ->
-    # 用旺世衰局 -> 用神克世局 -> 用旺世兴局 -> 用神衰败局
     # =========================================================================
 
     yong_wx = DI_ZHI_WU_XING[primary_yong.di_zhi]
     shi_wx = DI_ZHI_WU_XING[shi_line.di_zhi]
+    ji_shen_liu_qin = JI_SHEN_TABLE.get(yong_shen_liu_qin, "")
 
-    # 1. 世用受克局: 用神与世重叠, 受动爻克 (最严重, 优先判断)
+    # 0. 用神衰败局 (首先检查 - 用神衰则无论世爻如何都凶)
+    # 据知识点: 吉凶判断首要是用神旺衰
+    if yong_is_shuai:
+        return {
+            "pattern": "用神衰败局",
+            "ji_xiong": "凶",
+            "explanation": f"用神{primary_yong.di_zhi}{yong_wx}衰弱({primary_yong_ws['details']}), 凶",
+        }
+
+    # 1. 世用受克局: 用神与世重叠, 受动爻克 (最严重)
     if yong_is_shi and shi_interaction["受克"]:
         return {
             "pattern": "世用受克局",
@@ -229,7 +237,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
             "explanation": f"用神持世, 受动爻克({', '.join(shi_interaction['受克'])}), 凶",
         }
 
-    # 2. 世爻受伤局: 世受有用动爻克, 或世动化衰
+    # 2. 世爻受伤局: 世受有用动爻克 / 世动化回头克 / 世动化忌神
     shi_hurt = False
     shi_hurt_result = None
     if shi_interaction["受克"]:
@@ -241,7 +249,28 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         }
     elif shi_line.is_moving and shi_line.position in moving_analyses:
         shi_dong = moving_analyses[shi_line.position]
-        if shi_dong["趋衰"]:
+        # 世动化回头克 (趋衰)
+        if "回头克" in shi_dong.get("趋衰", []):
+            shi_hurt = True
+            shi_hurt_result = {
+                "pattern": "世爻受伤局",
+                "ji_xiong": "凶",
+                "explanation": "世爻动变回头克, 凶",
+            }
+        # 世动化忌神 (世化忌) - 据知识点: 世动化忌神为凶
+        elif (shi_line.bian_liu_qin == ji_shen_liu_qin
+              and ji_shen_liu_qin
+              # 排除化破(假破), 世化忌的同时也化破属于假破
+              and "化破" not in shi_dong.get("趋衰", [])):
+            shi_hurt = True
+            shi_hurt_result = {
+                "pattern": "世爻受伤局",
+                "ji_xiong": "凶",
+                "explanation": f"世爻动化忌神{ji_shen_liu_qin}({shi_line.bian_di_zhi}), 凶",
+            }
+        # 世动化退神 / 化绝 等其他趋衰
+        elif shi_dong.get("趋衰") and not any(
+                t in shi_dong["趋衰"] for t in ["化破", "化反吟"]):
             shi_hurt = True
             shi_hurt_result = {
                 "pattern": "世爻受伤局",
@@ -249,7 +278,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
                 "explanation": f"世爻动化{','.join(shi_dong['趋衰'])}, 凶",
             }
 
-    # If world is hurt, it overrides auspicious patterns (用旺世兴 etc.)
+    # 世爻受伤则凶 (优先于其他吉局)
     if shi_hurt:
         return shi_hurt_result
 
@@ -287,20 +316,12 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
                 "explanation": f"用神{primary_yong.di_zhi}{yong_wx}动克世爻{shi_line.di_zhi}{shi_wx}, 凶",
             }
 
-    # 7. 用旺世兴局
+    # 用旺世兴局 (兜底: 用神旺且世有支撑)
     if yong_is_wang and shi_has_support:
         return {
             "pattern": "用旺世兴局",
             "ji_xiong": "吉",
             "explanation": f"用神旺相, 世爻得日月扶助, 吉",
-        }
-
-    # 8. 用神衰败局
-    if yong_is_shuai:
-        return {
-            "pattern": "用神衰败局",
-            "ji_xiong": "凶",
-            "explanation": f"用神{primary_yong.di_zhi}{yong_wx}衰弱({primary_yong_ws['details']}), 凶",
         }
 
     # 无明显吉凶模式
@@ -425,13 +446,15 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 用神持世
     if shi_liu_qin == yong_shen_liu_qin:
-        # 检查是否无根(月破)
+        # 检查是否无根(月破或日破)
         is_yue_po = "月破" in shi_ws.get("month_shuai", [])
-        if is_yue_po:
+        is_ri_po = "日令克" in shi_ws.get("day_shuai", [])
+        if is_yue_po or is_ri_po:
+            po_type = "月破" if is_yue_po else "日破"
             return {
-                "pattern": "用神持世逢月破",
+                "pattern": f"用神持世逢{po_type}",
                 "ji_xiong": "凶",
-                "explanation": "用神持世但逢月破, 无根之象, 凶",
+                "explanation": f"用神持世但逢{po_type}, 无根之象, 凶",
             }
         return {
             "pattern": "用神持世",
@@ -490,12 +513,13 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 用克世
     if WU_XING_KE[yong_wx] == shi_wx:
-        # 特例
-        if question_type == "cai" and shi_has_support:
+        # 特例: 静卦求财 财克世 且世不衰弱 → 吉
+        # 据知识点: '世爻不能衰弱, 否则身弱不能担财'
+        if question_type == "cai" and shi_ws["overall"] != "衰":
             return {
                 "pattern": "静卦用克世(求财特例)",
                 "ji_xiong": "吉",
-                "explanation": "求财卦, 财克世但世有日月扶, 财来就我",
+                "explanation": "求财卦, 财克世但世不衰弱, 财来就我",
             }
         return {
             "pattern": "静卦用克世",

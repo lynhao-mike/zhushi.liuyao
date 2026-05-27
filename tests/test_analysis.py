@@ -207,10 +207,15 @@ class TestDongBian:
         assert is_hua_jue("寅", "申") is True
 
     def test_hua_po(self):
-        """化破: 本爻与变爻相冲"""
-        assert is_hua_po("子", "午") is True
-        assert is_hua_po("寅", "申") is True
-        assert is_hua_po("子", "丑") is False
+        """化破: 变爻被月令或日令冲 (化月破/化日破), 非动变相冲"""
+        # 变爻午被月支子冲 = 化月破
+        assert is_hua_po("寅", "午", "子", "亥") is True
+        # 变爻午被日支子冲 = 化日破
+        assert is_hua_po("寅", "午", "卯", "子") is True
+        # 变爻丑不被月日冲 = 不化破
+        assert is_hua_po("子", "丑", "巳", "午") is False
+        # 动变相冲(反吟)但变爻不被月日冲 → 不化破
+        assert is_hua_po("子", "午", "卯", "亥") is False
 
     def test_analyze_dongbian_with_moving(self):
         """带动爻的卦动变分析"""

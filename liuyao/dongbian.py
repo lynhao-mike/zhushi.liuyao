@@ -46,8 +46,34 @@ def is_hua_jue(line_zhi, bian_zhi):
     return stage == "绝"
 
 
-def is_hua_po(line_zhi, bian_zhi):
-    """判断是否化破: 本爻与变爻相冲"""
+def is_hua_po(line_zhi, bian_zhi, month_zhi, day_zhi):
+    """
+    判断是否化破(化月破或化日破).
+
+    据《古筮真诠》知识点总结:
+    '动而化破（化月破或日破）' = 变爻地支与月令相冲(化月破) 或与日令相冲(化日破).
+    注: 动爻自身与变爻相冲是 反吟(fan yin), 不是化破.
+
+    Args:
+        line_zhi: 动爻地支
+        bian_zhi: 变爻地支
+        month_zhi: 月支
+        day_zhi: 日支
+    """
+    # 化月破: 变爻地支 == 与月支相冲的地支 (即变爻被月令冲破)
+    hua_yue_po = LIU_CHONG.get(month_zhi) == bian_zhi
+    # 化日破: 变爻地支 == 与日支相冲的地支 (即变爻被日令冲破)
+    hua_ri_po = LIU_CHONG.get(day_zhi) == bian_zhi
+    return hua_yue_po or hua_ri_po
+
+
+def is_fan_yin(line_zhi, bian_zhi):
+    """
+    判断是否化反吟: 动爻与变爻相冲 (distinct from 化破).
+
+    反吟 = 动变相冲, 既可以是 bian_zhi 是 line_zhi 的相冲支,
+    也可以是 line_zhi 是 bian_zhi 的相冲支 (互冲).
+    """
     return LIU_CHONG.get(line_zhi) == bian_zhi
 
 
@@ -101,12 +127,20 @@ def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
         if not is_hui_tou_sheng(line.di_zhi, bian_zhi):
             result["趋衰"].append("化绝")
 
-    # 检查化破(本爻与变爻相冲)
-    if is_hua_po(line.di_zhi, bian_zhi):
-        # 如果没有回头生/克关系才算化破
-        if not is_hui_tou_sheng(line.di_zhi, bian_zhi) and \
-           not is_hui_tou_ke(line.di_zhi, bian_zhi):
+    # 检查化破(变爻被月令或日令冲破, 即化月破/化日破)
+    # 注: 动爻与变爻相冲是 反吟, 不是化破
+    if is_hua_po(line.di_zhi, bian_zhi, month_zhi, day_zhi):
+        # 如果没有回头生/克关系才算化破; 且不能同时是进退神
+        if (not is_hui_tou_sheng(line.di_zhi, bian_zhi) and
+                not is_hui_tou_ke(line.di_zhi, bian_zhi) and
+                not is_hua_jin_shen(line.di_zhi, bian_zhi) and
+                not is_hua_tui_shen(line.di_zhi, bian_zhi)):
             result["趋衰"].append("化破")
+
+    # 检查化反吟(动爻与变爻相冲) - 吉凶层面记录, 但不直接定性为无用
+    # 化反吟≠化破: 反吟是动变相冲, 化破是变爻被月/日令冲
+    if is_fan_yin(line.di_zhi, bian_zhi):
+        result["趋衰"].append("化反吟")
 
     # 检查变出临日月
     if bian_zhi == month_zhi or bian_zhi == day_zhi:
@@ -115,7 +149,8 @@ def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
             result["趋旺"].append("化出临日月")
 
     # 判断是否无用动爻
-    # 无用动爻条件: 回头克, 化退, 化破(无回头关系), 化绝
+    # 无用动爻条件: 回头克 / 化退神 / 化破(化月破日破) / 化绝
+    # 注: 化反吟(动变相冲)单独不等于无用, 若同时带回头克才算无用
     if "回头克" in result["趋衰"]:
         result["is_useless"] = True
         result["useless_reason"] = "动变回头克"
@@ -246,18 +281,20 @@ def detect_an_dong(hexagram, wangshuai_results):
             })
             continue
 
-        # 条件2: 有月气(月建同五行但非临/生/扶, 即余气)
-        # "有气"指爻的五行在该月仍有余气, 如火在未月(未属土但火气未尽)
-        # 这里检查爻五行与月支五行相同但未被条件1捕获的情况不存在,
-        # 因此改为检查月支是否为爻五行的余气支(爻五行生月支五行, 即泄而非绝)
+        # 条件2: 有月气(爻五行与月支同五行但不同地支), 且受日冲 → 暗动
+        # 据知识点: '静爻得月令之气而受日冲' 中, "月令之气"指同五行不同地支的月气扶
+        # 知识点特例: 丑月亥水受日冲、辰月寅木受日冲、未月巳火受日冲 → 不暗动反应日破
+        # 规律: 知识点中三个特例都是月令克爻五行的情况(丑土克亥水, 辰土克寅木, 未土克巳火)
+        # 即: 月令五行克爻五行时, 即使同五行月气也不暗动
         line_wx = DI_ZHI_WU_XING[line.di_zhi]
         month_wx = DI_ZHI_WU_XING[month_zhi]
-        if WU_XING_SHENG[line_wx] == month_wx:
-            # 爻生月(泄气), 说明爻在该月仍有余气(未完全衰败)
+        has_yue_qi = (line_wx == month_wx and line.di_zhi != month_zhi)
+        month_ke_line = (WU_XING_KE.get(month_wx) == line_wx)
+        if has_yue_qi and not month_ke_line:
             an_dong_list.append({
                 "position": line.position,
                 "di_zhi": line.di_zhi,
-                "reason": "有月气(余气)逢日冲(暗动)",
+                "reason": "有月气逢日冲(暗动)",
                 "type": "暗动",
             })
             continue
@@ -289,6 +326,27 @@ def detect_an_dong(hexagram, wangshuai_results):
                 "type": "暗动",
             })
             continue
+
+    # 条件5 (单独处理, 不在逐爻循环中):
+    # '用神旺相，世爻若受日令冲动，则无论其旺衰，皆算冲起暗动' (用趋世兴)
+    # 此条件需要先完成逐爻循环才能确定哪些爻是用神(该模块不知道用神),
+    # 所以在此处记录"世爻受日冲"的候选, 由 analyze_dongbian 调用方根据用神旺衰最终判断.
+    # 简化处理: 直接检测世爻是否受日冲且为静爻, 作为潜在暗动候选记录
+    for line in hexagram.lines:
+        if line.is_shi and not line.is_moving:
+            if LIU_CHONG.get(day_zhi) == line.di_zhi:
+                # 检查是否已经被前面的条件1-4捕获
+                already_captured = any(
+                    d["position"] == line.position for d in an_dong_list
+                )
+                if not already_captured:
+                    ws = wangshuai_results[line.position - 1]
+                    an_dong_list.append({
+                        "position": line.position,
+                        "di_zhi": line.di_zhi,
+                        "reason": "世爻受日冲(待用神旺时确认暗动)",
+                        "type": "暗动_候选",
+                    })
 
     return an_dong_list
 

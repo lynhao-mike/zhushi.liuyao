@@ -100,16 +100,43 @@ class TestIsHuaJue:
 
 
 class TestIsHuaPo:
-    """化破: 本爻与变爻互冲"""
+    """化破: 变爻被月令或日令冲 (化月破/化日破)
+    
+    注: 动爻与变爻相冲是反吟(fan yin), 不是化破.
+    化破 = 变爻地支 与 月支相冲 或 日支相冲.
+    """
 
-    def test_zi_wu(self):
-        assert is_hua_po("子", "午") is True
+    def test_hua_yue_po(self):
+        # 变爻午火被月支子水冲(子月午火变爻 = 化月破)
+        assert is_hua_po("寅", "午", "子", "亥") is True  # 变爻午被月子冲
 
-    def test_yin_shen(self):
-        assert is_hua_po("寅", "申") is True
+    def test_hua_ri_po(self):
+        # 变爻午火被日支子水冲(子日午火变爻 = 化日破)
+        assert is_hua_po("寅", "午", "卯", "子") is True  # 变爻午被日子冲
+
+    def test_not_hua_po_when_bian_not_broken(self):
+        # 变爻丑土不被月日冲 = 不化破
+        assert is_hua_po("子", "丑", "巳", "午") is False
+
+    def test_fan_yin_is_not_hua_po(self):
+        # 动爻子与变爻午相冲 = 化反吟, 但如果月日不冲午 则不是化破
+        assert is_hua_po("子", "午", "卯", "亥") is False  # 月卯日亥均不冲午
+
+
+class TestIsFanYin:
+    """化反吟: 动爻与变爻地支相冲"""
+
+    def test_zi_wu_fan_yin(self):
+        from liuyao.dongbian import is_fan_yin
+        assert is_fan_yin("子", "午") is True
+
+    def test_yin_shen_fan_yin(self):
+        from liuyao.dongbian import is_fan_yin
+        assert is_fan_yin("寅", "申") is True
 
     def test_negative(self):
-        assert is_hua_po("子", "丑") is False
+        from liuyao.dongbian import is_fan_yin
+        assert is_fan_yin("子", "丑") is False
 
 
 class TestAnalyzeDongbian:
@@ -136,3 +163,90 @@ class TestAnalyzeDongbian:
         result = analyze_dongbian(h, ws)
         total = len(result["useful_moving"]) + len(result["useless_moving"])
         assert total == len(result["moving_analyses"])
+
+
+
+class TestHuaPoVsFanYin:
+    """
+    关键理论修复测试: 化破 ≠ 化反吟
+
+    化破 = 变爻被月令或日令冲破 (化月破/化日破)
+    化反吟 = 动爻与变爻地支相冲 (动变相冲)
+    """
+
+    def test_fan_yin_is_not_hua_po(self):
+        """动变相冲(反吟)但变爻未被月日冲 → 不是化破"""
+        from liuyao.dongbian import is_fan_yin
+        # 寅申相冲 = 化反吟
+        assert is_fan_yin("寅", "申") is True
+        # 变爻申未被月(卯)日(午)冲 → 不化破
+        assert is_hua_po("寅", "申", "卯", "午") is False
+
+    def test_hua_yue_po_correct(self):
+        """变爻被月令冲 = 化月破"""
+        # 卯月, 月支卯冲酉. 变爻酉 = 化月破
+        assert is_hua_po("寅", "酉", "卯", "午") is True
+
+    def test_hua_ri_po_correct(self):
+        """变爻被日令冲 = 化日破"""
+        # 卯日, 日支卯冲酉. 变爻酉 = 化日破
+        assert is_hua_po("寅", "酉", "巳", "卯") is True
+
+    def test_dynamic_line_classification(self):
+        """化反吟的动爻在没有其他趋衰因素时不应被标记为无用动爻"""
+        # 构建一个有动爻的卦 (2024-03-15 = 卯月)
+        h = Hexagram([9, 7, 7, 7, 7, 7], 2024, 3, 15)
+        ws = analyze_hexagram_wangshuai(h)
+        result = analyze_dongbian(h, ws)
+        # 查看第1爻的动变分析 - 应该有"化反吟"标记但不一定是无用
+        if 1 in result["moving_analyses"]:
+            ma = result["moving_analyses"][1]
+            # 化反吟本身不是无用动爻的充分条件
+            if "化反吟" in ma.get("趋衰", []):
+                # 只有回头克才让动爻无用
+                assert "回头克" in ma.get("趋衰", []) == ma["is_useless"]
+
+
+class TestJinShenTuiShen:
+    """
+    进退神方向正确性测试
+
+    据《古筮真诠》知识点总结:
+    进神: 亥→子, 寅→卯, 巳→午, 申→酉, 丑→辰, 辰→未, 未→戌
+    退神: 子→亥, 卯→寅, 午→巳, 酉→申, 辰→丑, 未→辰, 戌→未
+    """
+
+    def test_shui_jin(self):
+        assert is_hua_jin_shen("亥", "子") is True
+        assert is_hua_tui_shen("子", "亥") is True
+
+    def test_mu_jin(self):
+        assert is_hua_jin_shen("寅", "卯") is True
+        assert is_hua_tui_shen("卯", "寅") is True
+
+    def test_huo_jin(self):
+        assert is_hua_jin_shen("巳", "午") is True
+        assert is_hua_tui_shen("午", "巳") is True
+
+    def test_jin_jin(self):
+        assert is_hua_jin_shen("申", "酉") is True
+        assert is_hua_tui_shen("酉", "申") is True
+
+    def test_tu_jin_1(self):
+        assert is_hua_jin_shen("丑", "辰") is True
+        assert is_hua_tui_shen("辰", "丑") is True
+
+    def test_tu_jin_2(self):
+        assert is_hua_jin_shen("辰", "未") is True
+        assert is_hua_tui_shen("未", "辰") is True
+
+    def test_tu_jin_3(self):
+        assert is_hua_jin_shen("未", "戌") is True
+        assert is_hua_tui_shen("戌", "未") is True
+
+    def test_direction_not_reversed(self):
+        """确认方向没有颠倒 (修复前的错误方向)"""
+        # 旧错误: 辰→丑 为进, 丑→戌 为进 (实为退)
+        assert is_hua_jin_shen("辰", "丑") is False   # 辰化丑是退神不是进神
+        assert is_hua_jin_shen("丑", "戌") is False   # 丑化戌不是进神
+        assert is_hua_tui_shen("丑", "辰") is False   # 丑化辰是进神不是退神
