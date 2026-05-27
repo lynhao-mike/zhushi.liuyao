@@ -164,29 +164,51 @@ def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
     month_wang, month_shuai = yue_jian_wangshuai(line_zhi, month_zhi)
     day_wang, day_shuai = ri_chen_wangshuai(line_zhi, day_zhi, is_static)
 
-    # 计算综合得分: 旺因+1, 衰因-1
-    wang_score = len(month_wang) + len(day_wang)
-    shuai_score = len(month_shuai) + len(day_shuai)
-
-    # 特殊规则: 月令旺衰优先级更高
-    # 如果临月令或月令生, 月破除外, 整体趋旺
+    # 判断整体趋势 (月令优先, 其次看日令)
+    # 月令有明确旺/衰定论时, 日令的反方向作用力减弱
     has_strong_month_wang = any(r in ("临月令", "月令生", "月令扶") for r in month_wang)
     has_yue_po = "月破" in month_shuai
+    has_strong_month_shuai = bool(month_shuai) and not has_strong_month_wang
 
-    # 判断整体趋势(先不考虑日绝)
-    preliminary_wang = wang_score > shuai_score
-    if has_strong_month_wang and not has_yue_po:
-        preliminary_wang = True
+    # 计算得分 (月令因素权重 × 2, 日令因素权重 × 1)
+    wang_score = len(month_wang) * 2 + len(day_wang)
+    shuai_score = len(month_shuai) * 2 + len(day_shuai)
 
-    # 特殊规则: 生旺墓绝与日辰的交互
-    # 如果整体趋旺, 日绝当平看
-    if "爻绝在日" in day_shuai:
-        if preliminary_wang:
-            day_shuai.remove("爻绝在日")
-            day_wang.append("绝处逢生(以平论)")
-            # 重新计算
-            wang_score = len(month_wang) + len(day_wang)
-            shuai_score = len(month_shuai) + len(day_shuai)
+    # 特殊规则: 月破为强力衰败信号, 优先处理
+    if has_yue_po and not has_strong_month_wang:
+        # 月破状态下, 日令长生/帝旺 = 爻衰附衰不算旺
+        # 但如果 爻 同时 临日建(相同支), 给予平相
+        if any(r in ("临日建",) for r in day_wang):
+            pass  # 临日建补充, 让评分决定
+        else:
+            # 强制月破为衰
+            overall = SHUAI
+            details_parts = []
+            if month_wang:
+                details_parts.append(f"月建: {','.join(month_wang)}")
+            if month_shuai:
+                details_parts.append(f"月建: {','.join(month_shuai)}")
+            if day_wang:
+                details_parts.append(f"日辰: {','.join(day_wang)}")
+            if day_shuai:
+                details_parts.append(f"日辰: {','.join(day_shuai)}")
+            details = "; ".join(details_parts) if details_parts else "无特殊关系"
+            return {
+                "overall": overall,
+                "month_wang": month_wang,
+                "month_shuai": month_shuai,
+                "day_wang": day_wang,
+                "day_shuai": day_shuai,
+                "details": details,
+            }
+
+    # 特殊规则: 爻旺附旺, 爻衰附衰 (生旺墓绝 with 日令)
+    # 如果月令已确定旺相, 日令的"绝"不算衰; 如果月令已确定衰, 日令的"长生/帝旺"减弱
+    if has_strong_month_wang and "爻绝在日" in day_shuai:
+        day_shuai.remove("爻绝在日")
+        day_wang.append("绝处逢生(以平论)")
+        wang_score = len(month_wang) * 2 + len(day_wang)
+        shuai_score = len(month_shuai) * 2 + len(day_shuai)
 
     # 最终判断
     if wang_score > shuai_score:
@@ -194,11 +216,8 @@ def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
     elif shuai_score > wang_score:
         overall = SHUAI
     else:
-        overall = PING
-
-    # 月破为重度衰
-    if has_yue_po and not has_strong_month_wang:
-        overall = SHUAI
+        # 平局时, 月令有旺因则趋旺, 否则平相
+        overall = WANG if has_strong_month_wang else PING
 
     # 生成详情说明
     details_parts = []
@@ -211,7 +230,6 @@ def analyze_line_wangshuai(line_zhi, month_zhi, day_zhi, is_static=True):
     if day_shuai:
         details_parts.append(f"日辰: {','.join(day_shuai)}")
     details = "; ".join(details_parts) if details_parts else "无特殊关系"
-
     return {
         "overall": overall,
         "month_wang": month_wang,
