@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "chore",
   "description": "Add package management (pyproject.toml), independent unit tests for core modules (wangshuai, dongbian, jixiong), and GitHub Actions CI. Also move documentation files to docs/reference/ directory.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create pyproject.toml at project root declaring: project name 'zhushi-liuyao', version '0.2.0', requires-python '>=3.9', dependency on 'sxtwl', optional test dependencies [test] = ['pytest>=7.0']. Configure the project as installable with pip install -e . Include [tool.pytest.ini_options] with testpaths=['tests'].",
     "Create tests/test_wangshuai.py with dedicated unit tests for liuyao/wangshuai.py. Test yue_jian_wangshuai with all 8 conditions (4 wang + 4 shuai), test ri_chen_wangshuai with all 7 conditions (5 wang + 2 shuai) including is_static parameter behavior, test analyze_line_wangshuai comprehensive scenarios (overall wang/shuai/ping, yue_po override, jue treated as ping when wang), test analyze_hexagram_wangshuai with a known hexagram. Use direct function calls with known di_zhi values - do NOT require Hexagram objects for unit tests of individual functions.",
@@ -26,5 +26,5 @@
     "Verify docs/reference/ contains 25 markdown files"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 441 tests pass (347 original + 94 new: 30 wangshuai, 35 dongbian, 29 jixiong). pip install -e . works with setuptools.build_meta backend. The setuptools.backends._legacy:_Backend path is invalid for Python 3.9 setuptools - use setuptools.build_meta instead. docs/reference/ contains all 25 moved markdown files."
 }
