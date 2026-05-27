@@ -176,12 +176,194 @@ def _format_yingqi_block(yingqi_results):
     lines.append("=" * 60)
     if yingqi_results:
         for yq in yingqi_results:
-            lines.append(f"  用神第{yq['position']}爻({yq['di_zhi']} {yq['liu_qin']}):")
+            if yq.get('position', 0) > 0:
+                lines.append(
+                    f"  用神第{yq['position']}爻({yq['di_zhi']} {yq['liu_qin']}):"
+                )
+            else:
+                lines.append(f"  {yq.get('liu_qin', '附加')}应期:")
             for candidate in yq["candidates"]:
                 lines.append(f"    - {candidate}")
     else:
         lines.append("  无法推断应期(用神不现)")
     lines.append("")
+    return lines
+
+
+def _format_patterns_block(patterns_results):
+    """格式化卦象结构模式识别段落 (入墓/三绊/反吟/伏吟/六冲六合卦/三刑/六害/三会/心态卦/卦意法)"""
+    if not patterns_results:
+        return []
+
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【卦象结构模式】")
+    lines.append("=" * 60)
+
+    # 六冲六合卦
+    chong_he = patterns_results.get("chong_he_gua", {})
+    if chong_he and chong_he.get("pattern"):
+        lines.append(f"  ◆ 卦体特征: {chong_he['pattern']}")
+        if chong_he.get("implication"):
+            lines.append(f"      {chong_he['implication']}")
+
+    # 反吟
+    fan_yin = patterns_results.get("fan_yin", {})
+    if fan_yin:
+        fan_yin_signals = []
+        if fan_yin.get("卦象反吟"):
+            fan_yin_signals.append("卦象反吟(主变冲)")
+        if fan_yin.get("卦宫反吟"):
+            fan_yin_signals.extend(fan_yin["卦宫反吟"])
+        if fan_yin.get("爻动反吟"):
+            for pp in fan_yin["爻动反吟"]:
+                fan_yin_signals.append(f"爻动反吟(第{pp[0]}↔{pp[1]}爻冲)")
+        if fan_yin.get("爻化反吟"):
+            for p in fan_yin["爻化反吟"]:
+                fan_yin_signals.append(f"爻化反吟(第{p}爻动变冲)")
+        if fan_yin_signals:
+            lines.append("  ◆ 反吟: " + ", ".join(fan_yin_signals))
+            lines.append("      寓意反复折腾, 事多周折; 占功名仕途反复, "
+                         "占财物聚散无常, 占婚姻感情周折")
+
+    # 伏吟
+    fu_yin = patterns_results.get("fu_yin", {})
+    if fu_yin:
+        fu_signals = []
+        if fu_yin.get("内卦伏吟"):
+            fu_signals.append("内卦伏吟")
+        if fu_yin.get("外卦伏吟"):
+            fu_signals.append("外卦伏吟")
+        if fu_yin.get("爻动伏吟"):
+            for p in fu_yin["爻动伏吟"]:
+                fu_signals.append(f"第{p}爻爻动伏吟")
+        if fu_signals:
+            lines.append("  ◆ 伏吟: " + ", ".join(fu_signals))
+            lines.append("      寓意呻吟、哀怨、不宁; 占功名宦途哀怨, "
+                         "求财利进退两难, 占行人在外忧愁")
+
+    # 入墓
+    ru_mu_list = patterns_results.get("ru_mu", [])
+    if ru_mu_list:
+        lines.append("  ◆ 入墓:")
+        for mu in ru_mu_list:
+            real_mark = "(真墓)" if mu["is_real"] else "(假墓)"
+            lines.append(
+                f"      第{mu['position']}爻{mu['line_zhi']} - {mu['mu_type']}"
+                f" {real_mark}: {mu['reason']}"
+            )
+
+    # 三绊
+    san_ban = patterns_results.get("san_ban", [])
+    if san_ban:
+        lines.append("  ◆ 三绊:")
+        for ban in san_ban:
+            lines.append(f"      {ban['ban_type']}: {ban['reason']}")
+
+    # 三刑
+    san_xing = patterns_results.get("san_xing", [])
+    if san_xing:
+        lines.append("  ◆ 三刑(细节):")
+        for xing in san_xing:
+            positions = ",".join(f"第{p}爻" for p in xing["positions"])
+            lines.append(
+                f"      {xing['type']} ({'-'.join(xing['group'])}): {positions}"
+            )
+
+    # 六害
+    liu_hai = patterns_results.get("liu_hai", [])
+    if liu_hai:
+        lines.append("  ◆ 六害(细节):")
+        for hai in liu_hai:
+            lines.append(f"      {hai['reason']}")
+
+    # 三会局 (细节层面)
+    san_hui = patterns_results.get("san_hui", [])
+    if san_hui:
+        lines.append("  ◆ 三会局(细节):")
+        for hui in san_hui:
+            lines.append(
+                f"      {' '.join(hui['members'])} 会 {hui['wu_xing']}局"
+            )
+
+    # 心态卦
+    xintai = patterns_results.get("xintai_gua", {})
+    if xintai and xintai.get("is_xintai"):
+        lines.append(f"  ◆ {xintai['type']}心态卦: 喜神={xintai['xi_shen']}, "
+                     f"忧神={xintai['you_shen']}")
+        for sig in xintai.get("signals", []):
+            lines.append(f"      信号: {sig}")
+        if xintai.get("implication"):
+            lines.append(f"      {xintai['implication']}")
+
+    # 卦意分析法
+    kuayi = patterns_results.get("kuayi_patterns", [])
+    if kuayi:
+        lines.append("  ◆ 卦意分析法识别:")
+        for k in kuayi:
+            lines.append(
+                f"      {k['method']} → 【{k['result']}】 {k['detail']}"
+            )
+
+    if len(lines) <= 3:
+        # 没有任何模式信号
+        lines.append("  无特殊结构模式")
+
+    lines.append("")
+    return lines
+
+
+def _format_star_spirits_block(star_spirits, hexagram):
+    """格式化13星煞展示 (细节层面)"""
+    if not star_spirits:
+        return []
+
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【神煞 — 实用十三星煞】")
+    lines.append("=" * 60)
+
+    # 收集卦中各爻的地支
+    line_zhis = {l.position: l.di_zhi for l in hexagram.lines}
+
+    # 标准化展示, 列出星煞与对应卦中爻
+    name_order = [
+        "贵人", "禄神", "羊刃", "文昌", "驿马",
+        "桃花", "将星", "劫煞", "华盖", "谋星",
+        "天医", "天喜", "灾煞",
+    ]
+
+    for name in name_order:
+        zhi = star_spirits.get(name, "")
+        if not zhi:
+            continue
+        zhi_list = zhi if isinstance(zhi, (tuple, list)) else (zhi,)
+        # 找出对应的爻
+        matched = []
+        for pos, lzhi in line_zhis.items():
+            if lzhi in zhi_list:
+                matched.append(f"第{pos}爻")
+        zhi_str = "/".join(zhi_list)
+        if matched:
+            lines.append(f"  {name:<3}: {zhi_str}  → 入卦于 {', '.join(matched)}")
+        else:
+            lines.append(f"  {name:<3}: {zhi_str}  (不入卦)")
+
+    lines.append("")
+    return lines
+
+
+def _format_kuayi_supplements(jixiong_result):
+    """格式化卦意法补充判断段落"""
+    kuayi = jixiong_result.get("kuayi_supplements", [])
+    if not kuayi:
+        return []
+    lines = []
+    lines.append("  - 卦意法补充:")
+    for k in kuayi:
+        lines.append(
+            f"      {k['method']} → 【{k['result']}】 {k['detail']}"
+        )
     return lines
 
 
@@ -201,7 +383,18 @@ def format_report(report):
     lines.extend(_format_riyue(report.hexagram))
     lines.extend(_format_wangshuai(report.hexagram, report.wangshuai_results))
     lines.extend(_format_dongbian(report.hexagram, report.dongbian_results))
+    # 新增: 卦象结构模式 (入墓/三绊/反吟/伏吟/六冲六合卦/三刑/六害/三会/心态卦/卦意法)
+    if getattr(report, "patterns_results", None):
+        lines.extend(_format_patterns_block(report.patterns_results))
+    # 新增: 13星煞
+    if getattr(report, "star_spirits", None):
+        lines.extend(_format_star_spirits_block(report.star_spirits, report.hexagram))
     lines.extend(_format_jixiong_block(report.jixiong_result))
+    # 新增: 卦意法补充判断 (附在吉凶判断块)
+    kuayi_lines = _format_kuayi_supplements(report.jixiong_result)
+    if kuayi_lines:
+        lines.extend(kuayi_lines)
+        lines.append("")
     lines.extend(_format_yingqi_block(report.yingqi_results))
     lines.append("=" * 60)
     return "\n".join(lines)
@@ -255,6 +448,19 @@ def _format_perspective_block(idx, perspective):
             cand_str = "; ".join(cands[:3])
             lines.append(f"      第{yq['position']}爻({yq['di_zhi']} {yq.get('liu_qin', '')}): {cand_str}")
 
+    # 卦意法补充提示 (各视角不同)
+    kuayi = (p.jixiong_result or {}).get("kuayi_supplements", [])
+    if kuayi:
+        lines.append("    卦意法补充:")
+        for k in kuayi:
+            lines.append(f"      · {k['method']} → 【{k['result']}】 {k['detail']}")
+
+    # 视角专属模式信号 (心态卦 / 间爻阻隔 / 反伏吟)
+    pat = getattr(p, "patterns_results", None) or {}
+    xt = pat.get("xintai_gua", {})
+    if xt and xt.get("is_xintai"):
+        lines.append(f"    心态卦: {xt['type']}心态卦 (喜神={xt['xi_shen']}, 忧神={xt['you_shen']})")
+
     return lines
 
 
@@ -279,6 +485,21 @@ def format_dual_report(dual_report):
     lines.extend(_format_riyue(h))
     lines.extend(_format_wangshuai(h, dual_report.wangshuai_results))
     lines.extend(_format_dongbian(h, dual_report.dongbian_results))
+
+    # 共享: 13星煞 (各视角共用)
+    if getattr(dual_report, "star_spirits", None):
+        lines.extend(_format_star_spirits_block(dual_report.star_spirits, h))
+
+    # 共享: 卦象结构模式 (取第一个视角的 patterns - 结构性模式与用神无关)
+    if dual_report.perspectives:
+        first_pat = getattr(dual_report.perspectives[0], "patterns_results", {}) or {}
+        # 仅展示与用神无关的结构性模式 (排除 xintai_gua 和 kuayi_patterns)
+        structural_pat = {
+            k: v for k, v in first_pat.items()
+            if k not in ("xintai_gua", "kuayi_patterns")
+        }
+        if structural_pat:
+            lines.extend(_format_patterns_block(structural_pat))
 
     # 双视角对照
     lines.append("=" * 60)
