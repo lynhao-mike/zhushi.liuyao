@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zhushi-liuyao"
+version = "0.2.0"
+description = "Liu Yao (六爻) divination analysis engine based on 古筮真诠"
+requires-python = ">=3.9"
+dependencies = ["sxtwl"]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

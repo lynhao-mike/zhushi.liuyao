@@ -7,6 +7,7 @@
 
 import sxtwl
 from .data import TIAN_GAN, DI_ZHI
+from .exceptions import CalendarError, LiuyaoError
 
 
 def get_gan_zhi(year, month, day, hour=12):
@@ -32,35 +33,35 @@ def get_gan_zhi(year, month, day, hour=12):
         - 23:00-次日01:00 为子时, 但日柱以子时(23:00)换日
           sxtwl 默认以0点换日, 此处做特殊处理
     """
-    # 如果是23:00-23:59, 属于次日的子时
-    if hour >= 23:
-        # 使用次日的日柱
-        from datetime import date, timedelta
-        next_date = date(year, month, day) + timedelta(days=1)
-        day_obj = sxtwl.fromSolar(next_date.year, next_date.month, next_date.day)
-    else:
-        day_obj = sxtwl.fromSolar(year, month, day)
+    try:
+        if hour >= 23:
+            from datetime import date, timedelta
+            next_date = date(year, month, day) + timedelta(days=1)
+            day_obj = sxtwl.fromSolar(next_date.year, next_date.month, next_date.day)
+        else:
+            day_obj = sxtwl.fromSolar(year, month, day)
 
-    # 获取年干支 (以立春为界, sxtwl 的 getYearGZ 已按此规则)
-    year_gz = day_obj.getYearGZ()
-    year_gan = TIAN_GAN[year_gz.tg]
-    year_zhi = DI_ZHI[year_gz.dz]
+        year_gz = day_obj.getYearGZ()
+        year_gan = TIAN_GAN[year_gz.tg]
+        year_zhi = DI_ZHI[year_gz.dz]
 
-    # 获取月干支 (以节气为界, sxtwl 的 getMonthGZ 已按此规则)
-    month_gz = day_obj.getMonthGZ()
-    month_gan = TIAN_GAN[month_gz.tg]
-    month_zhi = DI_ZHI[month_gz.dz]
+        month_gz = day_obj.getMonthGZ()
+        month_gan = TIAN_GAN[month_gz.tg]
+        month_zhi = DI_ZHI[month_gz.dz]
 
-    # 获取日干支
-    day_gz = day_obj.getDayGZ()
-    day_gan = TIAN_GAN[day_gz.tg]
-    day_zhi = DI_ZHI[day_gz.dz]
+        day_gz = day_obj.getDayGZ()
+        day_gan = TIAN_GAN[day_gz.tg]
+        day_zhi = DI_ZHI[day_gz.dz]
 
-    return {
-        "year_gan": year_gan, "year_zhi": year_zhi,
-        "month_gan": month_gan, "month_zhi": month_zhi,
-        "day_gan": day_gan, "day_zhi": day_zhi,
-    }
+        return {
+            "year_gan": year_gan, "year_zhi": year_zhi,
+            "month_gan": month_gan, "month_zhi": month_zhi,
+            "day_gan": day_gan, "day_zhi": day_zhi,
+        }
+    except (LiuyaoError, ValueError):
+        raise
+    except Exception as e:
+        raise CalendarError(f"干支计算失败({year}-{month}-{day}): {e}") from e
 
 
 def get_month_zhi(year, month, day):

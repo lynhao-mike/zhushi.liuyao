@@ -46,6 +46,7 @@ from .analyzer import (
     DualPerspectiveReport,
 )
 from .report import format_report, format_dual_report, format_readable_report
+from .exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
 
 __all__ = [
     "Hexagram",
@@ -57,4 +58,8 @@ __all__ = [
     "format_report",
     "format_dual_report",
     "format_readable_report",
+    "LiuyaoError",
+    "ArrangementError",
+    "AnalysisError",
+    "CalendarError",
 ]
