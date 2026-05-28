@@ -671,3 +671,79 @@ THEORY_MODULES = {
     "FUYIN_THEORY":          "伏吟理论",
     "CANFU_THEORY":          "藏伏理论",
 }
+
+
+
+# =============================================================================
+# 新增模块导入（补提章节）
+# =============================================================================
+
+# ── 第1-7章：起卦基础操作 ──
+from liuyao.theory_chapters01_07 import (
+    XUEYI_FOUR_TABOOS,      # 学易四忌
+    QIGUA_RULES,            # 起卦规则（工具/流程/注意事项）
+    YINYANG_DEFINITION,     # 阴阳定义（简虚为阳/繁实为阴）
+    PAIGUA_RULES,           # 排卦规则（四种爻象/由下向上）
+    ZHUANGGUA_STEPS,        # 装卦五步流程（纳甲/八宫/世应/六亲/六神）
+    BAGUA_BASE,             # 八宫基础信息（五行属性/64卦表）
+    JIANYIZIZHAN_FA,        # 简易自占法（六种事占持世判断）
+    TIGAO_SHUIPING,         # 快速提高水平捷径（对轨/二八定律）
+)
+
+# ── 第24-25章：卦意分析法 ──
+from liuyao.theory_chapters24_25 import (
+    KUA_YI_ZONGGGANG,           # 卦意分析法总纲（使用前提/与卦理关系）
+    KUA_YI_JIXIONG_METHODS,     # 卦意分析法12种（完整详细版含卦例）
+    KUA_YI_YONGSHEN,            # 卦意取用神（替身法/拓扑法/嫁接法）
+    YINGYA0_SAN_SHEN,           # 应爻三重身份
+    SHUANGHEGUA,                # 双核卦象（特指/嫁接事占）
+    KUA_YI_PRIORITY,            # 卦意卦理优先级（舍卦意从卦理4条件）
+    KUA_YI_FORMULAS as KUA_YI_KEY_FORMULAS,  # 卦意分析法34条口诀
+    KUA_YI_INDEX,               # 12种方法快速索引表
+)
+
+# ── 综合补充：增删卜易+知识点总结 ──
+from liuyao.theory_zengshan_zonghe import (
+    FUHE_DONG_SUPPLEMENT,       # 复合动变完整补充（6大规则细节）
+    FUSHEN_FEISHEN_DETAIL,      # 伏神飞伏四种关系补充
+    YINGQI_XIJIE_SUPPLEMENT,    # 应期细节层面补充（月令/日令/旬空/三合/三墓）
+    LIUCHONG_LIUHE_GUACI,       # 六冲六合各卦详细卦辞寓意
+    SANHEJV_XIJIE,              # 三合局细节层面（聚散/迟缓/解局）
+    FENLEI_SHIZHAN_RULES,       # 分类事占特殊规则（求财/婚姻/疾病/功名/行人/寿元）
+    TESHU_GUAXIANG,             # 特殊卦象识别（灾卦/另兆卦/双核卦/指导卦/时效卦）
+    DUIGUI_FANGFA,              # 对轨方法论（现状信息来源/用神对轨三步骤）
+    SHIZHAN_GUILU,              # 断卦高频实战规律（从230例归纳，38条）
+)
+
+# =============================================================================
+# 更新全局知识库索引
+# =============================================================================
+
+THEORY_MODULES.update({
+    # ── 第1-7章 ──
+    "XUEYI_FOUR_TABOOS":     "学易四忌",
+    "QIGUA_RULES":           "起卦规则",
+    "YINYANG_DEFINITION":    "阴阳定义",
+    "PAIGUA_RULES":          "排卦规则",
+    "ZHUANGGUA_STEPS":       "装卦五步流程",
+    "BAGUA_BASE":            "八宫基础信息（64卦表）",
+    "JIANYIZIZHAN_FA":       "简易自占法",
+    "TIGAO_SHUIPING":        "快速提高水平捷径",
+    # ── 第24-25章 ──
+    "KUA_YI_ZONGGGANG":      "卦意分析法总纲",
+    "KUA_YI_JIXIONG_METHODS":"卦意分析法12种（详细版）",
+    "KUA_YI_YONGSHEN":       "卦意取用神",
+    "YINGYA0_SAN_SHEN":      "应爻三重身份",
+    "SHUANGHEGUA":           "双核卦象",
+    "KUA_YI_PRIORITY":       "卦意卦理优先级",
+    # ── 综合补充 ──
+    "FUHE_DONG_SUPPLEMENT":  "复合动变补充",
+    "FUSHEN_FEISHEN_DETAIL": "伏神飞伏四种关系",
+    "YINGQI_XIJIE_SUPPLEMENT":"应期细节层面补充",
+    "LIUCHONG_LIUHE_GUACI":  "六冲六合各卦卦辞寓意",
+    "SANHEJV_XIJIE":         "三合局细节层面",
+    "FENLEI_SHIZHAN_RULES":  "分类事占特殊规则",
+    "TESHU_GUAXIANG":        "特殊卦象识别",
+    "DUIGUI_FANGFA":         "对轨方法论",
+    "SHIZHAN_GUILU":         "断卦高频实战规律（38条）",
+})
