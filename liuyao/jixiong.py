@@ -8,6 +8,7 @@
 from .data import (
     DI_ZHI_WU_XING,
     WU_XING_SHENG, WU_XING_KE,
+    SAN_HE,
 )
 
 
@@ -131,6 +132,73 @@ def _line_has_day_month_support(line_zhi, month_zhi, day_zhi):
     return month_support or day_support or month_lin or day_lin
 
 
+def _detect_san_he_ju(hexagram):
+    """
+    检测吉凶层面的三合局: 三合三字皆现于卦中, 且至少两字发动(动以局起)。
+
+    与 dongbian.find_san_he_ju(要求三字全动)不同, 此处采用"两动一现即成局"
+    的较宽口径, 用于卦局通论中"三合局优先于单爻分析"的吉凶定性。
+
+    Returns:
+        list[dict]: [{"wu_xing": 局五行, "members": [三字], "moving_count": 动字数}]
+    """
+    present = set()
+    moving = set()
+    for line in hexagram.lines:
+        present.add(line.di_zhi)
+        if line.is_moving:
+            moving.add(line.di_zhi)
+
+    results = []
+    for wx, members in SAN_HE.items():
+        if all(m in present for m in members):
+            mv = sum(1 for m in members if m in moving)
+            if mv >= 2:
+                results.append({
+                    "wu_xing": wx,
+                    "members": list(members),
+                    "moving_count": mv,
+                })
+    return results
+
+
+def _judge_san_he_ju(hexagram, yong_lines):
+    """
+    三合局吉凶定性 (合局优先于单爻分析)。
+
+    合局五行对用神五行的生克决定吉凶:
+      - 局克用神 -> 凶 (用神受合局所克, 如亥卯未木局克父母未土)
+      - 局生用神 -> 吉 (合局生扶用神, 如申子辰水局生官鬼寅木)
+    其余情形(局比和/局泄用神等)不在此定性, 交由后续单爻规则处理。
+
+    Returns:
+        dict 或 None
+    """
+    if not yong_lines:
+        return None
+    ju_list = _detect_san_he_ju(hexagram)
+    if not ju_list:
+        return None
+
+    yong_wx = DI_ZHI_WU_XING[yong_lines[0].di_zhi]
+    for ju in ju_list:
+        ju_wx = ju["wu_xing"]
+        members = "".join(ju["members"])
+        if WU_XING_KE[ju_wx] == yong_wx:
+            return {
+                "pattern": f"三合{ju_wx}局克用神",
+                "ji_xiong": "凶",
+                "explanation": f"{members}三合{ju_wx}局, 克用神({yong_wx}), 合局优先于单爻, 凶",
+            }
+        if WU_XING_SHENG[ju_wx] == yong_wx:
+            return {
+                "pattern": f"三合{ju_wx}局生用神",
+                "ji_xiong": "吉",
+                "explanation": f"{members}三合{ju_wx}局, 生用神({yong_wx}), 合局优先于单爻, 吉",
+            }
+    return None
+
+
 def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type):
     """
     动卦吉凶判断。
@@ -211,6 +279,13 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
     )
     if special:
         return special
+
+    # =========================================================================
+    # 三合局定性 (合局优先于单爻分析)
+    # =========================================================================
+    san_he = _judge_san_he_ju(hexagram, yong_lines)
+    if san_he:
+        return san_he
 
     # =========================================================================
     # 按照传统理论优先级判断:
