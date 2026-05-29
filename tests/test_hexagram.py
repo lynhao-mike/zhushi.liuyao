@@ -330,3 +330,81 @@ class TestHexagramArrangement:
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
         # Just ensure it doesn't raise
         h.display()
+
+
+
+class TestGanZhiInjection:
+    """测试干支注入 (Hexagram.from_ganzhi / derive_day_gan)。"""
+
+    def test_derive_day_gan_basic(self):
+        """由日支 + 旬空唯一反推日干。"""
+        from liuyao.calendar_utils import derive_day_gan
+        # 甲辰旬(空寅卯): 戊申
+        assert derive_day_gan("申", ["寅", "卯"]) == "戊"
+        # 甲子旬(空戌亥): 甲子
+        assert derive_day_gan("子", ["戌", "亥"]) == "甲"
+        # 甲午旬(空辰巳): 乙未
+        assert derive_day_gan("未", ["辰", "巳"]) == "乙"
+        # 甲寅旬(空子丑): 癸亥
+        assert derive_day_gan("亥", ["子", "丑"]) == "癸"
+
+    def test_derive_day_gan_invalid(self):
+        """矛盾/非法的日支旬空组合应报错。"""
+        from liuyao.calendar_utils import derive_day_gan
+        from liuyao.exceptions import CalendarError
+        # 日支不可能落在自身旬空内
+        with pytest.raises(CalendarError):
+            derive_day_gan("亥", ["戌", "亥"])
+        with pytest.raises(CalendarError):
+            derive_day_gan("无", ["子", "丑"])
+
+    def test_from_ganzhi_injects_month_and_day(self):
+        """from_ganzhi 注入的月支/日支应进入 gan_zhi, 供旺衰使用。"""
+        h = Hexagram.from_ganzhi(
+            [7, 7, 9, 7, 7, 7],
+            month_zhi="辰", day_zhi="申", xun_kong=["寅", "卯"],
+        )
+        assert h.gan_zhi["month_zhi"] == "辰"
+        assert h.gan_zhi["day_zhi"] == "申"
+        assert h.gan_zhi["day_gan"] == "戊"   # 由旬空反推
+        assert h.xun_kong == ("寅", "卯")
+        assert h.ben_gua_name == "乾为天"
+        assert len(h.lines) == 6
+
+    def test_from_ganzhi_explicit_day_gan(self):
+        """显式提供 day_gan 时直接采用, 旬空按其计算。"""
+        h = Hexagram.from_ganzhi(
+            [7, 8, 7, 8, 7, 8],
+            month_zhi="子", day_zhi="子", day_gan="甲",
+        )
+        assert h.gan_zhi["day_gan"] == "甲"
+        assert h.gan_zhi["day_zhi"] == "子"
+        # 甲子日旬空为戌亥
+        assert set(h.xun_kong) == {"戌", "亥"}
+
+    def test_from_ganzhi_requires_day_gan_or_xunkong(self):
+        """既无 day_gan 又无 xun_kong 应报错。"""
+        from liuyao.exceptions import ArrangementError
+        with pytest.raises(ArrangementError):
+            Hexagram.from_ganzhi([7, 7, 7, 7, 7, 7], month_zhi="子", day_zhi="午")
+
+    def test_from_ganzhi_matches_gregorian(self):
+        """注入干支与等价公历日期构卦, 旺衰相关字段应一致。"""
+        from liuyao.calendar_utils import get_gan_zhi
+        # 取一个真实公历日期的干支, 再用其月支/日支/日干注入, 结果应等价
+        gz = get_gan_zhi(2024, 1, 15)
+        h_greg = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        h_inj = Hexagram.from_ganzhi(
+            [8, 7, 7, 9, 7, 8],
+            month_zhi=gz["month_zhi"], day_zhi=gz["day_zhi"], day_gan=gz["day_gan"],
+        )
+        assert h_inj.gan_zhi["month_zhi"] == h_greg.gan_zhi["month_zhi"]
+        assert h_inj.gan_zhi["day_zhi"] == h_greg.gan_zhi["day_zhi"]
+        assert h_inj.xun_kong == h_greg.xun_kong
+        assert h_inj.ben_gua_name == h_greg.ben_gua_name
+
+    def test_backward_compatible_gregorian_constructor(self):
+        """原公历构造方式保持可用 (向后兼容)。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        assert h.ben_gua_name != ""
+        assert h.gan_zhi["month_zhi"] and h.gan_zhi["day_zhi"]

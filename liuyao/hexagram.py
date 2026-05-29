@@ -15,7 +15,7 @@ from .data import (
     PALACE_SHI_YING, PALACE_WU_XING,
     get_liu_qin, get_liu_shen, get_xun_kong,
 )
-from .calendar_utils import get_gan_zhi
+from .calendar_utils import get_gan_zhi, derive_day_gan
 from .exceptions import ArrangementError
 
 
@@ -57,6 +57,12 @@ class Hexagram:
     day: int
     hour: int = 12
 
+    # 干支注入 (可选)。提供时跳过公历->sxtwl 推导, 直接采用注入的干支。
+    # 用于古籍卦例复盘(只知"X月Y日"干支)或脱离 sxtwl 的确定性测试。
+    # 期望键: month_zhi, day_zhi, day_gan (必需);
+    #         year_gan, year_zhi, month_gan, xun_kong (可选)。
+    gan_zhi_override: Optional[dict] = None
+
     # 排卦结果
     ben_gua_name: str = ""       # 本卦名称
     bian_gua_name: str = ""      # 变卦名称
@@ -72,8 +78,49 @@ class Hexagram:
 
     def __post_init__(self):
         """初始化后自动排卦"""
-        self._validate_date()
+        if self.gan_zhi_override is None:
+            self._validate_date()
         self._arrange()
+
+    @classmethod
+    def from_ganzhi(cls, yao_values, *, month_zhi, day_zhi, day_gan=None,
+                    xun_kong=None, year_gan="甲", year_zhi="子",
+                    month_gan="甲", hour=12):
+        """
+        由干支直接构建卦象 (不依赖公历日期 / sxtwl)。
+
+        适用于:
+          - 复盘古籍卦例(原文常只记"辰月申日"之类干支与旬空, 无公历日期)
+          - 需要精确控制日月干支的确定性单元测试
+
+        Args:
+            yao_values: 6个摇卦值 [初爻..上爻]
+            month_zhi: 月支(月建), 必需
+            day_zhi: 日支(日辰), 必需
+            day_gan: 日干。若为 None 则尝试由 (day_zhi, xun_kong) 反推
+            xun_kong: 旬空地支(长度2)。day_gan 缺省时用于反推日干;
+                      若同时给出 day_gan, 则作为显式旬空覆盖计算值
+            year_gan/year_zhi/month_gan: 年月柱(仅用于展示, 不影响吉凶), 可缺省
+            hour: 时辰(0-23)
+
+        Returns:
+            Hexagram
+        """
+        if day_gan is None:
+            if xun_kong is None:
+                raise ArrangementError("from_ganzhi 需提供 day_gan 或 xun_kong 之一")
+            day_gan = derive_day_gan(day_zhi, xun_kong)
+
+        override = {
+            "year_gan": year_gan, "year_zhi": year_zhi,
+            "month_gan": month_gan, "month_zhi": month_zhi,
+            "day_gan": day_gan, "day_zhi": day_zhi,
+        }
+        if xun_kong is not None:
+            override["xun_kong"] = tuple(xun_kong)
+
+        # 使用占位公历日期(不参与计算, 仅满足字段); 注入存在时跳过日期校验
+        return cls(yao_values, 2000, 1, 1, hour=hour, gan_zhi_override=override)
 
     def _validate_date(self):
         """验证日期参数的基本范围"""
@@ -92,10 +139,41 @@ class Hexagram:
             if not is_leap:
                 raise ArrangementError(f"无效日期: {self.year}年不是闰年, 2月没有29日")
 
+    def _normalize_ganzhi(self, override):
+        """
+        校验并补全注入的干支字典。
+
+        必需键: month_zhi, day_zhi, day_gan。
+        缺失的年月柱以占位值补全(不影响吉凶, 仅用于展示)。
+        """
+        required = ("month_zhi", "day_zhi", "day_gan")
+        missing = [k for k in required if not override.get(k)]
+        if missing:
+            raise ArrangementError(f"注入干支缺少必需键: {missing}")
+
+        for key, val in (("day_gan", override["day_gan"]),):
+            if val not in TIAN_GAN:
+                raise ArrangementError(f"无效天干 {key}={val}")
+        for key in ("month_zhi", "day_zhi"):
+            if override[key] not in DI_ZHI:
+                raise ArrangementError(f"无效地支 {key}={override[key]}")
+
+        return {
+            "year_gan": override.get("year_gan", "甲"),
+            "year_zhi": override.get("year_zhi", "子"),
+            "month_gan": override.get("month_gan", "甲"),
+            "month_zhi": override["month_zhi"],
+            "day_gan": override["day_gan"],
+            "day_zhi": override["day_zhi"],
+        }
+
     def _arrange(self):
         """执行完整排卦流程"""
-        # 1. 获取干支
-        self.gan_zhi = get_gan_zhi(self.year, self.month, self.day, self.hour)
+        # 1. 获取干支 (注入优先, 否则按公历推导)
+        if self.gan_zhi_override is not None:
+            self.gan_zhi = self._normalize_ganzhi(self.gan_zhi_override)
+        else:
+            self.gan_zhi = get_gan_zhi(self.year, self.month, self.day, self.hour)
 
         # 2. 确定本卦和变卦的阴阳
         ben_lines = []
@@ -142,10 +220,14 @@ class Hexagram:
         self.shi_pos = shi_ying[0]
         self.ying_pos = shi_ying[1]
 
-        # 7. 计算旬空
-        self.xun_kong = get_xun_kong(
-            self.gan_zhi["day_gan"], self.gan_zhi["day_zhi"]
-        )
+        # 7. 计算旬空 (注入可显式覆盖)
+        override_kong = (self.gan_zhi_override or {}).get("xun_kong")
+        if override_kong is not None:
+            self.xun_kong = tuple(override_kong)
+        else:
+            self.xun_kong = get_xun_kong(
+                self.gan_zhi["day_gan"], self.gan_zhi["day_zhi"]
+            )
 
         # 8. 获取六神
         liu_shen_list = get_liu_shen(self.gan_zhi["day_gan"])
