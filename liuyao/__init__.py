@@ -17,6 +17,15 @@
     report = run_analysis(h, "shiwu")
     print(format_report(report))
 
+以干支直接起卦（复盘古籍卦例 / 无公历日期场景）:
+    # 原例只记"辰月申日, 旬空寅卯"等干支, 可直接注入, 无需公历日期。
+    # 缺省 day_gan 时, 由 (day_zhi, xun_kong) 唯一反推日干。
+    h = Hexagram.from_ganzhi(
+        [7, 7, 9, 7, 7, 7],
+        month_zhi="辰", day_zhi="申", xun_kong=["寅", "卯"],
+    )
+    report = run_analysis(h, "bing")
+
 双视角使用（失物/问病）:
     from liuyao import Hexagram, run_dual_analysis, format_dual_report
 

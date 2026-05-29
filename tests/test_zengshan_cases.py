@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 """
-《增删卜易》230例验证测试
+《增删卜易》卦例验证测试（真实日月干支对照）
 
-通过实际卦例数据验证六爻分析系统的核心理论实现：
-  - 特殊日月组合（废爻型/金刚型）
-  - 时效卦（月令时效）
-  - 真绊/假绊判定
-  - 六冲六合就事论事
-  - 内重外轻（动爻内外力区分）
-  - 子鬼互化等卦意法
+本测试以每个卦例**原文真实的月支/日支/旬空**构建卦象
+(经 ``Hexagram.from_ganzhi`` 注入干支, 不再使用占位日期),
+并将引擎判定的吉凶与原例结论逐例对照, 从而:
 
-注意：
-  Hexagram 构造函数目前不支持 month_zhi_override / day_zhi_override 参数，
-  相关参数化测试以 pytest.skip 处理，等待接口升级后激活。
+  1. 把原先"仅验证流程可达性"的空壳测试升级为真实准确度校验;
+  2. 通过 ``test_accuracy_baseline`` 固定当前命中基线, 作为回归红线;
+  3. 通过逐例参数化对照 + ``xfail(strict=True)`` 标记, 让每个案例的
+     对照结果可见: 当前判定正确的案例为硬性守卫, 已知未达成对照的
+     案例记为 xfail(被修复后会触发 XPASS 告警, 提示更新基线)。
+
+数据说明 (见 fixtures/zengshan_230_cases.py):
+  - 目标为《增删卜易》230 例, 当前已录入 30 例精选案例;
+  - 部分案例 yao_types 顺序带 FIXME 待核实, 个别案例旬空数据存疑
+    (如 例108 在亥日却以亥为旬空, 自相矛盾), 相关案例计入已知未对照集。
 """
 
 import pytest
@@ -29,495 +32,345 @@ from tests.fixtures.zengshan_230_cases import (
 
 
 # ============================================================================ #
+# 命中基线与已知未对照集 (回归红线)                                              #
+# ============================================================================ #
+# 以原文真实日月干支复盘后, 当前引擎吉凶判定与原例一致的案例集合。
+# 这些案例为硬性守卫: 任何改动若令其判定退化, 测试立即失败。
+BASELINE_HIT_IDS = {
+    "例6", "例7", "例8", "例11", "例12", "例17", "例22", "例23",
+    "例38", "例44", "例60", "例61", "例218",
+}
+
+# 当前尚未达成对照的案例及原因。修复后应将其移入 BASELINE_HIT_IDS。
+# 原因大致分两类:
+#   (A) fixture 数据待核实 (yao_types 顺序 FIXME / 干支旬空存疑);
+#   (B) 引擎卦理实现存在缺口 (绊局/三合局/特殊日月组合/时效卦等吉凶定性)。
+KNOWN_MISMATCH = {
+    "例1": "(B/A) 化绊假绊不影响吉凶定性, 引擎当前判凶; yao_types 顺序待核实",
+    "例2": "(B/A) 变爻用神生世吉局未识别; yao_types 顺序待核实",
+    "例3": "(B) 废爻型(月破+日克)动生不起未落定为凶",
+    "例4": "(B) 动化回头生胜日月克(动兆为主)未落定为吉",
+    "例5": "(B) 三合局克用神 + 化刑定凶未识别",
+    "例9": "(B) 月令时效卦临月建逢克不凶未实现",
+    "例10": "(B) 三合局生世优先于单爻分析未落定为吉",
+    "例14": "(B) 化绊假绊忌神照常克用神(凶)未落定",
+    "例15": "(B) 世自变回头克(内力主导)定凶未落定",
+    "例18": "(B) 金刚型特殊日月组合下回头克不伤仍有用未实现",
+    "例20": "(B) 引擎判平, 期望凶",
+    "例41": "(B) 引擎判凶, 期望吉",
+    "例54": "(B) 引擎判凶, 期望吉",
+    "例101": "(B) 引擎判平, 期望凶",
+    "例144": "(B) 引擎判平, 期望凶",
+    "例205": "(B) 引擎判平, 期望吉",
+    "例108": "(A) fixture 数据错误: 亥日不可能以亥为旬空, 待按原书核实日干",
+}
+
+
+# ============================================================================ #
 # 辅助工具                                                                      #
 # ============================================================================ #
 
-def _try_build_hexagram(case: dict) -> "Hexagram | None":
-    """
-    尝试构建 Hexagram 对象。
+def _build_hexagram(case: dict) -> Hexagram:
+    """以卦例原文真实月支/日支/旬空构建卦象 (注入干支, 不依赖公历日期)。"""
+    return Hexagram.from_ganzhi(
+        case["yao_types"],
+        month_zhi=case["month_zhi"],
+        day_zhi=case["day_zhi"],
+        xun_kong=case.get("xun_kong"),
+    )
 
-    当前 Hexagram 不支持干支覆盖，固定使用 2024-01-15（甲子年 丑月 寅日）
-    作为占位日期，仅用于测试代码路径。
-    实际干支覆盖需待接口升级后，替换为 month_zhi / day_zhi 覆盖参数。
-    """
-    try:
-        h = Hexagram(
-            case["yao_types"],
-            2024, 1, 15,
+
+def _engine_ji_xiong(case: dict) -> str:
+    """构卦并运行分析, 返回引擎判定的吉凶。"""
+    h = _build_hexagram(case)
+    report = run_analysis(h, question_type=case.get("question_type", "other"))
+    return report.jixiong_result.get("ji_xiong", "")
+
+
+def _case_params():
+    """构造参数化用例: 已知未对照案例附带 strict xfail 标记 (用于吉凶对照)。"""
+    params = []
+    for c in ZENGSHAN_CASES:
+        marks = ()
+        if c["id"] in KNOWN_MISMATCH:
+            marks = pytest.mark.xfail(reason=KNOWN_MISMATCH[c["id"]], strict=True)
+        params.append(pytest.param(c, id=c["id"], marks=marks))
+    return params
+
+
+# 因 fixture 数据问题当前无法构卦的案例 (仅这些会令格式化/构卦类测试失败)。
+BUILD_FAIL_IDS = {"例108"}
+
+
+def _buildable_case_params():
+    """构造参数化用例: 仅对构卦失败案例附带 strict xfail (用于格式化等需成功构卦的测试)。"""
+    params = []
+    for c in ZENGSHAN_CASES:
+        marks = ()
+        if c["id"] in BUILD_FAIL_IDS:
+            marks = pytest.mark.xfail(reason=KNOWN_MISMATCH.get(c["id"], "构卦失败"),
+                                      strict=True)
+        params.append(pytest.param(c, id=c["id"], marks=marks))
+    return params
+
+
+# ============================================================================ #
+# 准确度基线 (回归红线)                                                          #
+# ============================================================================ #
+
+class TestAccuracyBaseline:
+    """全量卦例吉凶对照, 固定命中基线, 防止准确度静默回退。"""
+
+    def test_accuracy_baseline(self, capsys):
+        hits, misses, errors = [], [], []
+        for c in ZENGSHAN_CASES:
+            try:
+                got = _engine_ji_xiong(c)
+            except Exception as e:  # noqa: BLE001 - 汇总报告所有异常案例
+                errors.append((c["id"], str(e)))
+                continue
+            if got == c["expected_ji_xiong"]:
+                hits.append(c["id"])
+            else:
+                misses.append((c["id"], got, c["expected_ji_xiong"]))
+
+        total = len(ZENGSHAN_CASES)
+        analyzable = total - len(errors)
+        with capsys.disabled():
+            print("\n========== 增删卜易卦例 吉凶对照基线 ==========")
+            print(f"  总例数      : {total}")
+            print(f"  可分析      : {analyzable}  (构卦失败 {len(errors)})")
+            print(f"  命中        : {len(hits)}")
+            if analyzable:
+                print(f"  命中率(可分析): {len(hits) / analyzable * 100:.1f}%")
+            print(f"  命中率(全体) : {len(hits) / total * 100:.1f}%")
+            if errors:
+                print("  构卦失败案例:")
+                for cid, msg in errors:
+                    print(f"    - {cid}: {msg}")
+            print("===============================================")
+
+        # 回归红线 1: 基线命中集合不得缩小 (任一案例判定退化即失败)
+        lost = BASELINE_HIT_IDS - set(hits)
+        assert not lost, f"命中回退: 以下基线案例不再命中 {sorted(lost)}"
+        # 回归红线 2: 总命中数不得低于基线
+        assert len(hits) >= len(BASELINE_HIT_IDS), (
+            f"命中数 {len(hits)} 低于基线 {len(BASELINE_HIT_IDS)}"
         )
-        return h
-    except Exception:
-        return None
 
 
 # ============================================================================ #
-# 核心理论点手工验证测试（不依赖干支覆盖）                                         #
-# ============================================================================ #
-
-class TestZengshanTheoryPoints:
-    """核心理论点验证测试（手工断言，精确控制日月干支）"""
-
-    # ------------------------------------------------------------------ #
-    # 例1：化绊假绊，不影响吉凶定性                                         #
-    # ------------------------------------------------------------------ #
-    def test_hua_ban_jia_ban_jixiong(self):
-        """
-        例1验证：化绊属假绊，不影响吉凶定性。
-        辰月申日，乾之小畜，占父近病。
-        午火动化未土（化绊），假绊，断吉，应期待丑日冲绊。
-        """
-        # 真实干支：辰月申日，旬空寅卯
-        # 当前 Hexagram 不支持干支覆盖，仅测试代码路径
-        h = _try_build_hexagram(CASE_01)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 验证卦象能正常构建
-        assert h.ben_gua_name != ""
-        # 验证有动爻
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 1, "例1应有动爻（午火）"
-
-    # ------------------------------------------------------------------ #
-    # 例3：月破日克=废爻型，动生不起                                        #
-    # ------------------------------------------------------------------ #
-    def test_te_shu_riyue_fei_yao_xiong(self):
-        """
-        例3验证：月破日克=废爻型，即使有动爻来生，爻如朽木，动生不起。
-        巳月未日，大过之鼎，自占病。
-        世爻亥水：月破（巳冲亥）+ 日克（未克亥）= 废爻型。
-        """
-        h = _try_build_hexagram(CASE_03)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 卦应有动爻（未土、酉金动）
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 1, "例3应有动爻"
-        # 期望判断为凶
-        assert CASE_03["expected_ji_xiong"] == "凶"
-
-    # ------------------------------------------------------------------ #
-    # 例4：动爻回头生胜过日月克，动兆主宰                                   #
-    # ------------------------------------------------------------------ #
-    def test_dong_yao_hui_tou_sheng_sheng_yong(self):
-        """
-        例4验证：日月克用神，但用神动化回头生，动兆胜日月，吉。
-        卯月卯日，复之震，弟占兄获重罪。
-        兄弟丑土应爻动化午火回头生，最终免死。
-        """
-        h = _try_build_hexagram(CASE_04)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 1, "例4应有动爻（丑土动）"
-        assert CASE_04["expected_ji_xiong"] == "吉"
-
-    # ------------------------------------------------------------------ #
-    # 例9：月令时效卦，临月建逢克不凶                                       #
-    # ------------------------------------------------------------------ #
-    def test_shi_xiao_gua_yue_ling_time(self):
-        """
-        例9验证：月令时效卦，问事时效在月内，临月建之爻逢克不凶。
-        酉月寅日，蛊之蒙，占谒贵（酉月内）。
-        世爻官鬼酉金临月建，动化午火回头克，月令时效卦下不受克，吉。
-        """
-        h = _try_build_hexagram(CASE_09)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 月令时效卦核心：世爻临月建
-        assert CASE_09["month_zhi"] == "酉", "例9为酉月"
-        # 验证期望吉
-        assert CASE_09["expected_ji_xiong"] == "吉"
-
-    # ------------------------------------------------------------------ #
-    # 例10：三合局优先于单爻分析                                           #
-    # ------------------------------------------------------------------ #
-    def test_san_he_ju_priority_over_single_yao(self):
-        """
-        例10验证：三合局优先，合局方向生世则吉。
-        寅月申日，艮之颐，占官之升迁。
-        申子辰三合水局生世（官星），合局决定吉凶。
-        """
-        h = _try_build_hexagram(CASE_10)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 2, "例10应有多个动爻构成三合局"
-        assert CASE_10["expected_ji_xiong"] == "吉"
-
-    # ------------------------------------------------------------------ #
-    # 例14：化绊假绊，吉凶不受绊，应期延迟到冲绊日                          #
-    # ------------------------------------------------------------------ #
-    def test_hua_ban_yingqi_chong_ban(self):
-        """
-        例14验证：化绊属假绊，吉凶层面忽略绊，忌神照常克用神（凶）。
-        应期延迟到冲绊之日（丑日冲未土解绊）。
-        未月午日，履之中孚，占子痘症。
-        """
-        h = _try_build_hexagram(CASE_14)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        assert CASE_14["expected_ji_xiong"] == "凶"
-        assert "冲绊应期" in CASE_14["expected_pattern_keywords"]
-
-    # ------------------------------------------------------------------ #
-    # 例15：内力vs外力，世变回头克为凶，外力无法改变                        #
-    # ------------------------------------------------------------------ #
-    def test_nei_zhong_wai_qing_shi_bian_hui_tou_ke(self):
-        """
-        例15验证：世爻自变（内力）产生回头克 = 终局凶，外力（月令生助）无法改变。
-        申月午日，遁之姤，自占病。
-        世爻午火动化亥水子孙（回头克），申月生世为外力，但内力主导，凶。
-        """
-        h = _try_build_hexagram(CASE_15)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 验证有世爻动（内力自变）
-        shi_line = next((l for l in h.lines if l.is_shi), None)
-        assert shi_line is not None, "应有世爻"
-        assert CASE_15["expected_ji_xiong"] == "凶"
-
-    # ------------------------------------------------------------------ #
-    # 例17：子鬼互化，问孕育为凶                                           #
-    # ------------------------------------------------------------------ #
-    def test_zi_gui_hu_hua_xiong_for_shengchan(self):
-        """
-        例17验证：子孙动化官鬼（子鬼互化）= 问孕育/生产为凶。
-        子日，剥之观，占生产。
-        子孙子水持世动化官鬼巳火，子鬼互化，落草而亡。
-        """
-        h = _try_build_hexagram(CASE_17)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 验证有动爻（子孙动化官鬼）
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 1, "例17应有动爻（子孙动）"
-        assert CASE_17["expected_ji_xiong"] == "凶"
-        assert "子鬼互化" in CASE_17["expected_pattern_keywords"]
-
-    # ------------------------------------------------------------------ #
-    # 例18：金刚型特殊日月组合，动化回头克依然有用                          #
-    # ------------------------------------------------------------------ #
-    def test_jingang_riyue_fang_hui_tou_ke(self):
-        """
-        例18验证：月建 + 日令合生 = 金刚型特殊日月组合。
-        爻动化回头克，一般为无用动爻，但金刚型下克不伤，依然有用。
-        申月辰日，屯之震，占兄病。
-        申金月建日合（金刚），官父连动生用神子水，病愈。
-        """
-        h = _try_build_hexagram(CASE_18)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 1, "例18应有动爻"
-        assert CASE_18["expected_ji_xiong"] == "吉"
-        assert "金刚型" in CASE_18["expected_pattern_keywords"]
-
-    # ------------------------------------------------------------------ #
-    # 例22：废爻型直接废静止世爻                                           #
-    # ------------------------------------------------------------------ #
-    def test_fei_yao_xing_fei_jing_shi_shi_yao(self):
-        """
-        例22验证：废爻型特殊日月组合不仅影响动爻，也可直接废静止世爻。
-        戌月卯日，地天泰，占讼事（静卦）。
-        世爻辰土月破（戌冲辰）+ 日克（卯克辰）= 废爻型，世爻被废，凶。
-        """
-        h = _try_build_hexagram(CASE_22)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        # 静卦（无或极少动爻）
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) == 0, "例22为静卦，无动爻"
-        assert CASE_22["expected_ji_xiong"] == "凶"
-
-    # ------------------------------------------------------------------ #
-    # 例23：真绊判定 — 时段明确行人占                                      #
-    # ------------------------------------------------------------------ #
-    def test_zhen_ban_hang_ren_shi_duan_ming_que(self):
-        """
-        例23验证：行人出行占有明确时段范围，三绊为真绊，今日出行不成。
-        申月子日，明夷之小过，占（今日）出行。
-        世爻动化绊 + 应爻动化绊，时段明确行人占 = 真绊，凶。
-        """
-        h = _try_build_hexagram(CASE_23)
-        if h is None:
-            pytest.skip("无法构建 Hexagram（yao_types 数据待核实）")
-
-        moving = [l for l in h.lines if l.is_moving]
-        assert len(moving) >= 2, "例23应有至少两个动爻构成化绊"
-        assert CASE_23["expected_ji_xiong"] == "凶"
-        assert "真绊" in CASE_23["expected_pattern_keywords"]
-
-
-# ============================================================================ #
-# 参数化案例批量验证                                                             #
+# 逐例吉凶对照 (真实日月干支)                                                     #
 # ============================================================================ #
 
 class TestZengshanCasesParametrized:
-    """参数化案例验证（批量覆盖20个案例）"""
+    """逐例参数化对照: 引擎判定 vs 原例结论。"""
 
-    @pytest.mark.parametrize("case", ZENGSHAN_CASES, ids=[c["id"] for c in ZENGSHAN_CASES])
-    def test_case_hexagram_builds(self, case):
-        """
-        验证每个案例的 yao_types 能成功构建 Hexagram 对象。
-        yao_types 中含 FIXME 注释的案例可能需要人工核实后才能通过。
-        """
-        try:
-            h = Hexagram(
-                case["yao_types"],
-                2024, 1, 15,  # 固定占位日期（丑月 寅日）
-            )
-            # 基本结构验证
-            assert h.ben_gua_name != "", f"{case['id']} 本卦名称不应为空"
-            assert len(h.lines) == 6, f"{case['id']} 应有6条爻"
-        except Exception as e:
-            pytest.skip(f"{case['id']} Hexagram 构建异常（yao_types 待核实）: {e}")
-
-    @pytest.mark.parametrize("case", ZENGSHAN_CASES, ids=[c["id"] for c in ZENGSHAN_CASES])
+    @pytest.mark.parametrize("case", _case_params())
     def test_case_ji_xiong(self, case):
         """
-        验证每个案例的吉凶判断（使用固定占位日期）。
-
-        注意：由于 Hexagram 不支持干支覆盖，此测试的吉凶结果
-        基于占位日期（丑月寅日）而非原文实际日月，仅验证流程可达性。
-        实际对应验证需待干支覆盖接口实现后激活。
+        逐例对照吉凶。已知未对照案例以 strict xfail 标记:
+        若某案例被修复(对照通过), strict xfail 会触发 XPASS 失败,
+        提示将其从 KNOWN_MISMATCH 移入 BASELINE_HIT_IDS。
         """
-        try:
-            h = Hexagram(case["yao_types"], 2024, 1, 15)
-        except Exception:
-            pytest.skip(f"{case['id']} Hexagram 构建失败，跳过吉凶测试")
-
-        try:
-            report = run_analysis(h, question_type=case.get("question_type", "other"))
-            # 验证吉凶结果有值（流程可达性验证）
-            ji_xiong = report.jixiong_result.get("ji_xiong", "")
-            assert ji_xiong in ("吉", "凶", "平"), \
-                f"{case['id']} 吉凶结果应为 吉/凶/平，实际：{ji_xiong}"
-        except Exception as e:
-            pytest.skip(f"{case['id']} 分析流程异常: {e}")
+        got = _engine_ji_xiong(case)  # 构卦失败将抛异常, 对 xfail 案例计为预期失败
+        assert got == case["expected_ji_xiong"], (
+            f"{case['id']} 吉凶不符: 引擎={got}, 期望={case['expected_ji_xiong']}"
+        )
 
     @pytest.mark.parametrize("case", ZENGSHAN_CASES, ids=[c["id"] for c in ZENGSHAN_CASES])
     def test_case_theory_keywords_in_case_data(self, case):
-        """
-        验证案例数据完整性：theory_points 和 expected_pattern_keywords 不应为空。
-        """
-        assert len(case["theory_points"]) >= 1, \
-            f"{case['id']} theory_points 不应为空"
+        """验证案例数据完整性: theory_points / expected_pattern_keywords 非空。"""
+        assert len(case["theory_points"]) >= 1, f"{case['id']} theory_points 不应为空"
         assert len(case["expected_pattern_keywords"]) >= 1, \
             f"{case['id']} expected_pattern_keywords 不应为空"
         assert case["expected_ji_xiong"] in ("吉", "凶", "平"), \
             f"{case['id']} expected_ji_xiong 应为 吉/凶/平"
 
-    @pytest.mark.parametrize("case", ZENGSHAN_CASES, ids=[c["id"] for c in ZENGSHAN_CASES])
+    @pytest.mark.parametrize("case", _buildable_case_params())
     def test_case_report_format(self, case):
-        """
-        验证分析报告可正常格式化输出（无异常）。
-        """
-        try:
-            h = Hexagram(case["yao_types"], 2024, 1, 15)
-            report = run_analysis(h, question_type=case.get("question_type", "other"))
-            formatted = format_report(report)
-            assert isinstance(formatted, str), \
-                f"{case['id']} 格式化报告应返回字符串"
-            assert len(formatted) > 0, \
-                f"{case['id']} 格式化报告不应为空"
-        except Exception as e:
-            pytest.skip(f"{case['id']} 报告格式化失败: {e}")
+        """验证分析报告可正常格式化输出 (无异常, 返回非空字符串)。"""
+        h = _build_hexagram(case)
+        report = run_analysis(h, question_type=case.get("question_type", "other"))
+        formatted = format_report(report)
+        assert isinstance(formatted, str) and len(formatted) > 0, \
+            f"{case['id']} 格式化报告应返回非空字符串"
 
 
 # ============================================================================ #
-# 理论规则单元级验证                                                             #
+# 核心理论点结构验证 (真实日月干支)                                               #
+# ============================================================================ #
+
+class TestZengshanTheoryPoints:
+    """
+    核心理论点的卦象结构验证。
+
+    这些断言验证卦象**结构特征**(动爻数目/世爻/月建等)符合理论点描述,
+    与 yao_types 直接相关; 吉凶定性对照统一由参数化对照与基线测试负责。
+    """
+
+    def test_hua_ban_jia_ban_structure(self):
+        """例1: 辰月申日乾之小畜, 占父近病。应有动爻(午火化未土, 化绊)。"""
+        h = _build_hexagram(CASE_01)
+        assert h.ben_gua_name != ""
+        assert h.gan_zhi["month_zhi"] == "辰" and h.gan_zhi["day_zhi"] == "申"
+        assert len([l for l in h.lines if l.is_moving]) >= 1, "例1应有动爻(午火)"
+
+    def test_fei_yao_xing_has_moving(self):
+        """例3: 巳月未日大过之鼎, 自占病。废爻型(月破日克), 卦中应有动爻。"""
+        h = _build_hexagram(CASE_03)
+        assert h.gan_zhi["month_zhi"] == "巳" and h.gan_zhi["day_zhi"] == "未"
+        assert len([l for l in h.lines if l.is_moving]) >= 1, "例3应有动爻"
+
+    def test_hui_tou_sheng_has_moving(self):
+        """例4: 卯月卯日复之震, 弟占兄获重罪。用神动化回头生, 应有动爻。"""
+        h = _build_hexagram(CASE_04)
+        assert h.gan_zhi["month_zhi"] == "卯" and h.gan_zhi["day_zhi"] == "卯"
+        assert len([l for l in h.lines if l.is_moving]) >= 1, "例4应有动爻(丑土)"
+
+    def test_shi_xiao_gua_month(self):
+        """例9: 酉月寅日蛊之蒙, 占谒贵(月令时效卦), 月建为酉。"""
+        h = _build_hexagram(CASE_09)
+        assert h.gan_zhi["month_zhi"] == "酉", "例9为酉月"
+
+    def test_san_he_ju_multiple_moving(self):
+        """例10: 寅月申日艮之颐, 占升迁。三合水局, 应有多个动爻。"""
+        h = _build_hexagram(CASE_10)
+        assert len([l for l in h.lines if l.is_moving]) >= 2, "例10应有多动爻构成三合局"
+
+    def test_hua_ban_keyword(self):
+        """例14: 未月午日履之中孚, 占子痘症。化绊假绊, 应期为冲绊日。"""
+        _build_hexagram(CASE_14)  # 验证可构卦
+        assert "冲绊应期" in CASE_14["expected_pattern_keywords"]
+
+    def test_shi_yao_present(self):
+        """例15: 申月午日遁之姤, 自占病。世自变回头克, 卦中应有世爻。"""
+        h = _build_hexagram(CASE_15)
+        assert any(l.is_shi for l in h.lines), "应有世爻"
+
+    def test_zi_gui_hu_hua_structure(self):
+        """例17: 子日剥之观, 占生产。子鬼互化, 应有动爻。"""
+        h = _build_hexagram(CASE_17)
+        assert len([l for l in h.lines if l.is_moving]) >= 1, "例17应有动爻(子孙动)"
+        assert "子鬼互化" in CASE_17["expected_pattern_keywords"]
+
+    def test_jingang_structure(self):
+        """例18: 申月辰日屯之震, 占兄病。金刚型特殊日月组合, 应有动爻。"""
+        h = _build_hexagram(CASE_18)
+        assert h.gan_zhi["month_zhi"] == "申" and h.gan_zhi["day_zhi"] == "辰"
+        assert len([l for l in h.lines if l.is_moving]) >= 1, "例18应有动爻"
+        assert "金刚型" in CASE_18["expected_pattern_keywords"]
+
+    def test_fei_jing_shi_static_gua(self):
+        """例22: 戌月卯日地天泰, 占讼事。静卦, 世爻辰土废爻型, 无动爻。"""
+        h = _build_hexagram(CASE_22)
+        assert len([l for l in h.lines if l.is_moving]) == 0, "例22为静卦, 无动爻"
+
+    def test_zhen_ban_multiple_moving(self):
+        """例23: 申月子日明夷之小过, 占出行。真绊, 应有至少两动爻化绊。"""
+        h = _build_hexagram(CASE_23)
+        assert len([l for l in h.lines if l.is_moving]) >= 2, "例23应有至少两动爻构成化绊"
+        assert "真绊" in CASE_23["expected_pattern_keywords"]
+
+
+# ============================================================================ #
+# 理论规则单元级验证 (不依赖具体卦例)                                             #
 # ============================================================================ #
 
 class TestTheoryRules:
-    """
-    基于理论知识的单元级规则验证。
-    不依赖具体卦例数据，直接测试旺衰/动变等核心理论函数。
-    """
+    """直接测试旺衰/动变等核心理论函数。"""
 
     def test_yue_po_ri_ke_fei_yao_condition(self):
-        """
-        废爻型验证：月破（月令冲）+ 日令克 = 废爻条件。
-        使用旺衰分析函数验证两种衰败方向同时存在。
-        """
+        """废爻型: 月破(月令冲) + 日令克。亥水在巳月(月破)未日(日克)。"""
         from liuyao.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
-
-        # 亥水：巳月冲（月破）+ 未日克（日令克）
-        yue_wang, yue_shuai = yue_jian_wangshuai("亥", "巳")
-        ri_wang, ri_shuai = ri_chen_wangshuai("亥", "未")
-
-        # 月破 = 月令冲
+        _, yue_shuai = yue_jian_wangshuai("亥", "巳")
+        _, ri_shuai = ri_chen_wangshuai("亥", "未")
         assert "月破" in yue_shuai, "亥水在巳月应为月破"
-        # 日令克
         assert "日令克" in ri_shuai, "亥水在未日应为日令克"
 
     def test_jingang_yue_jian_ri_sheng_condition(self):
-        """
-        金刚型验证：月建（临月令）+ 日令生 = 金刚条件。
-        申金：申月（临月令）+ 辰日合（日令合旺，不为衰）
-        """
+        """金刚型: 月建(临月令) + 日令生/合。申金在申月为临月令。"""
         from liuyao.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
-
-        # 申金：申月（临月令）
-        yue_wang, yue_shuai = yue_jian_wangshuai("申", "申")
+        yue_wang, _ = yue_jian_wangshuai("申", "申")
         assert "临月令" in yue_wang, "申金在申月应为临月令"
-
-        # 申金：辰日合（日令合，属于静爻合旺）
-        ri_wang, ri_shuai = ri_chen_wangshuai("申", "辰")
-        # 辰申六合，辰日合申 = 日令合（旺）
-        assert len(ri_wang) >= 0  # 验证函数可调用，实际结果需核对
+        ri_wang, _ = ri_chen_wangshuai("申", "辰")
+        assert len(ri_wang) >= 0
 
     def test_hui_tou_ke_detection(self):
-        """
-        回头克验证：变爻克动爻 = 回头克，应归属无用动爻（一般情况）。
-        五行相克：木克土，火克金，土克水，金克木，水克火
-        """
+        """回头克: 变爻克动爻。"""
         from liuyao.dongbian import is_hui_tou_ke
-
-        # 寅木变申金 → 申金克寅木 = 回头克（金克木）
-        assert is_hui_tou_ke("寅", "申") is True
-
-        # 申金变午火 → 午火克申金 = 回头克（火克金）
-        assert is_hui_tou_ke("申", "午") is True
-
-        # 亥水变申金 → 申金生亥水（金生水）= 回头生，非回头克
-        assert is_hui_tou_ke("亥", "申") is False
-
-        # 午火变未土 → 未土不克午火（土无法克火）= 非回头克
-        assert is_hui_tou_ke("午", "未") is False
+        assert is_hui_tou_ke("寅", "申") is True   # 金克木
+        assert is_hui_tou_ke("申", "午") is True   # 火克金
+        assert is_hui_tou_ke("亥", "申") is False  # 金生水, 回头生
+        assert is_hui_tou_ke("午", "未") is False  # 土不克火
 
     def test_hua_jin_shen_and_tui_shen(self):
-        """
-        进退神验证：
-        - 申→酉 = 化进神（同属金，向前）
-        - 酉→申 = 化退神（同属金，后退）
-        """
+        """进退神: 申->酉=进神, 酉->申=退神。"""
         from liuyao.dongbian import is_hua_jin_shen, is_hua_tui_shen
-
         assert is_hua_jin_shen("申", "酉") is True
         assert is_hua_tui_shen("酉", "申") is True
         assert is_hua_jin_shen("酉", "申") is False
         assert is_hua_tui_shen("申", "酉") is False
 
     def test_san_he_ju_formation(self):
-        """
-        三合局验证：申子辰 = 水局，亥卯未 = 木局，寅午戌 = 火局，巳酉丑 = 金局。
-        """
+        """三合局: 含申子辰三动的卦旺衰可正常分析。"""
         from liuyao.wangshuai import analyze_hexagram_wangshuai
-        # 构建含申子辰三动的卦（艮为山六冲含辰申两动）
         h = Hexagram([6, 7, 9, 7, 7, 7], 2024, 1, 15)
         results = analyze_hexagram_wangshuai(h)
         assert len(results) == 6
 
     def test_xun_kong_detection(self):
-        """
-        旬空检测：
-        - 甲子旬（甲子~癸酉），旬空为戌、亥
-        - 甲午旬（甲午~癸卯），旬空为辰、巳
-        - 戊申日（戊申~癸丑旬，戊申旬空寅卯？）
-          实际：六十甲子中，甲寅旬旬空为子丑，甲申旬旬空为午未
-          FIXME 各旬旬空需以六十甲子表为准
-        """
+        """旬空检测: 甲子->戌亥, 甲午->辰巳, 戊申->寅卯。"""
         from liuyao.data import get_xun_kong
-        # 甲子旬：甲子、乙丑、丙寅...癸酉，旬空为戌亥
-        xun_kong_1 = get_xun_kong("甲", "子")
-        assert "戌" in xun_kong_1 or "亥" in xun_kong_1, \
-            f"甲子日旬空应为戌亥，实际：{xun_kong_1}"
-
-        # 甲午旬：甲午、乙未...癸卯，旬空为辰巳
-        xun_kong_2 = get_xun_kong("甲", "午")
-        assert "辰" in xun_kong_2 or "巳" in xun_kong_2, \
-            f"甲午日旬空应为辰巳，实际：{xun_kong_2}"
-
-        # 戊申日（戊申旬：戊申、己酉...癸丑，旬空为寅卯）
-        xun_kong_3 = get_xun_kong("戊", "申")
-        assert "寅" in xun_kong_3 or "卯" in xun_kong_3, \
-            f"戊申日旬空应含寅卯，实际：{xun_kong_3}"
+        assert "戌" in get_xun_kong("甲", "子") or "亥" in get_xun_kong("甲", "子")
+        assert "辰" in get_xun_kong("甲", "午") or "巳" in get_xun_kong("甲", "午")
+        xk3 = get_xun_kong("戊", "申")
+        assert "寅" in xk3 or "卯" in xk3
 
     def test_ban_formation_hua_ban(self):
-        """
-        化绊验证：动爻与其变爻六合 = 化绊（三绊之一）。
-        检测 analyze_all_patterns 能识别化绊模式。
-        """
-        # 午火动化未土（午未六合）= 化绊
-        # 构造含午火动的卦
+        """化绊: 动爻与变爻六合。验证 analyze_all_patterns 可正常运行。"""
         h = Hexagram([7, 7, 9, 7, 7, 7], 2024, 1, 15)
         from liuyao.wangshuai import analyze_hexagram_wangshuai
         from liuyao.dongbian import analyze_dongbian
         from liuyao.patterns import analyze_all_patterns
-
         ws = analyze_hexagram_wangshuai(h)
         db = analyze_dongbian(h, ws)
         patterns = analyze_all_patterns(h, ws, db, "父母", "官鬼", [], "bing")
-        # 验证模式识别可正常运行
         assert isinstance(patterns, dict)
 
 
 # ============================================================================ #
-# 集成测试：完整分析流程验证                                                     #
+# 集成测试: 完整分析流程 (真实日月干支)                                           #
 # ============================================================================ #
 
 class TestFullAnalysisFlow:
-    """完整分析流程集成测试"""
+    """完整分析流程集成测试。"""
 
     def test_full_analysis_single_case(self):
-        """
-        单案例完整分析流程验证（从构建卦象到生成报告）。
-        使用例3的 yao_types 验证凶兆判断流程可达性。
-        """
-        try:
-            h = Hexagram(CASE_03["yao_types"], 2024, 1, 15)
-        except Exception:
-            pytest.skip("例3 Hexagram 构建失败，跳过集成测试")
-
+        """例3 完整分析流程 (从构卦到生成报告)。"""
+        h = _build_hexagram(CASE_03)
         report = run_analysis(h, question_type="bing")
-
-        # 验证报告各字段非空
         assert report.hexagram is not None
-        assert report.wangshuai_results is not None
         assert isinstance(report.wangshuai_results, list)
         assert len(report.wangshuai_results) == 6
-        assert report.jixiong_result is not None
         assert "ji_xiong" in report.jixiong_result
 
     def test_full_analysis_with_format(self):
-        """
-        完整分析 + 报告格式化测试（乾为天六冲代表案例）。
-        """
-        try:
-            h = Hexagram(CASE_01["yao_types"], 2024, 1, 15)
-        except Exception:
-            pytest.skip("例1 Hexagram 构建失败，跳过格式化测试")
-
+        """例1 完整分析 + 报告格式化。"""
+        h = _build_hexagram(CASE_01)
         report = run_analysis(h, question_type="bing")
         formatted = format_report(report)
-
         assert isinstance(formatted, str)
         assert len(formatted) > 100, "报告文本不应过短"
 
-    def test_all_cases_no_exception(self):
-        """
-        全部20个案例运行分析流程，不应抛出未捕获异常。
-        """
-        error_cases = []
+    def test_all_cases_no_unexpected_exception(self):
+        """全部案例运行分析流程; 仅允许已知数据错误案例(例108)构卦失败。"""
+        errors = []
         for case in ZENGSHAN_CASES:
             try:
-                h = Hexagram(case["yao_types"], 2024, 1, 15)
+                h = _build_hexagram(case)
                 run_analysis(h, question_type=case.get("question_type", "other"))
-            except Exception as e:
-                error_cases.append(f"{case['id']}: {e}")
-
-        if error_cases:
-            pytest.skip(
-                f"以下案例分析流程异常（yao_types 待核实）：\n" +
-                "\n".join(error_cases)
-            )
+            except Exception as e:  # noqa: BLE001
+                errors.append((case["id"], str(e)))
+        unexpected = [(cid, msg) for cid, msg in errors if cid not in KNOWN_MISMATCH]
+        assert not unexpected, f"非预期的分析异常: {unexpected}"
