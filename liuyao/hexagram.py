@@ -5,6 +5,7 @@
 包括纳甲、六亲、世应、六神、旬空等所有标注。
 """
 
+import calendar
 from dataclasses import dataclass, field
 from typing import List, Tuple, Optional
 
@@ -82,6 +83,14 @@ class Hexagram:
             self._validate_date()
         self._arrange()
 
+    def __repr__(self) -> str:  # pragma: no cover
+        gz = self.gan_zhi
+        return (
+            f"<Hexagram {self.ben_gua_name!r} "
+            f"{gz.get('month_gan','')}{gz.get('month_zhi','')}月 "
+            f"{gz.get('day_gan','')}{gz.get('day_zhi','')}日>"
+        )
+
     @classmethod
     def from_ganzhi(cls, yao_values, *, month_zhi, day_zhi, day_gan=None,
                     xun_kong=None, year_gan="甲", year_zhi="子",
@@ -128,16 +137,12 @@ class Hexagram:
             raise ArrangementError(f"无效年份: {self.year}, 必须为1-9999的整数")
         if not isinstance(self.month, int) or self.month < 1 or self.month > 12:
             raise ArrangementError(f"无效月份: {self.month}, 必须为1-12的整数")
-        # 每月最大天数检查
-        days_in_month = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-        max_day = days_in_month[self.month - 1]
+        max_day = calendar.monthrange(self.year, self.month)[1]
         if not isinstance(self.day, int) or self.day < 1 or self.day > max_day:
-            raise ArrangementError(f"无效日期: {self.year}年{self.month}月{self.day}日, 日必须为1-{max_day}的整数")
-        # 闰年2月检查
-        if self.month == 2 and self.day == 29:
-            is_leap = (self.year % 4 == 0 and self.year % 100 != 0) or (self.year % 400 == 0)
-            if not is_leap:
-                raise ArrangementError(f"无效日期: {self.year}年不是闰年, 2月没有29日")
+            raise ArrangementError(
+                f"无效日期: {self.year}年{self.month}月{self.day}日, "
+                f"日必须为1-{max_day}的整数"
+            )
 
     def _normalize_ganzhi(self, override):
         """

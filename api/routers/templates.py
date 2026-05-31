@@ -50,3 +50,15 @@ async def get_template(
     db: AsyncSession = Depends(get_db),
 ) -> TemplateResponse:
     return await reading_svc.get_template(template_id, db)
+
+
+@router.delete(
+    "/{template_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a template by ID",
+)
+async def delete_template(
+    template_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+) -> None:
+    await reading_svc.delete_template(template_id, db)
