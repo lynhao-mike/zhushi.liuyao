@@ -59,9 +59,9 @@ THEORY_RULE_CASE_MAP = {
         "cases": ["例1", "例14", "例23", "例101"],
         "status": "pending_rule_detail",
         "notes": (
-            "例23/例101 已进基线(引擎恰好判对); "
-            "例1 fixture_mismatch(yao_types顺序错误), 待原书核实; "
-            "例14 fixture_mismatch(实际动爻辰土化丑土非午火化未土), 待原书核实"
+            "例1/例23/例101 已进基线; 例1 fixture 已按原书核实(四爻午火动而非三爻); "
+            "例14 fixture_mismatch(实际动爻辰土化丑土非午火化未土), 待原书核实; "
+            "假绊吉凶层面动爻照常生克, 仅应期层面计绊(等冲绊日)"
         ),
     },
     "变爻用神": {

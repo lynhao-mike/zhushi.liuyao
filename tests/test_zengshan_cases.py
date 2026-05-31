@@ -38,6 +38,7 @@ from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 # 以原文真实日月干支复盘后, 当前引擎吉凶判定与原例一致的案例集合。
 # 这些案例为硬性守卫: 任何改动若令其判定退化, 测试立即失败。
 BASELINE_HIT_IDS = {
+    "例1",
     "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例17", "例18", "例22", "例23",
     "例38", "例44", "例60", "例61", "例101", "例144", "例218",
 }
@@ -58,6 +59,7 @@ BASELINE_HIT_IDS = {
 #   - pattern: 引擎给出的局名(吉凶模式短语), 作为 legacy 路径的二级守卫;
 #              即使后续 legacy 内部分支调整, pattern 改变也会被立刻发现。
 BASELINE_RULE_HITS = {
+    "例1":   {"rule_id": "legacy",                  "pattern": "用神生世局"},
     "例6":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
     "例7":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
     "例8":   {"rule_id": "legacy",                  "pattern": "静卦用克世(求财特例)"},
@@ -84,8 +86,6 @@ BASELINE_RULE_HITS = {
 #   (B) 引擎卦理实现存在缺口 (绊局/三合局/特殊日月组合/时效卦等吉凶定性)。
 KNOWN_MISMATCH = {
     # ── (A) fixture 数据问题: yao_types 顺序/内容与理论描述不符 ──────────────
-    "例1": "(A) fixture_mismatch: yao_types 顺序错误, 三爻实为辰土父母(化退神), "
-           "非描述中的午火化未土假绊; 需按原书核实乾宫纳甲爻位顺序",
     "例2": "(A) fixture_mismatch: yao_types 与描述不符, 初爻实为子水妻财(化回头克), "
            "非描述中的巳火官鬼化寅木变爻用神; 需按原书核实兑宫纳甲爻位",
     "例3": "(A) fixture_mismatch: 实际世爻为巳官, 用神父母未土旺, 未形成世亥水废爻型",
