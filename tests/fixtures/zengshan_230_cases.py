@@ -18,8 +18,8 @@
 # --------------------------------------------------------------------------- #
 CASE_01 = {
     "id": "例1",
-    "data_status": "suspicious",
-    "failure_type": "fixture_or_rule_gap",
+    "data_status": "fixture_mismatch",
+    "failure_type": "fixture_vs_theory_mismatch",
     "description": "辰月申日乾之小畜，占父近病。午火化未土（化绊），属假绊，"
                    "断吉。午未绊待丑日冲开，父母辰土病愈。",
     "month_zhi": "辰",
@@ -52,8 +52,8 @@ CASE_01 = {
 # --------------------------------------------------------------------------- #
 CASE_02 = {
     "id": "例2",
-    "data_status": "suspicious",
-    "failure_type": "fixture_or_rule_gap",
+    "data_status": "fixture_mismatch",
+    "failure_type": "fixture_vs_theory_mismatch",
     "description": "酉月亥日兑之解，谒贵求财。变爻寅财为用神，"
                    "通过动爻巳火为媒，间接生旺世爻，用神生世吉。",
     "month_zhi": "酉",
@@ -554,6 +554,8 @@ CASE_18 = {
 # --------------------------------------------------------------------------- #
 CASE_20 = {
     "id": "例20",
+    "data_status": "fixture_mismatch",
+    "failure_type": "fixture_vs_theory_mismatch",
     "description": "未月辰日巽之涣，占官事罪之轻重。忌神酉金（金刚型）动克世，"
                    "世爻月墓日克（废爻型），吉凶层面月令只论休囚，细节层面见墓绝。",
     "month_zhi": "未",
@@ -682,6 +684,8 @@ CASE_38 = {
 # --------------------------------------------------------------------------- #
 CASE_41 = {
     "id": "例41",
+    "data_status": "fixture_mismatch",
+    "failure_type": "fixture_vs_theory_mismatch_and_rule_gap",
     "description": "动爻化出回头克，但动爻本身只是能量中转站（回头生型传导），"
                    "变爻不是能量终点，故回头克不算真无用动爻。假化散格局。",
     "month_zhi": "寅",
@@ -740,6 +744,8 @@ CASE_44 = {
 # --------------------------------------------------------------------------- #
 CASE_54 = {
     "id": "例54",
+    "data_status": "rule_gap",
+    "failure_type": "rule_gap_hua_jin_shen_priority",
     "description": "动爻化进神的同时变爻遭月破，吉凶层面化进为真、化破为假。"
                    "内重外轻——卦内动因（化进趋旺）重于卦外日月（月破趋衰）。",
     "month_zhi": "酉",
@@ -916,6 +922,8 @@ CASE_144 = {
 # --------------------------------------------------------------------------- #
 CASE_205 = {
     "id": "例205",
+    "data_status": "fixture_mismatch",
+    "failure_type": "fixture_vs_theory_mismatch",
     "description": "月破+日冲（非日克、非日墓）不属于衰败式特殊日月组合。"
                    "日冲无固定旺衰方向，动爻逢日冲从不论日破，用神逢动生仍受益。",
     "month_zhi": "卯",
