@@ -36,6 +36,21 @@ class BaseRule:
         )
 
 
+def _has_riyue_support(line_zhi, month_zhi, day_zhi):
+    """日月双支均对爻有扶助或六合, 用于识别旺相式金刚型。"""
+    line_wx = DI_ZHI_WU_XING[line_zhi]
+
+    def supports(zhi):
+        wx = DI_ZHI_WU_XING[zhi]
+        return (
+            wx == line_wx
+            or WU_XING_SHENG.get(wx) == line_wx
+            or LIU_HE.get(zhi, (None, None))[0] == line_zhi
+        )
+
+    return supports(month_zhi) and supports(day_zhi)
+
+
 class FeiYaoRiyueRule(BaseRule):
     """废爻型: 月破 + 日克, 高优先级定衰败。"""
 
@@ -157,6 +172,41 @@ class SanHeJuPriorityRule(BaseRule):
             })
             seen.add(key)
         return candidates
+
+
+class JingangMovingKeShiRule(BaseRule):
+    """金刚型动爻虽化回头克, 吉凶层面仍可克世。"""
+
+    rule_id = "P0_JINGANG_MOVING_KE_SHI"
+    theory_id = "特殊日月组合_金刚型"
+    priority = 875
+
+    def evaluate(self, ctx):
+        if not ctx.shi_line or ctx.question_type == "shouming":
+            return None
+        shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
+        for line in ctx.hexagram.lines:
+            if not line.is_moving:
+                continue
+            if not _has_riyue_support(line.di_zhi, ctx.month_zhi, ctx.day_zhi):
+                continue
+            if WU_XING_KE.get(line.wu_xing) != shi_wx:
+                continue
+            return self.result(
+                "金刚型忌神动克世",
+                "凶",
+                f"动爻{line.di_zhi}{line.wu_xing}得月日双扶成金刚型, 虽化回头克亦不废其吉凶作用, 动克世爻{ctx.shi_line.di_zhi}{shi_wx}, 凶",
+                evidence=[{
+                    "position": line.position,
+                    "ben_zhi": line.di_zhi,
+                    "bian_zhi": getattr(line, "bian_di_zhi", None),
+                    "shi_position": ctx.shi_line.position,
+                    "shi_zhi": ctx.shi_line.di_zhi,
+                    "month_zhi": ctx.month_zhi,
+                    "day_zhi": ctx.day_zhi,
+                }],
+            )
+        return None
 
 
 class SelfChangeTerminalRule(BaseRule):
@@ -309,6 +359,7 @@ P0_RULES = [
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
     SanHeJuPriorityRule(),
+    JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),

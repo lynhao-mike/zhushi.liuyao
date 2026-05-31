@@ -38,8 +38,8 @@ from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 # 以原文真实日月干支复盘后, 当前引擎吉凶判定与原例一致的案例集合。
 # 这些案例为硬性守卫: 任何改动若令其判定退化, 测试立即失败。
 BASELINE_HIT_IDS = {
-    "例1", "例2",
-    "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例17", "例18", "例22", "例23",
+    "例1", "例2", "例3", "例4", "例5",
+    "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例14", "例15", "例17", "例18", "例20", "例22", "例23",
     "例38", "例41", "例44", "例54", "例60", "例61", "例101", "例144", "例218",
 }
 
@@ -61,6 +61,9 @@ BASELINE_HIT_IDS = {
 BASELINE_RULE_HITS = {
     "例1":   {"rule_id": "legacy",                           "pattern": "用神生世局"},
     "例2":   {"rule_id": "P0_TRANSFORMED_YONG_MEDIATOR",      "pattern": "变爻用神生世"},
+    "例3":   {"rule_id": "P0_FEI_YAO_RIYUE",                 "pattern": "废爻型(月破日克)"},
+    "例4":   {"rule_id": "P0_DAY_MONTH_KE_MOVING_RESCUE",    "pattern": "用神动兆胜日月克"},
+    "例5":   {"rule_id": "P0_SAN_HE_JU_PRIORITY",            "pattern": "三合局克用神"},
     "例6":   {"rule_id": "legacy",                           "pattern": "用旺世兴局"},
     "例7":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
     "例8":   {"rule_id": "legacy",                  "pattern": "静卦用克世(求财特例)"},
@@ -68,8 +71,11 @@ BASELINE_RULE_HITS = {
     "例10":  {"rule_id": "P0_SAN_HE_JU_PRIORITY",    "pattern": "三合局生世"},
     "例11":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
     "例12":  {"rule_id": "legacy",                  "pattern": "世爻受伤局"},
+    "例14":  {"rule_id": "P0_JINGANG_MOVING_KE_SHI", "pattern": "金刚型忌神动克世"},
+    "例15":  {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
     "例17":  {"rule_id": "legacy",                  "pattern": "用神衰败局"},
     "例18":  {"rule_id": "legacy",                  "pattern": "用神动化临日月"},
+    "例20":  {"rule_id": "P0_JINGANG_MOVING_KE_SHI", "pattern": "金刚型忌神动克世"},
     "例22":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例23":  {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
     "例38":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
@@ -89,13 +95,6 @@ BASELINE_RULE_HITS = {
 #   (B) 引擎卦理实现存在缺口 (绊局/三合局/特殊日月组合/时效卦等吉凶定性)。
 KNOWN_MISMATCH = {
     # ── (A) fixture 数据问题: yao_types 顺序/内容与理论描述不符 ──────────────
-    "例3": "(A) fixture_mismatch: 实际世爻为巳官, 用神父母未土旺, 未形成世亥水废爻型",
-    "例4": "(A) fixture_mismatch: 实际动爻辰土化亥水, 非丑土化午火回头生",
-    "例5": "(A) fixture_mismatch: 实际用神为巳火父母, 未形成描述中的未土用神/卯木局克用",
-    "例14": "(A) fixture_mismatch: 实际动爻辰土化丑土, 非午火化未土克申金用神",
-    "例15": "(A) fixture_mismatch: 实际世爻亥水静爻, 非午火世自变亥水回头克",
-    "例20": "(A) fixture_mismatch: yao_types 构出的卦无官鬼爻(用神为官鬼), "
-            "引擎因找不到用神判平; 需按原书核实巽宫纳甲爻位",
     "例205": "(A) fixture_mismatch: yao_types 构出的卦无妻财爻(用神为妻财), "
              "引擎因找不到用神判平; 需按原书核实卦图爻位",
     "例108": "(A) fixture_error: 亥日不可能以亥为旬空, 待按原书核实日干",

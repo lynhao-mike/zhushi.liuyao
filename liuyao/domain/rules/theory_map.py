@@ -20,8 +20,8 @@ THEORY_RULE_CASE_MAP = {
     "特殊日月组合_废爻型": {
         "rules": ["P0_FEI_YAO_RIYUE"],
         "cases": ["例3", "例22"],
-        "status": "implemented_p0_fixture_mismatch_pending",
-        "notes": "例22 已进基线; 例3 fixture_mismatch(实际世爻非亥水), 待原书核实",
+        "status": "implemented_p0",
+        "notes": "例3 已按原书《大过之鼎》修正 fixture, 世爻父母亥水月破日克; 例22 已进基线",
     },
     "时效卦_月令时效": {
         "rules": ["P0_YUE_LING_SHIXIAO"],
@@ -32,35 +32,33 @@ THEORY_RULE_CASE_MAP = {
     "三合局优先": {
         "rules": ["P0_SAN_HE_JU_PRIORITY"],
         "cases": ["例5", "例10", "例218"],
-        "status": "implemented_p0_partial_regression_unlocked",
-        "notes": "例10/例218 已进基线; 例5 fixture_mismatch(实际用神非未土), 待原书核实",
+        "status": "implemented_p0",
+        "notes": "例5 已按原书《萃之同人》修正 fixture, 亥卯未木局克父母未土用神; 例10/例218 已进基线",
     },
     "内重外轻_自变终局": {
         "rules": ["P0_SELF_CHANGE_TERMINAL"],
         "cases": ["例11", "例15"],
-        "status": "implemented_p0_partial_regression_unlocked",
+        "status": "implemented_p0",
         "notes": (
-            "例11 已进基线; "
-            "例15 fixture_mismatch(实际世爻亥水静爻非午火自变), 待原书核实"
+            "例15 已按原书《遁之姤》修正 fixture, 世爻官鬼午火自变亥水子孙回头克/化绝; "
+            "例11 已进基线"
         ),
     },
     "动兆胜日月_回头生救": {
-        "rules": ["P0_HUI_TOU_SHENG_RESCUE"],
+        "rules": ["P0_DAY_MONTH_KE_MOVING_RESCUE", "P0_HUI_TOU_SHENG_RESCUE"],
         "cases": ["例4"],
-        "status": "implemented_p0_fixture_mismatch_pending",
-        "notes": "例4 fixture_mismatch(实际动爻辰土化亥水非丑土化午火), 待原书核实",
+        "status": "implemented_p0",
+        "notes": "例4 已按原书《复之震》修正 fixture, 兄弟丑土用神虽受卯月卯日同克, 自发动化午火回头生, 动兆胜日月克",
     },
 
     # ── 规则缺口: 理论已识别, 尚未实现 ──────────────────────────────────────
     "真绊假绊": {
-        "rules": ["P0_MOVING_KE_YONG"],
+        "rules": ["P0_MOVING_KE_YONG", "P0_JINGANG_MOVING_KE_SHI"],
         "cases": ["例1", "例14", "例23", "例54", "例101"],
-        "status": "implemented_p0_partial_regression_unlocked",
+        "status": "implemented_p0",
         "notes": (
-            "例1/例23/例54/例101 已进基线; 例54 fixture 已按原书《益之中孚》核实, "
-            "兄弟寅木动空化空但化进克世用辰土, 动空化空为假空, 忌神克用照常定凶; "
-            "例14 fixture_mismatch(实际动爻辰土化丑土非午火化未土), 待原书核实; "
-            "假绊/假空等虚象在吉凶层面不废有用动爻, 动爻照常生克"
+            "例14 已按原书《履之中孚》修正 fixture, 午火动化未土为化绊, 吉凶层面假绊不废其克申金子孙用神; "
+            "例1/例23/例54/例101 已进基线; 假绊/假空等虚象在吉凶层面不废有用动爻, 动爻照常生克"
         ),
     },
     "变爻用神": {
@@ -97,12 +95,12 @@ THEORY_RULE_CASE_MAP = {
 
     # ── 待 fixture 修正后可验证 ───────────────────────────────────────────────
     "特殊日月组合_金刚型": {
-        "rules": [],
+        "rules": ["P0_JINGANG_MOVING_KE_SHI"],
         "cases": ["例18", "例20"],
-        "status": "pending_fixture_fix",
+        "status": "implemented_p0_partial_regression_unlocked",
         "notes": (
-            "例18 已进基线(引擎恰好判对); "
-            "例20 fixture_mismatch(yao_types构出的卦无官鬼爻), 待原书核实巽宫纳甲"
+            "例20 已按原书《巽之涣》修正 fixture, 官鬼酉金得未月生与辰日合为金刚型, "
+            "虽化午火回头克亦不废, 动克世爻卯木定凶并进基线; 例18 已进基线"
         ),
     },
     "特殊日月组合_月冲日冲非衰败": {
