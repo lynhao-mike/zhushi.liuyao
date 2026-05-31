@@ -1,0 +1,139 @@
+version: "3.9"
+
+# =============================================================================
+# zhushi-liuyao — Production Docker Compose
+#
+# Services:
+#   postgres  — PostgreSQL 16 (primary data store)
+#   redis     — Redis 7 (analysis result cache)
+#   api       — FastAPI application (4 Uvicorn workers)
+#   migrate   — One-shot Alembic migration runner (runs before api starts)
+# =============================================================================
+
+networks:
+  liuyao_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+
+x-api-env: &api-env
+  # ── App ────────────────────────────────────────────────────────────
+  APP_VERSION: "1.0.0"
+  DEBUG: "false"
+  SECRET_KEY: "${SECRET_KEY:-change-me-in-production}"
+  # ── Database ───────────────────────────────────────────────────────
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: liuyao
+  POSTGRES_USER: liuyao
+  POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-liuyao_secret}"
+  DATABASE_URL_SYNC: "postgresql+psycopg2://liuyao:${POSTGRES_PASSWORD:-liuyao_secret}@postgres:5432/liuyao"
+  # ── Redis ──────────────────────────────────────────────────────────
+  REDIS_HOST: redis
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  # ── Logging ────────────────────────────────────────────────────────
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  # ── Workers ────────────────────────────────────────────────────────
+  WORKERS: "4"
+  ENGINE_THREAD_POOL_SIZE: "8"
+
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: liuyao
+      POSTGRES_USER: liuyao
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-liuyao_secret}"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - liuyao_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U liuyao -d liuyao"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ── Redis ─────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: >
+      redis-server
+      --save 60 1
+      --loglevel warning
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - liuyao_net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ── Alembic Migrations (one-shot) ────────────────────────────────────────────
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      <<: *api-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - liuyao_net
+    restart: on-failure
+
+  # ── API ───────────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      <<: *api-env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - liuyao_net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          cpus: "0.5"
+          memory: 256M

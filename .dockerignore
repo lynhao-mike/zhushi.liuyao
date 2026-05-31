@@ -1,0 +1,40 @@
+# Ignore everything not needed in the Docker image
+.git
+.gitignore
+.env
+*.env
+*.env.*
+!.env.example
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Tests & dev tooling
+tests/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation & examples
+docs/
+examples/
+*.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Docker compose dev files
+docker-compose.dev.yml

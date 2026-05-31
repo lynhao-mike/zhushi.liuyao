@@ -1,0 +1,34 @@
+# =============================================================================
+# Runtime dependencies — zhushi-liuyao API
+# =============================================================================
+
+# ── Core framework ────────────────────────────────────────────────────────────
+fastapi==0.115.5
+uvicorn[standard]==0.32.1        # includes uvloop + httptools
+uvloop==0.21.0
+httptools==0.6.4
+
+# ── Database ─────────────────────────────────────────────────────────────────
+sqlalchemy==2.0.36
+asyncpg==0.30.0                  # async PostgreSQL driver
+psycopg2-binary==2.9.10          # sync driver for Alembic
+alembic==1.14.0
+
+# ── Cache ─────────────────────────────────────────────────────────────────────
+redis==5.2.1                     # redis-py with asyncio support
+
+# ── Settings / validation ─────────────────────────────────────────────────────
+pydantic==2.10.3
+pydantic-settings==2.6.1
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+structlog==24.4.0
+
+# ── Liuyao engine ─────────────────────────────────────────────────────────────
+sxtwl==2.0.4                     # Chinese calendar (existing engine dep)
+
+# ── Observability (optional, commented out for minimal build) ─────────────────
+# opentelemetry-api==1.29.0
+# opentelemetry-sdk==1.29.0
+# opentelemetry-instrumentation-fastapi==0.50b0
+# prometheus-fastapi-instrumentator==7.0.0
