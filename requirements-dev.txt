@@ -1,0 +1,9 @@
+# Development / testing extras
+-r requirements.txt
+
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.1                    # async test client for FastAPI
+anyio==4.7.0
+factory-boy==3.3.1
+faker==33.1.0
