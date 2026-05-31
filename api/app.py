@@ -14,12 +14,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from api.cache.redis_client import close_redis, init_redis
+from api.infrastructure.cache.redis_client import close_redis, init_redis
 from api.core.config import get_settings
 from api.core.exceptions import register_exception_handlers
 from api.core.logging import configure_logging
-from api.db.session import close_engine
-from api.routers import health, readings, templates
+from api.infrastructure.database.session import close_engine
+from api.interfaces.http.routers import health, readings, templates
 
 settings = get_settings()
 log = structlog.get_logger(__name__)

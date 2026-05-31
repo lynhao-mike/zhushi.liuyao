@@ -47,8 +47,8 @@
 
 __version__ = "0.2.0"
 
-from .hexagram import Hexagram, YaoLine
-from .analyzer import (
+from liuyao.domain.hexagram import Hexagram, YaoLine
+from liuyao.application.use_cases.analysis import (
     run_analysis,
     run_dual_analysis,
     AnalysisReport,
@@ -56,9 +56,9 @@ from .analyzer import (
     build_verdict,
     GUA_JU_BAIHUA,
 )
-from .report import format_report, format_dual_report, format_readable_report
-from .exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
-from .data import JiXiong, QUESTION_TYPE_LABELS
+from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
+from liuyao.domain.exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
+from liuyao.domain.data import JiXiong, QUESTION_TYPE_LABELS
 
 __all__ = [
     "Hexagram",
