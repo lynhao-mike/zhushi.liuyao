@@ -37,13 +37,11 @@ THEORY_RULE_CASE_MAP = {
     },
     "内重外轻_自变终局": {
         "rules": ["P0_SELF_CHANGE_TERMINAL"],
-        "cases": ["例11", "例15", "例54"],
+        "cases": ["例11", "例15"],
         "status": "implemented_p0_partial_regression_unlocked",
         "notes": (
             "例11 已进基线; "
-            "例15 fixture_mismatch(实际世爻亥水静爻非午火自变), 待原书核实; "
-            "例54 规则缺口: 化进神+月破并存时应取化进为真、化破为假(内重外轻细化), "
-            "当前规则只看趋衰未考虑趋旺优先"
+            "例15 fixture_mismatch(实际世爻亥水静爻非午火自变), 待原书核实"
         ),
     },
     "动兆胜日月_回头生救": {
@@ -55,42 +53,45 @@ THEORY_RULE_CASE_MAP = {
 
     # ── 规则缺口: 理论已识别, 尚未实现 ──────────────────────────────────────
     "真绊假绊": {
-        "rules": [],
-        "cases": ["例1", "例14", "例23", "例101"],
-        "status": "pending_rule_detail",
+        "rules": ["P0_MOVING_KE_YONG"],
+        "cases": ["例1", "例14", "例23", "例54", "例101"],
+        "status": "implemented_p0_partial_regression_unlocked",
         "notes": (
-            "例1/例23/例101 已进基线; 例1 fixture 已按原书核实(四爻午火动而非三爻); "
+            "例1/例23/例54/例101 已进基线; 例54 fixture 已按原书《益之中孚》核实, "
+            "兄弟寅木动空化空但化进克世用辰土, 动空化空为假空, 忌神克用照常定凶; "
             "例14 fixture_mismatch(实际动爻辰土化丑土非午火化未土), 待原书核实; "
-            "假绊吉凶层面动爻照常生克, 仅应期层面计绊(等冲绊日)"
+            "假绊/假空等虚象在吉凶层面不废有用动爻, 动爻照常生克"
         ),
     },
     "变爻用神": {
-        "rules": [],
+        "rules": ["P0_TRANSFORMED_YONG_MEDIATOR"],
         "cases": ["例2"],
-        "status": "pending_rule_detail",
+        "status": "implemented_p0",
         "notes": (
-            "例2 fixture_mismatch(yao_types与描述不符, 实际初爻子水非巳火), "
-            "待原书核实; 理论: 动爻化出变爻为用神, 变爻生世为吉"
+            "例2 fixture 已按原书《兑之解》卦图核实: 初爻巳火官鬼动化寅木妻财, "
+            "五爻酉金兄弟动化申金, 三爻丑土应、上爻未土世; "
+            "规则落地变爻寅木为用神, 通过动爻巳火为媒间接生世爻未土, 已解锁进基线"
         ),
     },
     "假化散_中转站动爻": {
-        "rules": [],
+        "rules": ["P0_TRANSFORMED_YONG_MEDIATOR"],
         "cases": ["例41"],
-        "status": "pending_rule_detail",
+        "status": "implemented_p0",
         "notes": (
-            "例41 fixture yao_types 为 FIXME 待原书核实; "
-            "理论: 动爻化出回头克但变爻非能量终点(中转站), 则回头克无效, 动爻仍有用"
+            "例41 已按原书核实为卯月壬寅日《革之既济》占寻地: 世爻兄弟亥水动化父母申金回头生; "
+            "占寻地取父母为用神, 变爻父母申金虽被寅日冲破为化散, "
+            "但在回头生结构中变爻只是能量中转站而非趋势终点, 吉凶层面属于假化散, "
+            "由 P0_TRANSFORMED_YONG_MEDIATOR 判为用神生世之吉并解锁进基线"
         ),
     },
-    "内重外轻_化进优先月破": {
-        "rules": [],
+    "动空化空_假空": {
+        "rules": ["P0_MOVING_KE_YONG"],
         "cases": ["例54"],
-        "status": "pending_rule_detail",
+        "status": "implemented_p0",
         "notes": (
-            "例54 fixture yao_types 为 FIXME 待原书核实; "
-            "理论: 动爻化进神同时变爻遭月破, 化进为真、化破为假; "
-            "需在 SelfChangeTerminalRule 或新规则中: "
-            "当趋旺含化进神且趋衰仅含化退神/月破时, 取化进为主不判凶"
+            "例54 已按原书核实为卯月庚戌日《益之中孚》: 二爻兄弟寅木动化卯木, "
+            "动爻寅与变爻卯同落旬空, 但动空化空在吉凶层面皆为假空; "
+            "兄弟忌神化进克世用妻财辰土, 由 P0_MOVING_KE_YONG 判为凶并解锁进基线"
         ),
     },
 

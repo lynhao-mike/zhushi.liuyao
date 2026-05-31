@@ -38,9 +38,9 @@ from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 # 以原文真实日月干支复盘后, 当前引擎吉凶判定与原例一致的案例集合。
 # 这些案例为硬性守卫: 任何改动若令其判定退化, 测试立即失败。
 BASELINE_HIT_IDS = {
-    "例1",
+    "例1", "例2",
     "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例17", "例18", "例22", "例23",
-    "例38", "例44", "例60", "例61", "例101", "例144", "例218",
+    "例38", "例41", "例44", "例54", "例60", "例61", "例101", "例144", "例218",
 }
 
 # 基线案例当前实际命中的规则快照 (rule_id, pattern)。
@@ -59,8 +59,9 @@ BASELINE_HIT_IDS = {
 #   - pattern: 引擎给出的局名(吉凶模式短语), 作为 legacy 路径的二级守卫;
 #              即使后续 legacy 内部分支调整, pattern 改变也会被立刻发现。
 BASELINE_RULE_HITS = {
-    "例1":   {"rule_id": "legacy",                  "pattern": "用神生世局"},
-    "例6":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
+    "例1":   {"rule_id": "legacy",                           "pattern": "用神生世局"},
+    "例2":   {"rule_id": "P0_TRANSFORMED_YONG_MEDIATOR",      "pattern": "变爻用神生世"},
+    "例6":   {"rule_id": "legacy",                           "pattern": "用旺世兴局"},
     "例7":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
     "例8":   {"rule_id": "legacy",                  "pattern": "静卦用克世(求财特例)"},
     "例9":   {"rule_id": "P0_YUE_LING_SHIXIAO",      "pattern": "月令时效卦"},
@@ -72,7 +73,9 @@ BASELINE_RULE_HITS = {
     "例22":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例23":  {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
     "例38":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
+    "例41":  {"rule_id": "P0_TRANSFORMED_YONG_MEDIATOR", "pattern": "变爻用神生世"},
     "例44":  {"rule_id": "legacy",                  "pattern": "世用受生局"},
+    "例54":  {"rule_id": "P0_MOVING_KE_YONG",       "pattern": "忌神动克用神"},
     "例60":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
     "例61":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例101": {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
@@ -86,8 +89,6 @@ BASELINE_RULE_HITS = {
 #   (B) 引擎卦理实现存在缺口 (绊局/三合局/特殊日月组合/时效卦等吉凶定性)。
 KNOWN_MISMATCH = {
     # ── (A) fixture 数据问题: yao_types 顺序/内容与理论描述不符 ──────────────
-    "例2": "(A) fixture_mismatch: yao_types 与描述不符, 初爻实为子水妻财(化回头克), "
-           "非描述中的巳火官鬼化寅木变爻用神; 需按原书核实兑宫纳甲爻位",
     "例3": "(A) fixture_mismatch: 实际世爻为巳官, 用神父母未土旺, 未形成世亥水废爻型",
     "例4": "(A) fixture_mismatch: 实际动爻辰土化亥水, 非丑土化午火回头生",
     "例5": "(A) fixture_mismatch: 实际用神为巳火父母, 未形成描述中的未土用神/卯木局克用",
@@ -98,11 +99,6 @@ KNOWN_MISMATCH = {
     "例205": "(A) fixture_mismatch: yao_types 构出的卦无妻财爻(用神为妻财), "
              "引擎因找不到用神判平; 需按原书核实卦图爻位",
     "例108": "(A) fixture_error: 亥日不可能以亥为旬空, 待按原书核实日干",
-    # ── (B) 规则缺口: fixture 数据基本可信, 引擎卦理实现不足 ──────────────────
-    "例41": "(A+B) fixture yao_types 为 FIXME 待核实; 同时规则缺口: "
-            "假化散/中转站动爻逻辑未实现(变爻非能量终点则回头克无效)",
-    "例54": "(B) 规则缺口: 化进神优先于月破(内重外轻细化)未实现; "
-            "动变同时有化进神(趋旺)和化退神(趋衰)时应取化进为真、化破为假",
 }
 
 

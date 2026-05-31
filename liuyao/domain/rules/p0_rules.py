@@ -251,6 +251,60 @@ class MovingKeYongRule(BaseRule):
         return None
 
 
+class TransformedYongMediatorRule(BaseRule):
+    """变爻为用神, 通过动爻为媒间接生世。"""
+
+    rule_id = "P0_TRANSFORMED_YONG_MEDIATOR"
+    theory_id = "变爻用神"
+    priority = 760
+
+    def evaluate(self, ctx):
+        if not ctx.shi_line:
+            return None
+        shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
+        for line in ctx.hexagram.lines:
+            if not line.is_moving or not getattr(line, "bian_liu_qin", None):
+                continue
+            if line.bian_liu_qin != ctx.yong_shen_liu_qin:
+                continue
+            bian_wx = line.bian_wu_xing or DI_ZHI_WU_XING.get(line.bian_di_zhi)
+            if not bian_wx:
+                continue
+            # 落地两类已经原书核实的窄规则:
+            #   例2: 变爻用神(寅木) -> 生动爻媒介(巳火) -> 生世爻(未土)
+            #   例41: 世爻自身动化用神回头生, 变爻用神为中转站, 假化散不废
+            # 不泛化为任意"动化用神"均吉, 避免覆盖鬼用互化/世化忌等凶格。
+            is_shi_self_huitou_sheng = line.position == ctx.shi_line.position and WU_XING_SHENG.get(bian_wx) == shi_wx
+            is_mediator_chain = WU_XING_SHENG.get(bian_wx) == line.wu_xing and WU_XING_SHENG.get(line.wu_xing) == shi_wx
+            if not (is_shi_self_huitou_sheng or is_mediator_chain):
+                continue
+            if is_shi_self_huitou_sheng:
+                explanation = (
+                    f"世爻{line.di_zhi}{line.wu_xing}发动化出用神{line.bian_di_zhi}{bian_wx}回头生, "
+                    "变爻用神为回头生能量中转站, 即使逢破散亦不废其吉凶作用, 用神生世, 吉"
+                )
+            else:
+                explanation = (
+                    f"动爻{line.di_zhi}{line.wu_xing}化出用神{line.bian_di_zhi}{bian_wx}, "
+                    f"变爻用神先生动爻为媒, 动爻再生世爻{ctx.shi_line.di_zhi}{shi_wx}, 用神生世, 吉"
+                )
+            return self.result(
+                "变爻用神生世",
+                "吉",
+                explanation,
+                evidence=[{
+                    "position": line.position,
+                    "ben_zhi": line.di_zhi,
+                    "ben_wu_xing": line.wu_xing,
+                    "bian_zhi": line.bian_di_zhi,
+                    "bian_wu_xing": bian_wx,
+                    "shi_position": ctx.shi_line.position,
+                    "shi_zhi": ctx.shi_line.di_zhi,
+                }],
+            )
+        return None
+
+
 P0_RULES = [
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
@@ -259,4 +313,5 @@ P0_RULES = [
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),
     MovingKeYongRule(),
+    TransformedYongMediatorRule(),
 ]
