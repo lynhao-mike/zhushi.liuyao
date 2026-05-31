@@ -152,7 +152,8 @@ def run_analysis(hexagram, question_type="other",
         report.jixiong_result = judge_jixiong(
             hexagram, report.yong_shen_liu_qin,
             report.wangshuai_results, report.dongbian_results,
-            question_type
+            question_type,
+            patterns_results=report.patterns_results,
         )
         # 注入卦意法附加判断
         kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
@@ -247,7 +248,8 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
 
         try:
             report.jixiong_result = judge_jixiong(
-                hexagram, yong_shen, shared_ws, shared_db, question_type
+                hexagram, yong_shen, shared_ws, shared_db, question_type,
+                patterns_results=report.patterns_results,
             )
             kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
             if kuayi_patterns:

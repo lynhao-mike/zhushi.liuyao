@@ -9,6 +9,7 @@ from .data import (
     DI_ZHI_WU_XING,
     WU_XING_SHENG, WU_XING_KE,
 )
+from .rules import P0_RULES, RuleContext, RuleEngine
 
 
 # 用神选择表: 问事类型 -> 用神六亲
@@ -137,7 +138,8 @@ def _line_has_day_month_support(line_zhi, month_zhi, day_zhi):
     return month_support or day_support or month_lin or day_lin
 
 
-def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type):
+def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results,
+                   question_type, patterns_results=None):
     """
     动卦吉凶判断。
 
@@ -206,6 +208,26 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
 
     # 用神爻受生/受克情况
     yong_interaction = interactions.get(primary_yong.position, {"受生": [], "受克": []})
+
+    # =========================================================================
+    # P0 规则管线: 特殊日月组合 / 三合局 / 内力终局 / 动兆优先
+    # =========================================================================
+    rule_context = RuleContext(
+        hexagram=hexagram,
+        yong_shen_liu_qin=yong_shen_liu_qin,
+        wangshuai_results=wangshuai_results,
+        dongbian_results=dongbian_results,
+        question_type=question_type,
+        patterns_results=patterns_results or {},
+        shi_line=shi_line,
+        primary_yong=primary_yong,
+        yong_lines=yong_lines,
+        month_zhi=month_zhi,
+        day_zhi=day_zhi,
+    )
+    rule_result = RuleEngine(P0_RULES).evaluate(rule_context)
+    if rule_result:
+        return rule_result.to_jixiong()
 
     # =========================================================================
     # 特例检查 (优先于一般规则)
@@ -568,7 +590,8 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
     }
 
 
-def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results, question_type):
+def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results,
+                  question_type, patterns_results=None):
     """
     综合吉凶判断入口。
 
@@ -583,7 +606,8 @@ def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resul
     if has_moving:
         return judge_dong_gua(
             hexagram, yong_shen_liu_qin,
-            wangshuai_results, dongbian_results, question_type
+            wangshuai_results, dongbian_results, question_type,
+            patterns_results=patterns_results,
         )
     else:
         return judge_jing_gua(

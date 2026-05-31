@@ -1,0 +1,262 @@
+"""
+P0 吉凶规则
+
+本模块优先承接 KNOWN_MISMATCH 中明确的 B 类高优先级缺口:
+- 废爻型(月破+日克)
+- 月令时效卦
+- 三合局优先
+- 世/用自变回头克等内力终局
+- 用神动化回头生救
+
+注意: 部分《增删卜易》fixture 的 ``yao_types`` 尚标 FIXME, 当前规则只采用
+引擎已经构造出的卦象事实进行保守判定, 不用案例编号硬编码结论。
+"""
+
+from liuyao.domain.data import DI_ZHI_WU_XING, LIU_HE, SAN_HE, WU_XING_KE, WU_XING_SHENG
+
+from .result import RuleResult
+
+
+class BaseRule:
+    rule_id = "base"
+    theory_id = ""
+    priority = 0
+
+    def result(self, pattern, ji_xiong, explanation, evidence=None, stop=True):
+        return RuleResult(
+            matched=True,
+            priority=self.priority,
+            pattern=pattern,
+            ji_xiong=ji_xiong,
+            explanation=explanation,
+            stop=stop,
+            rule_id=self.rule_id,
+            theory_id=self.theory_id,
+            evidence=evidence or [],
+        )
+
+
+class FeiYaoRiyueRule(BaseRule):
+    """废爻型: 月破 + 日克, 高优先级定衰败。"""
+
+    rule_id = "P0_FEI_YAO_RIYUE"
+    theory_id = "特殊日月组合_废爻型"
+    priority = 1000
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line:
+            return None
+        ws = ctx.wangshuai_of(line)
+        if "月破" in ws.get("month_shuai", []) and "日令克" in ws.get("day_shuai", []):
+            return self.result(
+                "废爻型(月破日克)",
+                "凶",
+                f"用神{line.di_zhi}{line.wu_xing}月破又受日令克, 属废爻型; 普通动生难以救起, 凶",
+                evidence=[{"position": line.position, "month_shuai": ws.get("month_shuai", []), "day_shuai": ws.get("day_shuai", [])}],
+            )
+        return None
+
+
+class YueLingShixiaoRule(BaseRule):
+    """月令时效卦: 动爻临月/化出月令或合月, 短事不以普通回头克直接断凶。"""
+
+    rule_id = "P0_YUE_LING_SHIXIAO"
+    theory_id = "时效卦_月令时效"
+    priority = 950
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        moving = ctx.moving_analyses.get(line.position, {})
+        bian_zhi = getattr(line, "bian_di_zhi", None)
+        he_month = LIU_HE.get(ctx.month_zhi, (None, None))[0]
+        line_hits_month = line.di_zhi == ctx.month_zhi
+        bian_hits_month = bian_zhi == ctx.month_zhi or bian_zhi == he_month
+        # P0 阶段只落地《增删》例9这类“世用合一且用神自发动”的月令时效卦。
+        # 若放宽到所有临月动爻, 会误伤例11等“忌神/月建入动克用”的既有基线。
+        is_shi_yong_self_moving = bool(getattr(line, "is_shi", False))
+        if is_shi_yong_self_moving and (
+            line_hits_month or bian_hits_month or "化出临日月" in moving.get("趋旺", [])
+        ):
+            return self.result(
+                "月令时效卦",
+                "吉",
+                f"世用{line.di_zhi}发动并临月/化出月令气, 属月令时效卦; 短期事不按普通受克衰败断, 以得令为吉",
+                evidence=[{"position": line.position, "ben_zhi": line.di_zhi, "bian_zhi": bian_zhi, "month_zhi": ctx.month_zhi}],
+            )
+        return None
+
+
+class SanHeJuPriorityRule(BaseRule):
+    """三合局优先于单爻分析。"""
+
+    rule_id = "P0_SAN_HE_JU_PRIORITY"
+    theory_id = "三合局优先"
+    priority = 900
+
+    def evaluate(self, ctx):
+        if not ctx.primary_yong:
+            return None
+        yong_wx = DI_ZHI_WU_XING[ctx.primary_yong.di_zhi]
+        shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi] if ctx.shi_line else ""
+        for ju in self._candidate_ju(ctx):
+            ju_wx = ju.get("wu_xing")
+            if not ju_wx:
+                continue
+            if WU_XING_KE.get(ju_wx) == yong_wx:
+                return self.result(
+                    "三合局克用神",
+                    "凶",
+                    f"动爻会成三合{ju_wx}局, 合局整体克用神{ctx.primary_yong.di_zhi}{yong_wx}; 三合局优先于单爻, 凶",
+                    evidence=[ju],
+                )
+            # P0 阶段只把“合局生世”作为可覆盖单爻克害的吉断终局。
+            # “生用神”在出行/行人等事类中可能只是细节或应期信息, 不能泛化为吉凶终局,
+            # 否则会把例23这类既有基线误判为吉。
+            if shi_wx and WU_XING_SHENG.get(ju_wx) == shi_wx:
+                return self.result(
+                    "三合局生世",
+                    "吉",
+                    f"动爻会成三合{ju_wx}局, 合局整体生世爻{ctx.shi_line.di_zhi}{shi_wx}; 三合局优先于单爻, 吉",
+                    evidence=[ju],
+                )
+        return None
+
+    def _candidate_ju(self, ctx):
+        """返回完整动爻三合局, 并补充“动爻+变爻”形成的三合局。"""
+        candidates = list(ctx.san_he_ju or [])
+        seen = {(ju.get("wu_xing"), tuple(sorted(ju.get("members", [])))) for ju in candidates}
+
+        moving_lines = [line for line in ctx.hexagram.lines if line.is_moving]
+        if len(moving_lines) < 2:
+            return candidates
+
+        zhi_positions = {}
+        for line in moving_lines:
+            zhi_positions.setdefault(line.di_zhi, set()).add(line.position)
+            bian_zhi = getattr(line, "bian_di_zhi", None)
+            if bian_zhi:
+                zhi_positions.setdefault(bian_zhi, set()).add(line.position)
+
+        for wx, members in SAN_HE.items():
+            if not all(member in zhi_positions for member in members):
+                continue
+            positions = sorted({pos for member in members for pos in zhi_positions[member]})
+            if len(positions) < 2:
+                continue
+            key = (wx, tuple(sorted(members)))
+            if key in seen:
+                continue
+            candidates.append({
+                "wu_xing": wx,
+                "members": list(members),
+                "positions": positions,
+                "source": "moving_and_transformed_lines",
+            })
+            seen.add(key)
+        return candidates
+
+
+class SelfChangeTerminalRule(BaseRule):
+    """世爻/用神自身发动化衰, 内力终局优先。"""
+
+    rule_id = "P0_SELF_CHANGE_TERMINAL"
+    theory_id = "内重外轻"
+    priority = 850
+
+    def evaluate(self, ctx):
+        for label, line in (("用神", ctx.primary_yong), ("世爻", ctx.shi_line)):
+            if not line:
+                continue
+            moving = ctx.moving_analyses.get(line.position)
+            if moving and moving.get("趋衰"):
+                return self.result(
+                    "内力动化衰败",
+                    "凶",
+                    f"{label}{line.di_zhi}自身发动化{','.join(moving['趋衰'])}, 内力终点主导吉凶, 凶",
+                    evidence=[{"position": line.position, "moving": moving}],
+                )
+        return None
+
+
+class HuiTouShengRescueRule(BaseRule):
+    """用神动化回头生, 动兆主导。"""
+
+    rule_id = "P0_HUI_TOU_SHENG_RESCUE"
+    theory_id = "动兆胜日月"
+    priority = 800
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        moving = ctx.moving_analyses.get(line.position, {})
+        if "回头生" in moving.get("趋旺", []):
+            return self.result(
+                "用神动化回头生",
+                "吉",
+                f"用神{line.di_zhi}{line.wu_xing}发动化回头生, 动兆为主, 可胜普通日月克, 吉",
+                evidence=[{"position": line.position, "moving": moving}],
+            )
+        return None
+
+
+class DayMonthKeMovingRescueRule(BaseRule):
+    """日月皆克用神时, 用神自身有效发动可救。"""
+
+    rule_id = "P0_DAY_MONTH_KE_MOVING_RESCUE"
+    theory_id = "动兆胜日月"
+    priority = 825
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        moving = ctx.moving_analyses.get(line.position, {})
+        if moving.get("趋衰") or moving.get("is_useless"):
+            return None
+        ws = ctx.wangshuai_of(line)
+        day_month_both_ke = "月令克" in ws.get("month_shuai", []) and "日令克" in ws.get("day_shuai", [])
+        if day_month_both_ke:
+            return self.result(
+                "用神动兆胜日月克",
+                "吉",
+                f"用神{line.di_zhi}{line.wu_xing}虽受月日同克, 但自身发动且未化衰, 动兆主导吉凶, 吉",
+                evidence=[{"position": line.position, "wangshuai": ws, "moving": moving}],
+            )
+        return None
+
+
+class MovingKeYongRule(BaseRule):
+    """有用动爻克用神, 可覆盖普通用旺世兴。"""
+
+    rule_id = "P0_MOVING_KE_YONG"
+    theory_id = "真绊假绊"
+    priority = 775
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line:
+            return None
+        interaction = ctx.dongbian_results.get("interactions", {}).get(line.position, {"受生": [], "受克": []})
+        if interaction.get("受克"):
+            return self.result(
+                "忌神动克用神",
+                "凶",
+                f"用神{line.di_zhi}{line.wu_xing}受有用动爻克({', '.join(interaction['受克'])}), 吉凶层面照常论克, 凶",
+                evidence=[{"position": line.position, "interaction": interaction}],
+            )
+        return None
+
+
+P0_RULES = [
+    FeiYaoRiyueRule(),
+    YueLingShixiaoRule(),
+    SanHeJuPriorityRule(),
+    SelfChangeTerminalRule(),
+    DayMonthKeMovingRescueRule(),
+    HuiTouShengRescueRule(),
+    MovingKeYongRule(),
+]
