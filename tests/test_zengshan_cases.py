@@ -29,6 +29,7 @@ from tests.fixtures.zengshan_230_cases import (
     CASE_10, CASE_14, CASE_15, CASE_17,
     CASE_18, CASE_22, CASE_23,
 )
+from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 
 
 # ============================================================================ #
@@ -39,6 +40,42 @@ from tests.fixtures.zengshan_230_cases import (
 BASELINE_HIT_IDS = {
     "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例17", "例18", "例22", "例23",
     "例38", "例44", "例60", "例61", "例101", "例144", "例218",
+}
+
+# 基线案例当前实际命中的规则快照 (rule_id, pattern)。
+#
+# 设计目的:
+#   1. 把"基线案例 → 命中规则"这一事实显式固化, 防止 legacy 兜底逻辑
+#      静默替换显式 P0 规则, 或反之, 而引擎仍恰好判对吉凶;
+#   2. 区分案例是被显式 P0 规则覆盖, 还是仅靠 legacy ladder 兜底,
+#      为后续将 legacy 规则化提供清单与优先级依据;
+#   3. 当某个 legacy 案例升级为显式规则时, 必须显式更新此快照,
+#      避免理论覆盖度静默回退或越界。
+#
+# 字段说明:
+#   - rule_id: "legacy" 表示由 judge_dong_gua/judge_jing_gua 兜底命中,
+#              未匹配任何显式 P0 规则; 否则为命中的 P0_* 规则 ID。
+#   - pattern: 引擎给出的局名(吉凶模式短语), 作为 legacy 路径的二级守卫;
+#              即使后续 legacy 内部分支调整, pattern 改变也会被立刻发现。
+BASELINE_RULE_HITS = {
+    "例6":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
+    "例7":   {"rule_id": "legacy",                  "pattern": "用旺世兴局"},
+    "例8":   {"rule_id": "legacy",                  "pattern": "静卦用克世(求财特例)"},
+    "例9":   {"rule_id": "P0_YUE_LING_SHIXIAO",      "pattern": "月令时效卦"},
+    "例10":  {"rule_id": "P0_SAN_HE_JU_PRIORITY",    "pattern": "三合局生世"},
+    "例11":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
+    "例12":  {"rule_id": "legacy",                  "pattern": "世爻受伤局"},
+    "例17":  {"rule_id": "legacy",                  "pattern": "用神衰败局"},
+    "例18":  {"rule_id": "legacy",                  "pattern": "用神动化临日月"},
+    "例22":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
+    "例23":  {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
+    "例38":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
+    "例44":  {"rule_id": "legacy",                  "pattern": "世用受生局"},
+    "例60":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
+    "例61":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
+    "例101": {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
+    "例144": {"rule_id": "legacy",                  "pattern": "占寿元动则有期"},
+    "例218": {"rule_id": "P0_HUI_TOU_SHENG_RESCUE",  "pattern": "用神动化回头生"},
 }
 
 # 当前尚未达成对照的案例及原因。修复后应将其移入 BASELINE_HIT_IDS。
@@ -189,6 +226,67 @@ class TestZengshanCasesParametrized:
             f"{case['id']} expected_pattern_keywords 不应为空"
         assert case["expected_ji_xiong"] in ("吉", "凶", "平"), \
             f"{case['id']} expected_ji_xiong 应为 吉/凶/平"
+
+    @pytest.mark.parametrize("case_id", sorted(KNOWN_MISMATCH))
+    def test_known_mismatch_has_classification(self, case_id):
+        """每个 strict xfail 都必须有明确根因分类, 防止规则缺口与 fixture 错误混淆。"""
+        cases = {case["id"]: case for case in ZENGSHAN_CASES}
+        case = cases[case_id]
+        reason = KNOWN_MISMATCH[case_id]
+        assert case.get("data_status") in {"fixture_mismatch", "fixture_error", "invalid", "rule_gap"}, \
+            f"{case_id} data_status 需标明 fixture_mismatch/fixture_error/invalid/rule_gap"
+        assert case.get("failure_type"), f"{case_id} failure_type 不应为空"
+        assert any(label in reason for label in ("fixture_mismatch", "fixture_error", "规则缺口")), \
+            f"{case_id} KNOWN_MISMATCH 原因需显式区分 fixture 或规则缺口"
+
+    @pytest.mark.parametrize("case_id", sorted(KNOWN_MISMATCH))
+    def test_known_mismatch_is_mapped_to_theory(self, case_id):
+        """每个 strict xfail 都必须进入理论-规则-案例映射, 形成可追踪闭环。"""
+        mapped_case_ids = {
+            mapped_case_id
+            for item in THEORY_RULE_CASE_MAP.values()
+            for mapped_case_id in item.get("cases", [])
+        }
+        assert case_id in mapped_case_ids, f"{case_id} 未进入 THEORY_RULE_CASE_MAP"
+
+    def test_baseline_rule_hits_covers_all_baseline_cases(self):
+        """快照表必须覆盖每一个基线案例, 防止新基线案例进入但未登记规则归属。"""
+        missing = BASELINE_HIT_IDS - set(BASELINE_RULE_HITS)
+        extra = set(BASELINE_RULE_HITS) - BASELINE_HIT_IDS
+        assert not missing, (
+            f"以下基线案例未登记规则命中快照: {sorted(missing)}; "
+            f"请在 BASELINE_RULE_HITS 中补全 rule_id 与 pattern"
+        )
+        assert not extra, (
+            f"以下案例已登记快照但不在基线集合中: {sorted(extra)}; "
+            f"请同步更新 BASELINE_HIT_IDS 或移除快照条目"
+        )
+
+    @pytest.mark.parametrize("case_id", sorted(BASELINE_RULE_HITS))
+    def test_baseline_rule_hit_snapshot(self, case_id):
+        """基线案例命中的 rule_id 与 pattern 必须与快照一致。
+
+        作用:
+        - rule_id 退化(P0_* → legacy) 立刻发现;
+        - rule_id 升级(legacy → P0_*) 也必须显式更新快照, 不允许静默;
+        - pattern 漂移(legacy 内部分支调整) 同样会立即被检出。
+        """
+        cases = {case["id"]: case for case in ZENGSHAN_CASES}
+        case = cases[case_id]
+        h = _build_hexagram(case)
+        report = run_analysis(h, question_type=case.get("question_type", "other"))
+        ji = report.jixiong_result or {}
+        expected = BASELINE_RULE_HITS[case_id]
+        actual_rule_id = ji.get("rule_id") or "legacy"
+        actual_pattern = ji.get("pattern", "")
+        assert actual_rule_id == expected["rule_id"], (
+            f"{case_id} rule_id 漂移: 快照={expected['rule_id']!r}, 实际={actual_rule_id!r}; "
+            f"若是有意升级到显式规则, 请同步更新 BASELINE_RULE_HITS"
+        )
+        assert actual_pattern == expected["pattern"], (
+            f"{case_id} pattern 漂移: 快照={expected['pattern']!r}, 实际={actual_pattern!r}; "
+            f"若是有意调整 legacy 分支, 请同步更新 BASELINE_RULE_HITS"
+        )
 
     @pytest.mark.parametrize("case", _buildable_case_params())
     def test_case_report_format(self, case):
