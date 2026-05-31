@@ -53,9 +53,12 @@ from .analyzer import (
     run_dual_analysis,
     AnalysisReport,
     DualPerspectiveReport,
+    build_verdict,
+    GUA_JU_BAIHUA,
 )
 from .report import format_report, format_dual_report, format_readable_report
 from .exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
+from .data import JiXiong, QUESTION_TYPE_LABELS
 
 __all__ = [
     "Hexagram",
@@ -71,4 +74,8 @@ __all__ = [
     "ArrangementError",
     "AnalysisError",
     "CalendarError",
+    "JiXiong",
+    "QUESTION_TYPE_LABELS",
+    "build_verdict",
+    "GUA_JU_BAIHUA",
 ]

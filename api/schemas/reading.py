@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from liuyao.data import QUESTION_TYPE_LABELS
+
 
 # ── Shared validators ────────────────────────────────────────────────────────
 
@@ -16,20 +18,6 @@ VALID_QUESTION_TYPES = {
     "cai", "guan", "hun_male", "hun_female",
     "bing", "kaoshi", "zinv", "xingRen",
     "youHuan", "shiwu", "other",
-}
-
-QUESTION_TYPE_LABELS: Dict[str, str] = {
-    "cai":        "财运",
-    "guan":       "官运/工作",
-    "hun_male":   "婚姻(男问)",
-    "hun_female": "婚姻(女问)",
-    "bing":       "疾病",
-    "kaoshi":     "考试/文书",
-    "zinv":       "子女",
-    "xingRen":    "行人",
-    "youHuan":    "忧患",
-    "shiwu":      "失物",
-    "other":      "综合",
 }
 
 

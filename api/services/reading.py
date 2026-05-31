@@ -237,6 +237,13 @@ async def get_template(template_id: uuid.UUID, db: AsyncSession) -> TemplateResp
     return TemplateResponse.model_validate(row)
 
 
+async def delete_template(template_id: uuid.UUID, db: AsyncSession) -> None:
+    row = await db.get(HexagramTemplate, template_id)
+    if not row:
+        raise NotFoundError(f"Template {template_id} not found")
+    await db.delete(row)
+
+
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 def _build_payload(
@@ -321,7 +328,7 @@ async def _persist_reading_session(
         palace_wu_xing=meta["palace_wu_xing"],
         xun_kong=meta["xun_kong"],
         gan_zhi=meta["gan_zhi"],
-        lines_json={"lines": meta["lines"]},
+        lines_json=meta["lines"],
         # Analysis blobs
         wangshuai_json={"results": analysis.get("wangshuai", [])},
         dongbian_json=analysis.get("dongbian", {}),
@@ -334,7 +341,7 @@ async def _persist_reading_session(
         report_readable=result.get("report_readable"),
         # Dual
         dual_perspectives_json=(
-            {"perspectives": analysis.get("perspectives", [])} if is_dual else None
+            analysis.get("perspectives", []) if is_dual else None
         ),
         dual_consensus=analysis.get("consensus") if is_dual else None,
         # Summary
@@ -349,9 +356,8 @@ async def _persist_reading_session(
 async def _get_db_cache(db: AsyncSession, fingerprint: str) -> Optional[AnalysisCache]:
     stmt = select(AnalysisCache).where(AnalysisCache.fingerprint == fingerprint)
     row = (await db.execute(stmt)).scalar_one_or_none()
-    if row:
-        row.hit_count += 1
-        row.last_hit_at = datetime.now(timezone.utc)
+    # NOTE: hit_count / last_hit_at are updated only on the upsert path (_upsert_db_cache),
+    # not here, to avoid a spurious DB write on every cache read.
     return row
 
 
@@ -396,13 +402,15 @@ def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> ReadingRe
 
 
 def _orm_to_response(row: ReadingSession) -> ReadingResponse:
-    lines = (row.lines_json or {}).get("lines", [])
-    wangshuai = (row.wangshuai_json or {}).get("results", [])
-    yingqi = (row.yingqi_json or {}).get("results", [])
+    lines = row.lines_json or []
+    wangshuai = row.wangshuai_json if isinstance(row.wangshuai_json, list) else (row.wangshuai_json or {}).get("results", [])
+    yingqi = row.yingqi_json if isinstance(row.yingqi_json, list) else (row.yingqi_json or {}).get("results", [])
 
     perspectives = None
     if row.dual_perspectives_json:
-        perspectives = row.dual_perspectives_json.get("perspectives")
+        # Support both old wrapper format {"perspectives": [...]} and flat list
+        dpj = row.dual_perspectives_json
+        perspectives = dpj if isinstance(dpj, list) else dpj.get("perspectives")
 
     return ReadingResponse(
         id=row.id,

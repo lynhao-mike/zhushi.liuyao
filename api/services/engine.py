@@ -222,7 +222,7 @@ async def analyze(
     """
     Async entry point. Offloads the CPU-bound analysis to the thread pool.
     """
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(
         _executor,
         _run_analysis_sync,
