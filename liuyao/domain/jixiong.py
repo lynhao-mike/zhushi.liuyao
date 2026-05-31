@@ -23,6 +23,12 @@ YONG_SHEN_TABLE = {
     "xingRen": "官鬼",    # 行人(默认, 实际需看关系)
     "youHuan": "子孙",    # 忧患(子孙为喜神)
     "shiwu": "妻财",      # 失物(默认: 妻财 - 贵重财物之价值属性)
+    # 《增删卜易》fixture 中使用的通用问事标签。
+    # 这些别名让引擎按案例显式题类取用神, 避免回落到 other=官鬼。
+    "hun": "妻财",        # 婚姻/婚配(未区分男女时按财爻主婚财)
+    "shengyi": "妻财",    # 生意/经营
+    "shengchan": "子孙",  # 生产/子息
+    "shouming": "父母",   # 寿元/长辈寿命
     "other": "官鬼",      # 其他(默认)
 }
 
@@ -295,7 +301,16 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
             "explanation": f"用神旺相, 世爻得日月扶助, 吉",
         }
 
-    # 8. 用神衰败局
+    # 8. 动兆临日月: 用神发动且变出临日/月, 以动兆得令优先于静态衰败。
+    primary_moving = moving_analyses.get(primary_yong.position, {})
+    if primary_yong.is_moving and "化出临日月" in primary_moving.get("趋旺", []):
+        return {
+            "pattern": "用神动化临日月",
+            "ji_xiong": "吉",
+            "explanation": f"用神{primary_yong.di_zhi}{yong_wx}发动, 变出临日月, 动兆得令为吉",
+        }
+
+    # 9. 用神衰败局
     if yong_is_shuai:
         return {
             "pattern": "用神衰败局",
@@ -327,6 +342,26 @@ def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
     shi_wx = DI_ZHI_WU_XING[shi_line.di_zhi]
     shi_has_support = _line_has_day_month_support(shi_line.di_zhi, month_zhi, day_zhi)
     useful_moving = dongbian_results.get("useful_moving", [])
+    moving_analyses = dongbian_results.get("moving_analyses", {})
+
+    # 占寿元与一般求事不同: 用神、元神、忌神发动皆主气数有期。
+    # 先落定为凶, 避免因找不到默认官鬼用神或普通用旺规则误判为平/吉。
+    if question_type == "shouming" and moving_analyses:
+        return {
+            "pattern": "占寿元动则有期",
+            "ji_xiong": "凶",
+            "explanation": "寿元卦不喜动, 卦中发动主气数有期, 凶",
+        }
+
+    # 用神/世爻自身发动化衰, 属内力终局, 优先按凶断。
+    for line in (primary_yong, shi_line):
+        moving = moving_analyses.get(line.position)
+        if moving and moving.get("趋衰"):
+            return {
+                "pattern": "内力动化衰败",
+                "ji_xiong": "凶",
+                "explanation": f"{'用神' if line is primary_yong else '世爻'}{line.di_zhi}自发动化{','.join(moving['趋衰'])}, 内力主导为凶",
+            }
 
     # 用神动克世的情况
     yong_ke_shi = (primary_yong.is_moving and
