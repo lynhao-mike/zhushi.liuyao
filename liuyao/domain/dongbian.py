@@ -5,14 +5,13 @@
 """
 
 from .data import (
-    DI_ZHI, DI_ZHI_WU_XING,
+    DI_ZHI_WU_XING,
     WU_XING_SHENG, WU_XING_KE,
-    LIU_CHONG, LIU_HE,
-    SAN_HE, SAN_HE_BY_ZHI,
+    LIU_CHONG,
+    SAN_HE,
     JIN_SHEN, TUI_SHEN,
     get_chang_sheng,
 )
-from .wangshuai import analyze_line_wangshuai
 
 
 def is_hui_tou_sheng(line_zhi, bian_zhi):
@@ -51,13 +50,12 @@ def is_hua_po(line_zhi, bian_zhi):
     return LIU_CHONG.get(line_zhi) == bian_zhi
 
 
-def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
+def analyze_moving_line(line, month_zhi, day_zhi):
     """
     分析单个动爻的变化趋势。
 
     Args:
         line: YaoLine对象 (必须是动爻)
-        hexagram: Hexagram对象
         month_zhi: 月支
         day_zhi: 日支
 
@@ -77,42 +75,36 @@ def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
         "useless_reason": "",
     }
 
+    line_zhi = line.di_zhi
     bian_zhi = line.bian_di_zhi
+    line_wx = line.wu_xing
+    bian_wx = line.bian_wu_xing or DI_ZHI_WU_XING[bian_zhi]
+    is_hui_sheng = WU_XING_SHENG[bian_wx] == line_wx
+    is_hui_ke = WU_XING_KE[bian_wx] == line_wx
 
-    # 检查回头生
-    if is_hui_tou_sheng(line.di_zhi, bian_zhi):
+    # 检查回头生/克
+    if is_hui_sheng:
         result["趋旺"].append("回头生")
-
-    # 检查回头克
-    if is_hui_tou_ke(line.di_zhi, bian_zhi):
+    if is_hui_ke:
         result["趋衰"].append("回头克")
 
-    # 检查化进神
-    if is_hua_jin_shen(line.di_zhi, bian_zhi):
+    # 检查化进/退神
+    if JIN_SHEN.get(line_zhi) == bian_zhi:
         result["趋旺"].append("化进神")
-
-    # 检查化退神
-    if is_hua_tui_shen(line.di_zhi, bian_zhi):
+    if TUI_SHEN.get(line_zhi) == bian_zhi:
         result["趋衰"].append("化退神")
 
     # 检查化绝
-    if is_hua_jue(line.di_zhi, bian_zhi):
-        # 如果没有回头生则为趋衰
-        if not is_hui_tou_sheng(line.di_zhi, bian_zhi):
-            result["趋衰"].append("化绝")
+    if get_chang_sheng(line_wx, bian_zhi) == "绝" and not is_hui_sheng:
+        result["趋衰"].append("化绝")
 
     # 检查化破(本爻与变爻相冲)
-    if is_hua_po(line.di_zhi, bian_zhi):
-        # 如果没有回头生/克关系才算化破
-        if not is_hui_tou_sheng(line.di_zhi, bian_zhi) and \
-           not is_hui_tou_ke(line.di_zhi, bian_zhi):
-            result["趋衰"].append("化破")
+    if LIU_CHONG.get(line_zhi) == bian_zhi and not is_hui_sheng and not is_hui_ke:
+        result["趋衰"].append("化破")
 
     # 检查变出临日月
-    if bian_zhi == month_zhi or bian_zhi == day_zhi:
-        if not is_hui_tou_ke(line.di_zhi, bian_zhi) and \
-           not is_hui_tou_sheng(line.di_zhi, bian_zhi):
-            result["趋旺"].append("化出临日月")
+    if (bian_zhi == month_zhi or bian_zhi == day_zhi) and not is_hui_ke and not is_hui_sheng:
+        result["趋旺"].append("化出临日月")
 
     # 判断是否无用动爻
     # 无用动爻条件: 回头克, 化退, 化破(无回头关系), 化绝
@@ -132,17 +124,18 @@ def analyze_moving_line(line, hexagram, month_zhi, day_zhi):
     return result
 
 
-def find_san_he_ju(hexagram):
+def find_san_he_ju(hexagram, moving_lines=None):
     """
     检查动爻中是否构成三合局。
 
     Returns:
         list: 每个三合局 {"wu_xing": 五行, "members": [地支]}
     """
-    moving_zhis = []
-    for line in hexagram.lines:
-        if line.is_moving:
-            moving_zhis.append(line.di_zhi)
+    if moving_lines is None:
+        moving_lines = [line for line in hexagram.lines if line.is_moving]
+    if len(moving_lines) < 3:
+        return []
+    moving_zhis = {line.di_zhi for line in moving_lines}
 
     san_he_results = []
     for wx, members in SAN_HE.items():
@@ -156,7 +149,7 @@ def find_san_he_ju(hexagram):
     return san_he_results
 
 
-def check_dong_yao_interaction(target_line, hexagram, moving_analyses):
+def check_dong_yao_interaction(target_line, moving_lines, moving_analyses):
     """
     检查其他动爻对目标爻的作用(生/克)。
 
@@ -164,7 +157,7 @@ def check_dong_yao_interaction(target_line, hexagram, moving_analyses):
 
     Args:
         target_line: 目标爻 YaoLine
-        hexagram: Hexagram对象
+        moving_lines: 动爻列表
         moving_analyses: 所有动爻的分析结果 dict
 
     Returns:
@@ -173,9 +166,7 @@ def check_dong_yao_interaction(target_line, hexagram, moving_analyses):
     target_wx = DI_ZHI_WU_XING[target_line.di_zhi]
     interactions = {"受生": [], "受克": []}
 
-    for line in hexagram.lines:
-        if not line.is_moving:
-            continue
+    for line in moving_lines:
         if line.position == target_line.position:
             continue
 
@@ -197,7 +188,7 @@ def check_dong_yao_interaction(target_line, hexagram, moving_analyses):
     return interactions
 
 
-def detect_an_dong(hexagram, wangshuai_results):
+def detect_an_dong(hexagram, wangshuai_results, moving_lines=None):
     """
     检测暗动(An-Dong)。
 
@@ -215,6 +206,8 @@ def detect_an_dong(hexagram, wangshuai_results):
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
     an_dong_list = []
+    if moving_lines is None:
+        moving_lines = [line for line in hexagram.lines if line.is_moving]
 
     for i, line in enumerate(hexagram.lines):
         # 条件6: 动爻被日冲 (动不为散, 不算暗动但记录)
@@ -275,9 +268,9 @@ def detect_an_dong(hexagram, wangshuai_results):
         # 条件4: 月衰但有动爻生
         has_dong_sheng = False
         line_wx = DI_ZHI_WU_XING[line.di_zhi]
-        for other_line in hexagram.lines:
-            if other_line.is_moving and other_line.position != line.position:
-                other_wx = DI_ZHI_WU_XING[other_line.di_zhi]
+        for other_line in moving_lines:
+            if other_line.position != line.position:
+                other_wx = other_line.wu_xing
                 if WU_XING_SHENG[other_wx] == line_wx:
                     has_dong_sheng = True
                     break
@@ -314,13 +307,13 @@ def analyze_dongbian(hexagram, wangshuai_results):
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
 
-    # 分析每个动爻
+    # 分析每个动爻。动爻集合后续多处复用, 避免每个检测函数重复扫描六爻。
+    moving_lines = [line for line in hexagram.lines if line.is_moving]
     moving_analyses = {}
-    for line in hexagram.lines:
-        if line.is_moving:
-            analysis = analyze_moving_line(line, hexagram, month_zhi, day_zhi)
-            if analysis:
-                moving_analyses[line.position] = analysis
+    for line in moving_lines:
+        analysis = analyze_moving_line(line, month_zhi, day_zhi)
+        if analysis:
+            moving_analyses[line.position] = analysis
 
     # 分类有用/无用动爻
     useful_moving = []
@@ -332,17 +325,18 @@ def analyze_dongbian(hexagram, wangshuai_results):
             useful_moving.append(pos)
 
     # 检查三合局
-    san_he_ju = find_san_he_ju(hexagram)
+    san_he_ju = find_san_he_ju(hexagram, moving_lines)
 
     # 检查动爻间的交互作用
     interactions = {}
-    for line in hexagram.lines:
-        interaction = check_dong_yao_interaction(line, hexagram, moving_analyses)
-        if interaction["受生"] or interaction["受克"]:
-            interactions[line.position] = interaction
+    if moving_lines:
+        for line in hexagram.lines:
+            interaction = check_dong_yao_interaction(line, moving_lines, moving_analyses)
+            if interaction["受生"] or interaction["受克"]:
+                interactions[line.position] = interaction
 
     # 检测暗动
-    an_dong = detect_an_dong(hexagram, wangshuai_results)
+    an_dong = detect_an_dong(hexagram, wangshuai_results, moving_lines)
 
     return {
         "moving_analyses": moving_analyses,

@@ -129,7 +129,7 @@ def detect_ru_mu(hexagram, wangshuai_results, dongbian_results,
 # 三绊 (San Ban) Detection
 # =============================================================================
 
-def detect_san_ban(hexagram, day_zhi):
+def detect_san_ban(hexagram, day_zhi, moving_lines=None):
     """
     检测三绊: 日绊、动绊、化绊.
 
@@ -142,11 +142,13 @@ def detect_san_ban(hexagram, day_zhi):
         list[dict]: 每个绊信息
     """
     results = []
+    if moving_lines is None:
+        moving_lines = [line for line in hexagram.lines if line.is_moving]
 
     # 1. 日绊: 动爻/变爻被日支六合
     he_of_day = LIU_HE.get(day_zhi, (None, None))[0]
-    for line in hexagram.lines:
-        if line.is_moving and line.di_zhi == he_of_day:
+    for line in moving_lines:
+        if line.di_zhi == he_of_day:
             # 检查是否带生克
             line_wx = line.wu_xing
             day_wx = DI_ZHI_WU_XING[day_zhi]
@@ -165,7 +167,6 @@ def detect_san_ban(hexagram, day_zhi):
             })
 
     # 2. 动绊: 两动爻地支六合
-    moving_lines = [l for l in hexagram.lines if l.is_moving]
     for i, l1 in enumerate(moving_lines):
         for l2 in moving_lines[i + 1:]:
             if LIU_HE.get(l1.di_zhi, (None, None))[0] == l2.di_zhi:
@@ -178,8 +179,8 @@ def detect_san_ban(hexagram, day_zhi):
                 })
 
     # 3. 化绊: 动爻与其变爻六合
-    for line in hexagram.lines:
-        if line.is_moving and line.bian_di_zhi:
+    for line in moving_lines:
+        if line.bian_di_zhi:
             if LIU_HE.get(line.di_zhi, (None, None))[0] == line.bian_di_zhi:
                 results.append({
                     "ban_type": "化绊",
@@ -205,7 +206,7 @@ TRIGRAM_CHONG = {
 }
 
 
-def detect_fan_yin(hexagram):
+def detect_fan_yin(hexagram, moving_lines=None):
     """
     检测反吟: 反复折腾, 卦象/卦宫/爻动/爻化各种形式.
 
@@ -223,6 +224,9 @@ def detect_fan_yin(hexagram):
         "爻动反吟": [],
         "爻化反吟": [],
     }
+
+    if moving_lines is None:
+        moving_lines = [line for line in hexagram.lines if line.is_moving]
 
     # 1. 卦象反吟: 主卦与变卦六冲, 通过六冲卦变出对冲卦判断
     if hexagram.ben_gua_name in LIU_CHONG_GUA and hexagram.bian_gua_name in LIU_CHONG_GUA:
@@ -249,15 +253,14 @@ def detect_fan_yin(hexagram):
             result["卦宫反吟"].append(f"外卦宫反吟({ben['upper']}↔{bian['upper']})")
 
     # 3. 爻动反吟: 两动爻地支相冲
-    moving_lines = [l for l in hexagram.lines if l.is_moving]
     for i, l1 in enumerate(moving_lines):
         for l2 in moving_lines[i + 1:]:
             if LIU_CHONG.get(l1.di_zhi) == l2.di_zhi:
                 result["爻动反吟"].append((l1.position, l2.position))
 
     # 4. 爻化反吟: 动爻与变爻相冲
-    for line in hexagram.lines:
-        if line.is_moving and line.bian_di_zhi:
+    for line in moving_lines:
+        if line.bian_di_zhi:
             if LIU_CHONG.get(line.di_zhi) == line.bian_di_zhi:
                 result["爻化反吟"].append(line.position)
 
@@ -268,7 +271,7 @@ def detect_fan_yin(hexagram):
 # 伏吟 (Fu Yin) Detection
 # =============================================================================
 
-def detect_fu_yin(hexagram):
+def detect_fu_yin(hexagram, moving_lines=None):
     """
     检测伏吟: 动而不变, 呻吟、哀怨、不宁之象.
 
@@ -293,9 +296,11 @@ def detect_fu_yin(hexagram):
 
     inner_fu = False
     outer_fu = False
+    if moving_lines is None:
+        moving_lines = [line for line in hexagram.lines if line.is_moving]
 
-    for line in hexagram.lines:
-        if line.is_moving and line.bian_di_zhi:
+    for line in moving_lines:
+        if line.bian_di_zhi:
             if line.di_zhi == line.bian_di_zhi:
                 result["爻动伏吟"].append(line.position)
                 if line.position <= 3:
@@ -312,7 +317,7 @@ def detect_fu_yin(hexagram):
 # 六冲六合卦识别 + 互化模式
 # =============================================================================
 
-def detect_chong_he_gua(hexagram):
+def detect_chong_he_gua(hexagram, has_moving=None):
     """
     识别六冲卦/六合卦及其互化模式.
 
@@ -335,7 +340,8 @@ def detect_chong_he_gua(hexagram):
     bian_he = bian_name in LIU_HE_GUA
 
     # 是否有动爻
-    has_moving = any(l.is_moving for l in hexagram.lines)
+    if has_moving is None:
+        has_moving = any(l.is_moving for l in hexagram.lines)
 
     pattern = ""
     implication = ""
@@ -841,14 +847,16 @@ def analyze_all_patterns(hexagram, wangshuai_results, dongbian_results,
     """
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
+    moving_lines = [line for line in hexagram.lines if line.is_moving]
+    has_moving = bool(moving_lines)
 
     return {
         "ru_mu": detect_ru_mu(hexagram, wangshuai_results, dongbian_results,
                               month_zhi, day_zhi),
-        "san_ban": detect_san_ban(hexagram, day_zhi),
-        "fan_yin": detect_fan_yin(hexagram),
-        "fu_yin": detect_fu_yin(hexagram),
-        "chong_he_gua": detect_chong_he_gua(hexagram),
+        "san_ban": detect_san_ban(hexagram, day_zhi, moving_lines),
+        "fan_yin": detect_fan_yin(hexagram, moving_lines),
+        "fu_yin": detect_fu_yin(hexagram, moving_lines),
+        "chong_he_gua": detect_chong_he_gua(hexagram, has_moving),
         "san_xing": detect_san_xing(hexagram),
         "liu_hai": detect_liu_hai(hexagram),
         "san_hui": detect_san_hui(hexagram),
