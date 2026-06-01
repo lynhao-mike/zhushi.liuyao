@@ -411,7 +411,7 @@ class TestTheoryRules:
     def test_san_he_ju_formation(self):
         """三合局: 含申子辰三动的卦旺衰可正常分析。"""
         from liuyao.wangshuai import analyze_hexagram_wangshuai
-        h = Hexagram([6, 7, 9, 7, 7, 7], 2024, 1, 15)
+        h = Hexagram.from_ganzhi([6, 7, 9, 7, 7, 7], month_zhi="丑", day_zhi="寅", xun_kong=["子", "丑"])
         results = analyze_hexagram_wangshuai(h)
         assert len(results) == 6
 
@@ -425,7 +425,7 @@ class TestTheoryRules:
 
     def test_ban_formation_hua_ban(self):
         """化绊: 动爻与变爻六合。验证 analyze_all_patterns 可正常运行。"""
-        h = Hexagram([7, 7, 9, 7, 7, 7], 2024, 1, 15)
+        h = Hexagram.from_ganzhi([7, 7, 9, 7, 7, 7], month_zhi="丑", day_zhi="寅", xun_kong=["子", "丑"])
         from liuyao.wangshuai import analyze_hexagram_wangshuai
         from liuyao.dongbian import analyze_dongbian
         from liuyao.patterns import analyze_all_patterns

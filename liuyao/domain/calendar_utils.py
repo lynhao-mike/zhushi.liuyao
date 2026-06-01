@@ -5,7 +5,11 @@
 处理节气换月、年柱以立春为界等特殊规则。
 """
 
-import sxtwl
+try:
+    import sxtwl
+except ImportError:  # pragma: no cover - 允许仅使用 Hexagram.from_ganzhi 的测试环境不安装 sxtwl
+    sxtwl = None
+
 from .data import TIAN_GAN, DI_ZHI, get_xun_kong
 from .exceptions import CalendarError, LiuyaoError
 
@@ -33,6 +37,9 @@ def get_gan_zhi(year, month, day, hour=12):
         - 23:00-次日01:00 为子时, 但日柱以子时(23:00)换日
           sxtwl 默认以0点换日, 此处做特殊处理
     """
+    if sxtwl is None:
+        raise CalendarError("缺少 sxtwl 依赖，无法从公历日期计算干支；请安装 sxtwl 或使用 from_ganzhi 注入干支")
+
     try:
         if hour >= 23:
             from datetime import date, timedelta
