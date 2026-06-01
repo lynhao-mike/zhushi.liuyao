@@ -100,15 +100,19 @@ def find_yong_shen_lines(hexagram, yong_shen_liu_qin):
     Returns:
         list: 匹配的爻列表
     """
-    results = []
-    for line in hexagram.lines:
-        if line.liu_qin == yong_shen_liu_qin:
-            results.append(line)
-    return results
+    indexed = getattr(hexagram, "lines_by_liu_qin", None)
+    if indexed is not None:
+        return list(indexed.get(yong_shen_liu_qin, []))
+
+    return [line for line in hexagram.lines if line.liu_qin == yong_shen_liu_qin]
 
 
 def find_shi_line(hexagram):
     """找到世爻"""
+    indexed = getattr(hexagram, "shi_line", None)
+    if indexed is not None:
+        return indexed
+
     for line in hexagram.lines:
         if line.is_shi:
             return line
@@ -117,6 +121,10 @@ def find_shi_line(hexagram):
 
 def find_ying_line(hexagram):
     """找到应爻"""
+    indexed = getattr(hexagram, "ying_line", None)
+    if indexed is not None:
+        return indexed
+
     for line in hexagram.lines:
         if line.is_ying:
             return line

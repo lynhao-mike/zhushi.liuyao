@@ -7,7 +7,7 @@
 
 import calendar
 from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional
 
 from .data import (
     TIAN_GAN, DI_ZHI, DI_ZHI_WU_XING,
@@ -76,6 +76,14 @@ class Hexagram:
     xun_kong: Tuple[str, str] = ("", "")
     shi_pos: int = 0
     ying_pos: int = 0
+
+    # 高频分析索引: 排卦后构建一次, 后续旺衰/动变/吉凶/应期复用。
+    lines_by_position: Dict[int, YaoLine] = field(default_factory=dict, init=False)
+    lines_by_liu_qin: Dict[str, List[YaoLine]] = field(default_factory=dict, init=False)
+    moving_lines: List[YaoLine] = field(default_factory=list, init=False)
+    static_lines: List[YaoLine] = field(default_factory=list, init=False)
+    shi_line: Optional[YaoLine] = field(default=None, init=False)
+    ying_line: Optional[YaoLine] = field(default=None, init=False)
 
     def __post_init__(self):
         """初始化后自动排卦"""
@@ -298,6 +306,28 @@ class Hexagram:
                 bian_liu_qin=bian_lq,
             )
             self.lines.append(line)
+
+        self._build_analysis_indexes()
+
+    def _build_analysis_indexes(self):
+        """构建分析期高频查找索引, 避免各模块重复扫描六爻。"""
+        self.lines_by_position = {line.position: line for line in self.lines}
+        self.lines_by_liu_qin = {}
+        self.moving_lines = []
+        self.static_lines = []
+        self.shi_line = None
+        self.ying_line = None
+
+        for line in self.lines:
+            self.lines_by_liu_qin.setdefault(line.liu_qin, []).append(line)
+            if line.is_moving:
+                self.moving_lines.append(line)
+            else:
+                self.static_lines.append(line)
+            if line.is_shi:
+                self.shi_line = line
+            if line.is_ying:
+                self.ying_line = line
 
     def display(self):
         """以传统格式显示排卦结果"""

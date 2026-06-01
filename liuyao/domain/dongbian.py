@@ -124,6 +124,14 @@ def analyze_moving_line(line, month_zhi, day_zhi):
     return result
 
 
+def _get_moving_lines(hexagram):
+    """优先使用 Hexagram 预构建动爻索引, 兼容旧对象回退扫描。"""
+    indexed = getattr(hexagram, "moving_lines", None)
+    if indexed is not None:
+        return indexed
+    return [line for line in hexagram.lines if line.is_moving]
+
+
 def find_san_he_ju(hexagram, moving_lines=None):
     """
     检查动爻中是否构成三合局。
@@ -132,7 +140,7 @@ def find_san_he_ju(hexagram, moving_lines=None):
         list: 每个三合局 {"wu_xing": 五行, "members": [地支]}
     """
     if moving_lines is None:
-        moving_lines = [line for line in hexagram.lines if line.is_moving]
+        moving_lines = _get_moving_lines(hexagram)
     if len(moving_lines) < 3:
         return []
     moving_zhis = {line.di_zhi for line in moving_lines}
@@ -207,7 +215,7 @@ def detect_an_dong(hexagram, wangshuai_results, moving_lines=None):
     day_zhi = hexagram.gan_zhi["day_zhi"]
     an_dong_list = []
     if moving_lines is None:
-        moving_lines = [line for line in hexagram.lines if line.is_moving]
+        moving_lines = _get_moving_lines(hexagram)
 
     for i, line in enumerate(hexagram.lines):
         # 条件6: 动爻被日冲 (动不为散, 不算暗动但记录)
@@ -307,8 +315,8 @@ def analyze_dongbian(hexagram, wangshuai_results):
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
 
-    # 分析每个动爻。动爻集合后续多处复用, 避免每个检测函数重复扫描六爻。
-    moving_lines = [line for line in hexagram.lines if line.is_moving]
+    # 分析每个动爻。优先复用 Hexagram 内置索引, 避免重复扫描六爻。
+    moving_lines = _get_moving_lines(hexagram)
     moving_analyses = {}
     for line in moving_lines:
         analysis = analyze_moving_line(line, month_zhi, day_zhi)

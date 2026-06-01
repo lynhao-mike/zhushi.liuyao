@@ -288,10 +288,15 @@ def analyze_yingqi(hexagram, yong_shen_lines, wangshuai_results, dongbian_result
     results = []
     moving_analyses = dongbian_results.get("moving_analyses", {})
 
-    # 提取模式信息
+    # 提取模式信息并按爻位预索引, 避免每个用神爻重复线性搜索。
     patterns_results = patterns_results or {}
     ru_mu_list = patterns_results.get("ru_mu", [])
     san_ban_list = patterns_results.get("san_ban", [])
+    ru_mu_by_position = {m["position"]: m for m in ru_mu_list if "position" in m}
+    san_ban_by_position = {}
+    for ban in san_ban_list:
+        for position in ban.get("positions", []):
+            san_ban_by_position.setdefault(position, ban)
     fan_yin = patterns_results.get("fan_yin", {})
     fu_yin = patterns_results.get("fu_yin", {})
 
@@ -306,11 +311,8 @@ def analyze_yingqi(hexagram, yong_shen_lines, wangshuai_results, dongbian_result
         ma = moving_analyses.get(line.position)
 
         # 查找该爻的入墓/三绊信息
-        mu_info = next((m for m in ru_mu_list if m["position"] == line.position), None)
-        ban_info = next(
-            (b for b in san_ban_list if line.position in b.get("positions", [])),
-            None
-        )
+        mu_info = ru_mu_by_position.get(line.position)
+        ban_info = san_ban_by_position.get(line.position)
 
         candidates = estimate_yingqi(
             line, ws, ma,
