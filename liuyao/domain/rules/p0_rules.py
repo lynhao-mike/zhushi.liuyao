@@ -231,6 +231,46 @@ class SelfChangeTerminalRule(BaseRule):
         return None
 
 
+class CompetitiveSelectionOpponentFailsRule(BaseRule):
+    """短期差额选拔: 间爻竞争者发动化衰, 竞争者自败则世可胜出。"""
+
+    rule_id = "P1_COMPETITIVE_SELECTION_OPPONENT_FAILS"
+    theory_id = "反馈迭代_竞争选拔_竞争者自败"
+    priority = 840
+
+    def evaluate(self, ctx):
+        if not ctx.is_competitive_selection or not ctx.shi_line:
+            return None
+        candidates = ctx.competitive_opponent_candidates()
+        if not candidates:
+            return None
+
+        candidate = candidates[0]
+        decline = "、".join(candidate.get("decline_reasons", []))
+        role = "、".join(candidate.get("role_reasons", []))
+        explanation = (
+            f"{ctx.question_type}属于短期竞争/差额选拔类占问, "
+            f"第{candidate['position']}爻{candidate['ben_zhi']}{candidate['ben_wu_xing']}"
+            f"位居世应之间, 可作竞争者/阻隔之象; "
+            f"其发动化{candidate.get('bian_zhi') or ''}, 见{decline}, 竞争者自败; "
+            f"世爻{candidate['shi_zhi']}虽受压力, 但因对手失势而有脱颖而出之机, 吉"
+        )
+        evidence = [{
+            **candidate,
+            "selection_context": ctx.question_type,
+            "pattern_basis": role,
+            "decision_path": "competitive_selection_review",
+            "confidence": "medium_high",
+            "counter_signals": ["世爻受月令克体现压力/难度, 不作终局凶断"],
+        }]
+        return self.result(
+            "竞争者化破",
+            "吉",
+            explanation,
+            evidence=evidence,
+        )
+
+
 class HuiTouShengRescueRule(BaseRule):
     """用神动化回头生, 动兆主导。"""
 
@@ -361,6 +401,7 @@ P0_RULES = [
     SanHeJuPriorityRule(),
     JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
+    CompetitiveSelectionOpponentFailsRule(),
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),
     MovingKeYongRule(),

@@ -141,6 +141,31 @@ def _format_dongbian(hexagram, dongbian_results):
     return lines
 
 
+def _format_rule_review_lines(jixiong_result):
+    """格式化规则证据中的复核路径。"""
+    evidence = jixiong_result.get("evidence") or []
+    if not evidence:
+        return []
+
+    lines = []
+    for item in evidence:
+        if item.get("decision_path") != "competitive_selection_review":
+            continue
+        lines.append("  双路径复核: 常规取用路径提示压力, 竞争选拔路径提示对手失势。")
+        role_reasons = item.get("role_reasons") or []
+        decline_reasons = item.get("decline_reasons") or []
+        if role_reasons:
+            lines.append(f"    角色映射: {'、'.join(role_reasons)}")
+        if decline_reasons:
+            lines.append(f"    成败证据: 第{item.get('position')}爻{item.get('ben_zhi')}化{item.get('bian_zhi')} — {'、'.join(decline_reasons)}")
+        counter_signals = item.get("counter_signals") or []
+        if counter_signals:
+            lines.append(f"    反向信号: {'；'.join(counter_signals)}")
+        if item.get("confidence"):
+            lines.append(f"    置信度: {item['confidence']}")
+    return lines
+
+
 def _format_jixiong_block(jixiong_result):
     """格式化吉凶判断段落"""
     lines = []
@@ -152,6 +177,9 @@ def _format_jixiong_block(jixiong_result):
     lines.append(f"  卦局: {jx['pattern']}")
     lines.append(f"  判断: 【{ji_xiong_mark}】")
     lines.append(f"  解释: {jx['explanation']}")
+    review_lines = _format_rule_review_lines(jx)
+    if review_lines:
+        lines.extend(review_lines)
     lines.append("")
     return lines
 
@@ -818,6 +846,9 @@ def format_readable_report(analysis, meta=None):
             out.append(f"  判断：{ji_mark}")
             baihua = GUA_JU_BAIHUA.get(jx.get("pattern",""), jx.get("explanation",""))
             out.append(f"  释义：{baihua}")
+            review_lines = _format_rule_review_lines(jx)
+            if review_lines:
+                out.extend(review_lines)
             out.append("")
     else:
         ys = analysis.yong_shen_liu_qin
@@ -842,6 +873,9 @@ def format_readable_report(analysis, meta=None):
         out.append(f"  卦局：{jx.get('pattern', '-')}")
         out.append(f"  判断：{ji_mark}")
         out.append(f"  释义：{GUA_JU_BAIHUA.get(jx.get('pattern',''), jx.get('explanation',''))}")
+        review_lines = _format_rule_review_lines(jx)
+        if review_lines:
+            out.extend(review_lines)
         out.append("")
 
     # ── 六、综合结论 ──────────────────────────────────────────────────
