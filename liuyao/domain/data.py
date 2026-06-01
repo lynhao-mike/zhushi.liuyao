@@ -41,6 +41,7 @@ QUESTION_TYPE_LABELS: dict = {
     "xingRen":    "行人",
     "youHuan":    "忧患",
     "shiwu":      "失物",
+    "shefu":      "射覆/经历还原",
     "other":      "综合",
 }
 

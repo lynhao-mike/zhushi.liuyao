@@ -22,6 +22,9 @@ BASELINE_FEEDBACK_RULE_HITS = {
     },
 }
 
+RULE_FEEDBACK_CASES = [case for case in FEEDBACK_CASES if "expected_ji_xiong" in case]
+SHEFU_FEEDBACK_CASES = [case for case in FEEDBACK_CASES if case.get("question_type") == "shefu"]
+
 
 def _build_hexagram(case: dict) -> Hexagram:
     """以反馈案例记录的真实日月干支构建卦象。"""
@@ -44,15 +47,23 @@ def test_feedback_case_structure(case):
     assert h.gan_zhi["day_zhi"] == case["day_zhi"]
 
     expected = case["expected_evidence"]
-    opponent = h.lines_by_position[expected["opponent_position"]]
-    assert opponent.is_moving is True
-    assert opponent.di_zhi == expected["opponent_zhi"]
-    assert opponent.bian_di_zhi == expected["transformed_zhi"]
     assert h.shi_line.position == expected["shi_position"]
-    assert h.shi_line.di_zhi == expected["shi_zhi"]
+
+    if "opponent_position" in expected:
+        opponent = h.lines_by_position[expected["opponent_position"]]
+        assert opponent.is_moving is True
+        assert opponent.di_zhi == expected["opponent_zhi"]
+        assert opponent.bian_di_zhi == expected["transformed_zhi"]
+        assert h.shi_line.di_zhi == expected["shi_zhi"]
+
+    if "moving_positions" in expected:
+        moving_positions = [line.position for line in h.moving_lines]
+        assert moving_positions == expected["moving_positions"]
+        assert h.ben_gua_name == expected["unexpected_hexagram"]
+        assert h.bian_gua_name == expected["resolved_hexagram"]
 
 
-@pytest.mark.parametrize("case", FEEDBACK_CASES, ids=[case["id"] for case in FEEDBACK_CASES])
+@pytest.mark.parametrize("case", RULE_FEEDBACK_CASES, ids=[case["id"] for case in RULE_FEEDBACK_CASES])
 def test_feedback_case_rule_hit_snapshot(case):
     """反馈案例必须命中反馈修正后的规则快照。"""
     h = _build_hexagram(case)
@@ -103,10 +114,31 @@ def test_feedback_case_report_contains_dual_path_review():
         assert "成败证据" in text
 
 
+@pytest.mark.parametrize("case", SHEFU_FEEDBACK_CASES, ids=[case["id"] for case in SHEFU_FEEDBACK_CASES])
+def test_shefu_feedback_case_outputs_concrete_imagery(case):
+    """射覆反馈案例应输出具象候选, 而不是只给抽象吉凶。"""
+    from liuyao.domain.dongbian import analyze_dongbian
+    from liuyao.domain.shefu import analyze_shefu_imagery
+    from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
+
+    h = _build_hexagram(case)
+    ws = analyze_hexagram_wangshuai(h)
+    db = analyze_dongbian(h, ws)
+    result = analyze_shefu_imagery(h, db)
+
+    assert result["pattern"] == case["expected_pattern"]
+    keywords = {candidate["keyword"] for candidate in result["event_candidates"]}
+    for keyword in case["expected_imagery_keywords"]:
+        assert keyword in keywords
+    assert result["evidence"]["decision_path"] == "shefu_concrete_imagery"
+    assert result["evidence"]["moving_positions"] == case["expected_evidence"]["moving_positions"]
+
+
 @pytest.mark.parametrize("case", FEEDBACK_CASES, ids=[case["id"] for case in FEEDBACK_CASES])
 def test_feedback_case_fixture_records_learning_loop(case):
     """反馈 fixture 必须保留误断、反馈、修正断法, 构成可追踪学习闭环。"""
-    assert case.get("original_misread", {}).get("ji_xiong")
+    original_misread = case.get("original_misread", {})
+    assert original_misread.get("ji_xiong") or original_misread.get("focus")
     assert case.get("feedback")
     assert case.get("corrected_method")
     assert len(case.get("theory_points", [])) >= 3
