@@ -825,6 +825,47 @@ def analyze_kuayi_patterns(hexagram, yong_shen_liu_qin, ji_shen_liu_qin,
 # 综合模式识别入口
 # =============================================================================
 
+def analyze_structural_patterns(hexagram, wangshuai_results, dongbian_results):
+    """计算与具体用神视角无关的结构模式, 供多视角流程复用。"""
+    month_zhi = hexagram.gan_zhi["month_zhi"]
+    day_zhi = hexagram.gan_zhi["day_zhi"]
+    moving_lines = [line for line in hexagram.lines if line.is_moving]
+    has_moving = bool(moving_lines)
+
+    return {
+        "ru_mu": detect_ru_mu(hexagram, wangshuai_results, dongbian_results,
+                              month_zhi, day_zhi),
+        "san_ban": detect_san_ban(hexagram, day_zhi, moving_lines),
+        "fan_yin": detect_fan_yin(hexagram, moving_lines),
+        "fu_yin": detect_fu_yin(hexagram, moving_lines),
+        "chong_he_gua": detect_chong_he_gua(hexagram, has_moving),
+        "san_xing": detect_san_xing(hexagram),
+        "liu_hai": detect_liu_hai(hexagram),
+        "san_hui": detect_san_hui(hexagram),
+    }
+
+
+def analyze_perspective_patterns(hexagram, dongbian_results,
+                                 yong_shen_liu_qin, ji_shen_liu_qin,
+                                 yong_shen_lines, question_type):
+    """计算依赖用神/问事类型的视角模式。"""
+    return {
+        "xintai_gua": detect_xintai_gua(hexagram, question_type, yong_shen_liu_qin,
+                                        yong_shen_lines, dongbian_results),
+        "kuayi_patterns": analyze_kuayi_patterns(
+            hexagram, yong_shen_liu_qin, ji_shen_liu_qin,
+            yong_shen_lines, dongbian_results, question_type
+        ),
+    }
+
+
+def merge_pattern_results(structural_patterns, perspective_patterns):
+    """合并结构模式与视角模式, 保持旧版 analyze_all_patterns 返回结构。"""
+    merged = dict(structural_patterns or {})
+    merged.update(perspective_patterns or {})
+    return merged
+
+
 def analyze_all_patterns(hexagram, wangshuai_results, dongbian_results,
                         yong_shen_liu_qin, ji_shen_liu_qin,
                         yong_shen_lines, question_type):
@@ -845,25 +886,12 @@ def analyze_all_patterns(hexagram, wangshuai_results, dongbian_results,
             "kuayi_patterns": [...],
         }
     """
-    month_zhi = hexagram.gan_zhi["month_zhi"]
-    day_zhi = hexagram.gan_zhi["day_zhi"]
-    moving_lines = [line for line in hexagram.lines if line.is_moving]
-    has_moving = bool(moving_lines)
-
-    return {
-        "ru_mu": detect_ru_mu(hexagram, wangshuai_results, dongbian_results,
-                              month_zhi, day_zhi),
-        "san_ban": detect_san_ban(hexagram, day_zhi, moving_lines),
-        "fan_yin": detect_fan_yin(hexagram, moving_lines),
-        "fu_yin": detect_fu_yin(hexagram, moving_lines),
-        "chong_he_gua": detect_chong_he_gua(hexagram, has_moving),
-        "san_xing": detect_san_xing(hexagram),
-        "liu_hai": detect_liu_hai(hexagram),
-        "san_hui": detect_san_hui(hexagram),
-        "xintai_gua": detect_xintai_gua(hexagram, question_type, yong_shen_liu_qin,
-                                        yong_shen_lines, dongbian_results),
-        "kuayi_patterns": analyze_kuayi_patterns(
-            hexagram, yong_shen_liu_qin, ji_shen_liu_qin,
-            yong_shen_lines, dongbian_results, question_type
-        ),
-    }
+    structural_patterns = analyze_structural_patterns(
+        hexagram, wangshuai_results, dongbian_results
+    )
+    perspective_patterns = analyze_perspective_patterns(
+        hexagram, dongbian_results,
+        yong_shen_liu_qin, ji_shen_liu_qin,
+        yong_shen_lines, question_type,
+    )
+    return merge_pattern_results(structural_patterns, perspective_patterns)

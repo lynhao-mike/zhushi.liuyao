@@ -6,12 +6,12 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
-from sqlalchemy.pool import NullPool
 
 from api.core.config import get_settings
 
@@ -59,6 +59,16 @@ async def managed_session() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+async def check_database_health() -> tuple[bool, str]:
+    """Return database health without exposing the internal engine."""
+    try:
+        async with _engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        return True, "ok"
+    except Exception as exc:  # pragma: no cover - depends on external DB availability
+        return False, f"error: {exc}"
 
 
 async def close_engine() -> None:

@@ -7,7 +7,7 @@ Reading Service — orchestrates the full request lifecycle:
   4. Run analysis engine (thread pool)
   5. Persist to PostgreSQL (ReadingSession + AnalysisCache rows)
   6. Warm Redis cache
-  7. Build and return ReadingResponse
+  7. Build and return application payload dictionaries
 """
 from __future__ import annotations
 
@@ -23,24 +23,16 @@ from api.infrastructure.cache.redis_client import (
     build_fingerprint,
     build_ganzhi_key,
     get_cache,
+    invalidate_prefix,
     set_cache,
 )
 from api.core.config import get_settings
 from api.core.exceptions import NotFoundError
 from api.core.logging import get_logger
 from api.infrastructure.database.models import AnalysisCache, HexagramTemplate, ReadingSession
-from api.interfaces.http.schemas.reading import (
-    GanzhiOverride,
-    PaginatedReadings,
-    ReadingCreateRequest,
-    ReadingResponse,
-    ReadingSummary,
-    StatsResponse,
-    TemplateCreateRequest,
-    TemplateResponse,
-    QUESTION_TYPE_LABELS,
-)
+from api.application.use_cases.dto import ReadingCreateCommand, TemplateCreateCommand
 from api.application.use_cases.engine import analyze, should_use_dual
+from liuyao.domain.data import QUESTION_TYPE_LABELS
 
 log = get_logger(__name__)
 settings = get_settings()
@@ -49,16 +41,16 @@ settings = get_settings()
 # ── Create Reading ────────────────────────────────────────────────────────────
 
 async def create_reading(
-    req: ReadingCreateRequest,
+    req: ReadingCreateCommand,
     db: AsyncSession,
-) -> ReadingResponse:
+) -> Dict[str, Any]:
     """Full create-reading flow with cache-aside."""
 
     # 1. Resolve dual flag
     is_dual = should_use_dual(req.question_type, req.is_dual)
 
     # 2. Build fingerprint
-    ganzhi_override_dict = req.ganzhi_override.model_dump() if req.ganzhi_override else None
+    ganzhi_override_dict = req.ganzhi_override
     ganzhi_key = build_ganzhi_key(req.year, req.month, req.day, req.hour, ganzhi_override_dict)
     fingerprint = build_fingerprint(req.yao_values, ganzhi_key, req.question_type, is_dual)
 
@@ -106,15 +98,16 @@ async def create_reading(
     # 8. Persist AnalysisCache (upsert)
     await _upsert_db_cache(db, fingerprint, req.question_type, is_dual, payload)
 
-    # 9. Warm Redis
+    # 9. Warm Redis and invalidate derived collection caches
     await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
+    await _invalidate_reading_collection_caches()
 
     return _payload_to_response(payload, from_cache=False)
 
 
 # ── Get / List ────────────────────────────────────────────────────────────────
 
-async def get_reading(reading_id: uuid.UUID, db: AsyncSession) -> ReadingResponse:
+async def get_reading(reading_id: uuid.UUID, db: AsyncSession) -> Dict[str, Any]:
     row = await db.get(ReadingSession, reading_id)
     if not row:
         raise NotFoundError(f"Reading {reading_id} not found")
@@ -127,11 +120,11 @@ async def list_readings(
     ji_xiong: Optional[str],
     page: int,
     size: int,
-) -> PaginatedReadings:
+) -> Dict[str, Any]:
     cache_key = CacheKey.listing(question_type or "all", page, size)
     cached = await get_cache(cache_key)
     if cached:
-        return PaginatedReadings(**cached)
+        return cached
 
     stmt = select(ReadingSession).order_by(desc(ReadingSession.created_at))
     count_stmt = select(func.count(ReadingSession.id))
@@ -149,10 +142,10 @@ async def list_readings(
     items = [_orm_to_summary(r) for r in rows]
     pages = (total + size - 1) // size
 
-    result = PaginatedReadings(items=items, total=total, page=page, size=size, pages=pages)
+    result = {"items": items, "total": total, "page": page, "size": size, "pages": pages}
 
     # Cache listing for a short TTL
-    await set_cache(cache_key, result.model_dump(mode="json"), settings.CACHE_TTL_HEXAGRAM_LIST)
+    await set_cache(cache_key, result, settings.CACHE_TTL_HEXAGRAM_LIST)
     return result
 
 
@@ -161,15 +154,16 @@ async def delete_reading(reading_id: uuid.UUID, db: AsyncSession) -> None:
     if not row:
         raise NotFoundError(f"Reading {reading_id} not found")
     await db.delete(row)
+    await _invalidate_reading_collection_caches()
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
 
-async def get_stats(db: AsyncSession) -> StatsResponse:
+async def get_stats(db: AsyncSession) -> Dict[str, Any]:
     cache_key = CacheKey.stats()
     cached = await get_cache(cache_key)
     if cached:
-        return StatsResponse(**cached)
+        return cached
 
     total = (await db.execute(select(func.count(ReadingSession.id)))).scalar_one()
 
@@ -196,45 +190,45 @@ async def get_stats(db: AsyncSession) -> StatsResponse:
         )
     ).all()
 
-    result = StatsResponse(
-        total_readings=total,
-        total_by_question_type={qt: cnt for qt, cnt in by_type_rows if qt},
-        total_by_ji_xiong={jx: cnt for jx, cnt in by_jx_rows if jx},
-        top_ben_gua=[{"gua": g, "count": c} for g, c in top_gua_rows if g],
-    )
+    result = {
+        "total_readings": total,
+        "total_by_question_type": {qt: cnt for qt, cnt in by_type_rows if qt},
+        "total_by_ji_xiong": {jx: cnt for jx, cnt in by_jx_rows if jx},
+        "top_ben_gua": [{"gua": g, "count": c} for g, c in top_gua_rows if g],
+        "cache_hit_rate": None,
+    }
 
-    await set_cache(cache_key, result.model_dump(mode="json"), settings.CACHE_TTL_STATS)
+    await set_cache(cache_key, result, settings.CACHE_TTL_STATS)
     return result
 
 
 # ── Template CRUD ─────────────────────────────────────────────────────────────
 
-async def create_template(req: TemplateCreateRequest, db: AsyncSession) -> TemplateResponse:
-    ganzhi_dict = req.ganzhi_override.model_dump() if req.ganzhi_override else None
+async def create_template(req: TemplateCreateCommand, db: AsyncSession) -> Dict[str, Any]:
     tmpl = HexagramTemplate(
         name=req.name,
         description=req.description,
         yao_values=req.yao_values,
-        ganzhi_override=ganzhi_dict,
+        ganzhi_override=req.ganzhi_override,
         cast_hour=req.cast_hour,
         default_question_type=req.default_question_type,
         source_text=req.source_text,
     )
     db.add(tmpl)
     await db.flush()
-    return TemplateResponse.model_validate(tmpl)
+    return _template_to_dict(tmpl)
 
 
-async def list_templates(db: AsyncSession) -> List[TemplateResponse]:
+async def list_templates(db: AsyncSession) -> List[Dict[str, Any]]:
     rows = (await db.execute(select(HexagramTemplate).order_by(HexagramTemplate.created_at))).scalars().all()
-    return [TemplateResponse.model_validate(r) for r in rows]
+    return [_template_to_dict(r) for r in rows]
 
 
-async def get_template(template_id: uuid.UUID, db: AsyncSession) -> TemplateResponse:
+async def get_template(template_id: uuid.UUID, db: AsyncSession) -> Dict[str, Any]:
     row = await db.get(HexagramTemplate, template_id)
     if not row:
         raise NotFoundError(f"Template {template_id} not found")
-    return TemplateResponse.model_validate(row)
+    return _template_to_dict(row)
 
 
 async def delete_template(template_id: uuid.UUID, db: AsyncSession) -> None:
@@ -244,10 +238,19 @@ async def delete_template(template_id: uuid.UUID, db: AsyncSession) -> None:
     await db.delete(row)
 
 
+# ── Cache invalidation ─────────────────────────────────────────────────────────
+
+async def _invalidate_reading_collection_caches() -> None:
+    """Invalidate derived list/stat caches after reading mutations."""
+    deleted_listing = await invalidate_prefix("listing")
+    await invalidate_prefix("stats")
+    log.info("reading_collection_cache_invalidated", listing_deleted=deleted_listing)
+
+
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 def _build_payload(
-    req: ReadingCreateRequest,
+    req: ReadingCreateCommand,
     result: Dict[str, Any],
     is_dual: bool,
 ) -> Dict[str, Any]:
@@ -302,7 +305,7 @@ def _build_payload(
 
 async def _persist_reading_session(
     db: AsyncSession,
-    req: ReadingCreateRequest,
+    req: ReadingCreateCommand,
     result: Dict[str, Any],
     is_dual: bool,
     fingerprint: str,
@@ -320,7 +323,7 @@ async def _persist_reading_session(
         cast_month=req.month,
         cast_day=req.day,
         cast_hour=req.hour,
-        ganzhi_override=req.ganzhi_override.model_dump() if req.ganzhi_override else None,
+        ganzhi_override=req.ganzhi_override,
         # Computed hexagram
         ben_gua_name=meta["ben_gua_name"],
         bian_gua_name=meta["bian_gua_name"],
@@ -377,6 +380,7 @@ async def _upsert_db_cache(
     if existing:
         existing.payload = payload
         existing.hit_count = (existing.hit_count or 0) + 1
+        existing.last_hit_at = datetime.now(timezone.utc)
     else:
         row = AnalysisCache(
             fingerprint=fingerprint,
@@ -387,7 +391,7 @@ async def _upsert_db_cache(
         db.add(row)
 
 
-def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> ReadingResponse:
+def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> Dict[str, Any]:
     data = dict(payload)
     data["from_cache"] = from_cache
 
@@ -398,10 +402,10 @@ def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> ReadingRe
     elif "created_at" not in data:
         data["created_at"] = datetime.now(timezone.utc)
 
-    return ReadingResponse(**data)
+    return data
 
 
-def _orm_to_response(row: ReadingSession) -> ReadingResponse:
+def _orm_to_response(row: ReadingSession) -> Dict[str, Any]:
     lines = row.lines_json or []
     wangshuai = row.wangshuai_json if isinstance(row.wangshuai_json, list) else (row.wangshuai_json or {}).get("results", [])
     yingqi = row.yingqi_json if isinstance(row.yingqi_json, list) else (row.yingqi_json or {}).get("results", [])
@@ -412,46 +416,60 @@ def _orm_to_response(row: ReadingSession) -> ReadingResponse:
         dpj = row.dual_perspectives_json
         perspectives = dpj if isinstance(dpj, list) else dpj.get("perspectives")
 
-    return ReadingResponse(
-        id=row.id,
-        question_type=row.question_type,
-        question_type_label=QUESTION_TYPE_LABELS.get(row.question_type, row.question_type),
-        question=row.question,
-        querent_name=row.querent_name,
-        is_dual=row.is_dual,
-        ben_gua_name=row.ben_gua_name or "",
-        bian_gua_name=row.bian_gua_name or "",
-        palace_name=row.palace_name or "",
-        palace_wu_xing=row.palace_wu_xing or "",
-        xun_kong=list(row.xun_kong or []),
-        gan_zhi=dict(row.gan_zhi or {}),
-        lines=lines,
-        wangshuai=wangshuai,
-        dongbian=row.dongbian_json or {},
-        patterns=row.patterns_json or {},
-        star_spirits=row.star_spirits_json or {},
-        jixiong=row.jixiong_json,
-        yingqi=yingqi,
-        perspectives=perspectives,
-        dual_consensus=row.dual_consensus,
-        report_text=row.report_text,
-        report_readable=row.report_readable,
-        from_cache=False,
-        created_at=row.created_at,
-    )
+    return {
+        "id": row.id,
+        "question_type": row.question_type,
+        "question_type_label": QUESTION_TYPE_LABELS.get(row.question_type, row.question_type),
+        "question": row.question,
+        "querent_name": row.querent_name,
+        "is_dual": row.is_dual,
+        "ben_gua_name": row.ben_gua_name or "",
+        "bian_gua_name": row.bian_gua_name or "",
+        "palace_name": row.palace_name or "",
+        "palace_wu_xing": row.palace_wu_xing or "",
+        "xun_kong": list(row.xun_kong or []),
+        "gan_zhi": dict(row.gan_zhi or {}),
+        "lines": lines,
+        "wangshuai": wangshuai,
+        "dongbian": row.dongbian_json or {},
+        "patterns": row.patterns_json or {},
+        "star_spirits": row.star_spirits_json or {},
+        "jixiong": row.jixiong_json,
+        "yingqi": yingqi,
+        "perspectives": perspectives,
+        "dual_consensus": row.dual_consensus,
+        "report_text": row.report_text,
+        "report_readable": row.report_readable,
+        "from_cache": False,
+        "created_at": row.created_at,
+    }
 
 
-def _orm_to_summary(row: ReadingSession) -> ReadingSummary:
-    return ReadingSummary(
-        id=row.id,
-        question_type=row.question_type,
-        question_type_label=QUESTION_TYPE_LABELS.get(row.question_type, row.question_type),
-        question=row.question,
-        querent_name=row.querent_name,
-        ben_gua_name=row.ben_gua_name,
-        bian_gua_name=row.bian_gua_name,
-        ji_xiong=row.ji_xiong,
-        gua_ju_pattern=row.gua_ju_pattern,
-        is_dual=row.is_dual,
-        created_at=row.created_at,
-    )
+def _orm_to_summary(row: ReadingSession) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "question_type": row.question_type,
+        "question_type_label": QUESTION_TYPE_LABELS.get(row.question_type, row.question_type),
+        "question": row.question,
+        "querent_name": row.querent_name,
+        "ben_gua_name": row.ben_gua_name,
+        "bian_gua_name": row.bian_gua_name,
+        "ji_xiong": row.ji_xiong,
+        "gua_ju_pattern": row.gua_ju_pattern,
+        "is_dual": row.is_dual,
+        "created_at": row.created_at,
+    }
+
+
+def _template_to_dict(row: HexagramTemplate) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "name": row.name,
+        "description": row.description,
+        "yao_values": row.yao_values,
+        "ganzhi_override": row.ganzhi_override,
+        "cast_hour": row.cast_hour,
+        "default_question_type": row.default_question_type,
+        "source_text": row.source_text,
+        "created_at": row.created_at,
+    }

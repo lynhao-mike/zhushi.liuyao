@@ -18,6 +18,7 @@ from api.interfaces.http.schemas.reading import (
 )
 from api.application.use_cases import reading as reading_svc
 from api.core.config import get_settings
+from api.interfaces.http.schemas.mappers import reading_create_command_from_request
 
 settings = get_settings()
 router = APIRouter(prefix="/readings", tags=["readings"])
@@ -47,7 +48,8 @@ async def create_reading(
     req: ReadingCreateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ReadingResponse:
-    return await reading_svc.create_reading(req, db)
+    command = reading_create_command_from_request(req)
+    return await reading_svc.create_reading(command, db)
 
 
 @router.get(

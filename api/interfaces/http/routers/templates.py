@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.infrastructure.database.session import get_db
 from api.interfaces.http.schemas.reading import TemplateCreateRequest, TemplateResponse
+from api.interfaces.http.schemas.mappers import template_create_command_from_request
 from api.application.use_cases import reading as reading_svc
 
 router = APIRouter(prefix="/templates", tags=["templates"])
@@ -28,7 +29,8 @@ async def create_template(
     req: TemplateCreateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TemplateResponse:
-    return await reading_svc.create_template(req, db)
+    command = template_create_command_from_request(req)
+    return await reading_svc.create_template(command, db)
 
 
 @router.get(

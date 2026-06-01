@@ -12,14 +12,12 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
-from dataclasses import asdict, fields
+from time import perf_counter
 from typing import Any, Dict, List, Optional
 
 from api.core.config import get_settings
 from api.core.exceptions import EngineError
 from api.core.logging import get_logger
-from api.interfaces.http.schemas.reading import GanzhiOverride
-
 # Import the existing liuyao library (synchronous)
 from liuyao import (
     Hexagram,
@@ -151,14 +149,26 @@ def _run_analysis_sync(
     meta = _hexagram_meta(h)
 
     try:
+        analysis_started = perf_counter()
         if is_dual:
             dual = run_dual_analysis(h, question_type)
+            analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
+
+            report_started = perf_counter()
             report_text     = format_dual_report(dual)
             report_readable = format_readable_report(dual, meta={
                 "question": question or "",
                 "querent":  querent_name or "",
             })
+            report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
             analysis_data   = _dual_report_to_dict(dual)
+            log.info(
+                "engine_analysis_sync_done",
+                is_dual=True,
+                question_type=question_type,
+                analysis_elapsed_ms=analysis_elapsed_ms,
+                report_elapsed_ms=report_elapsed_ms,
+            )
 
             return {
                 "hexagram_meta":  meta,
@@ -172,12 +182,23 @@ def _run_analysis_sync(
             }
         else:
             report      = run_analysis(h, question_type)
+            analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
+
+            report_started = perf_counter()
             report_text = format_report(report)
             report_readable = format_readable_report(report, meta={
                 "question": question or "",
                 "querent":  querent_name or "",
             })
+            report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
             analysis_data = _report_to_dict(report)
+            log.info(
+                "engine_analysis_sync_done",
+                is_dual=False,
+                question_type=question_type,
+                analysis_elapsed_ms=analysis_elapsed_ms,
+                report_elapsed_ms=report_elapsed_ms,
+            )
 
             return {
                 "hexagram_meta":  meta,
@@ -223,6 +244,7 @@ async def analyze(
     Async entry point. Offloads the CPU-bound analysis to the thread pool.
     """
     loop = asyncio.get_running_loop()
+    started = perf_counter()
     result = await loop.run_in_executor(
         _executor,
         _run_analysis_sync,
@@ -236,6 +258,13 @@ async def analyze(
         ganzhi_override,
         querent_name,
         question,
+    )
+    log.info(
+        "engine_analysis_async_done",
+        question_type=question_type,
+        is_dual=is_dual,
+        elapsed_ms=round((perf_counter() - started) * 1000, 3),
+        thread_pool_size=settings.ENGINE_THREAD_POOL_SIZE,
     )
     return result
 

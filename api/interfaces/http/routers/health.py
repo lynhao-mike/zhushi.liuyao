@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 
 from api.infrastructure.cache.redis_client import get_redis
 from api.core.config import get_settings
-from api.infrastructure.database.session import _engine
+from api.infrastructure.database.session import check_database_health
 
 router = APIRouter(prefix="/health", tags=["health"])
 settings = get_settings()
@@ -35,13 +35,9 @@ async def readiness():
     ok = True
 
     # DB check
-    try:
-        async with _engine.connect() as conn:
-            await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
-        checks["database"] = "ok"
-    except Exception as exc:
-        checks["database"] = f"error: {exc}"
-        ok = False
+    db_ok, db_status = await check_database_health()
+    checks["database"] = db_status
+    ok = ok and db_ok
 
     # Redis check
     r = get_redis()

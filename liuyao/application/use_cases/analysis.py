@@ -23,7 +23,12 @@ from liuyao.domain.jixiong import (
     JI_SHEN_TABLE,
 )
 from liuyao.domain.yingqi import analyze_yingqi
-from liuyao.domain.patterns import analyze_all_patterns
+from liuyao.domain.patterns import (
+    analyze_all_patterns,
+    analyze_perspective_patterns,
+    analyze_structural_patterns,
+    merge_pattern_results,
+)
 from liuyao.domain.exceptions import AnalysisError
 
 log = logging.getLogger(__name__)
@@ -219,7 +224,17 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
                   gua=hexagram.ben_gua_name)
         dual.star_spirits = {}
 
-    # 4-7. 各视角分别完成模式/卦意/吉凶/应期
+    # 4. 与用神无关的结构模式只计算一次, 各视角复用
+    try:
+        shared_structural_patterns = analyze_structural_patterns(
+            hexagram, shared_ws, shared_db,
+        )
+    except Exception:
+        log.error("structural_patterns_analysis_failed", exc_info=True,
+                  gua=hexagram.ben_gua_name, question_type=question_type)
+        shared_structural_patterns = {}
+
+    # 5-8. 各视角分别完成视角模式/卦意/吉凶/应期
     for yong_shen, label in perspectives_config:
         report = AnalysisReport()
         report.hexagram = hexagram
@@ -234,12 +249,15 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.dongbian_results = shared_db
         report.star_spirits = dual.star_spirits
 
-        # 各视角的模式识别 (用神不同, 卦意法/心态卦判定不同)
+        # 各视角仅计算依赖用神/问事类型的模式, 再合并共享结构模式
         try:
-            report.patterns_results = analyze_all_patterns(
-                hexagram, shared_ws, shared_db,
+            perspective_patterns = analyze_perspective_patterns(
+                hexagram, shared_db,
                 yong_shen, report.ji_shen_liu_qin,
                 report.yong_shen_lines, question_type,
+            )
+            report.patterns_results = merge_pattern_results(
+                shared_structural_patterns, perspective_patterns,
             )
         except Exception:
             log.error("patterns_analysis_failed", exc_info=True,

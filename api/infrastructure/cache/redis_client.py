@@ -40,11 +40,14 @@ async def init_redis() -> None:
         max_connections=settings.REDIS_MAX_CONNECTIONS,
         decode_responses=True,
     )
-    _redis = aioredis.Redis(connection_pool=pool)
+    client = aioredis.Redis(connection_pool=pool)
     try:
-        await _redis.ping()
+        await client.ping()
+        _redis = client
         log.info("redis_connected", url=settings.REDIS_URL)
     except Exception as exc:
+        await client.aclose()
+        _redis = None
         log.warning("redis_unavailable", error=str(exc))
 
 
@@ -167,17 +170,23 @@ async def delete_cache(key: str) -> None:
 
 
 async def invalidate_prefix(prefix: str) -> int:
-    """Delete all keys matching prefix:*. Returns count deleted."""
+    """Delete all keys matching prefix:* using SCAN. Returns count deleted."""
     r = get_redis()
     if not r:
         return 0
+    deleted = 0
     try:
-        keys = await r.keys(f"{prefix}:*")
-        if keys:
-            return await r.delete(*keys)
+        cursor = 0
+        pattern = f"{prefix}:*"
+        while True:
+            cursor, keys = await r.scan(cursor=cursor, match=pattern, count=500)
+            if keys:
+                deleted += await r.delete(*keys)
+            if cursor == 0:
+                break
     except Exception as exc:
         log.warning("cache_invalidate_error", prefix=prefix, error=str(exc))
-    return 0
+    return deleted
 
 
 # ── cache_or_compute helper ───────────────────────────────────────────────────
