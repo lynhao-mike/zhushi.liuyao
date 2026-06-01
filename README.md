@@ -51,7 +51,7 @@ zhushi.liuyao/
 ├── examples/
 │   ├── shiwu_fenghuo_feng.py   # 失物占示例：雷火丰（双视角）
 │   └── reports/
-│       └── shiwu_fenghuo_feng.txt  # 上例自动生成的完整报告
+│       └── 20260525_金首饰丢失能否找回_技术报告.txt  # 上例自动生成的技术报告
 ├── tests/
 │   ├── test_hexagram.py   # 排卦引擎测试
 │   └── test_analysis.py   # 分析全流程测试（含双视角，共 110 个用例）

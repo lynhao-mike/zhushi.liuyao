@@ -63,7 +63,7 @@ print("  【技术报告】双视角分析")
 print("━" * 60)
 print(tech_text)
 
-tech_path = os.path.join(REPORTS_DIR, "shiwu_fenghuo_feng.txt")
+tech_path = os.path.join(REPORTS_DIR, "20260525_金首饰丢失能否找回_技术报告.txt")
 with open(tech_path, "w", encoding="utf-8") as f:
     f.write("占问：金首饰丢失能否找回\n")
     f.write("起卦：2026-05-25 14:28  丙午年 癸巳月 己亥日  旬空：辰巳\n")
@@ -87,7 +87,7 @@ print("  【可读性断卦报告】面向客户版")
 print("━" * 60)
 print(readable_text)
 
-readable_path = os.path.join(REPORTS_DIR, "shiwu_fenghuo_feng_readable.txt")
+readable_path = os.path.join(REPORTS_DIR, "20260525_金首饰丢失能否找回_可读性报告.txt")
 with open(readable_path, "w", encoding="utf-8") as f:
     f.write(readable_text)
 print(f"[可读性报告已保存至 {readable_path}]")
