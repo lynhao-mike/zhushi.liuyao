@@ -1,0 +1,196 @@
+# -*- coding: utf-8 -*-
+"""郭丙李 PDF 候选理论案例 fixture。
+
+这些案例来自 docs/reference/new 下的重建批次 Markdown 文档, 只用于验证候选理论的
+元数据、问念分类与“不得污染核心规则”的约束。当前阶段不把这些样本作为
+P0/P1 主规则黄金样本, 也不直接断言最终吉凶。
+"""
+
+CANDIDATE_GBL_CASE_TRAIN_TICKET = {
+    "case_id": "gbl_pdf_p35_train_ticket",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_02_页21-40.md",
+    "source_rebuild_batch": "02",
+    "source_page_range": "21-40",
+    "source_page": 35,
+    "source_title": "抢高铁票",
+    "question": "老婆和我能抢到明天更好班次的高铁票吗？",
+    "question_type": "travel_ticket",
+    "question_intent": "competitive",
+    "candidate_theory_ids": ["T-GBL-002", "T-GBL-012"],
+    "gua_complete_level": "full",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "没有抢到车票。",
+    "expected_candidate_pattern": "抢票/名额竞争语境下, 间爻兄弟发动提示其他乘客竞争阻隔。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["competitive_context", "inter_line_obstruction", "quota_race"],
+    "notes": "已在重建批次_02_页21-40.md 第35页核对来源; 适合作为竞争/抢票候选理论样本, 但进入正式 fixture 前需人工录入完整六爻字段。",
+}
+
+CANDIDATE_GBL_CASE_TIANXI_DISEASE_TRUTH = {
+    "case_id": "gbl_pdf_p87_tianxi_disease_truth",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_05_页81-100.md",
+    "source_rebuild_batch": "05",
+    "source_page_range": "81-100",
+    "source_page": 87,
+    "source_title": "天喜星的应用",
+    "question": "家长占儿子发热, 问是不是患了痘症？",
+    "question_type": "jibing_truth_check",
+    "question_intent": "truth_check",
+    "candidate_theory_ids": ["T-GBL-012", "T-GBL-025"],
+    "gua_complete_level": "full",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "孩子确为痘症相关反馈。",
+    "expected_candidate_pattern": "问是否某病时应先判断担心对象是否成真, 不等同于完整占病吉凶。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["truth_check_context", "star_auxiliary定位", "disease_category_not_life_death"],
+    "notes": "已在重建批次_05_页81-100.md 第87页核对来源; 用于约束 T-GBL-025: 疾病类别判断不得直接泛化为生死吉凶判断。",
+}
+
+CANDIDATE_GBL_CASE_LOST_DOG_PHONE = {
+    "case_id": "gbl_pdf_p128_lost_dog_phone",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_07_页121-139.md",
+    "source_rebuild_batch": "07",
+    "source_page_range": "121-139",
+    "source_page": 128,
+    "source_title": "来自隔壁居民楼的电话",
+    "question": "哪里能找到走失的小狗？",
+    "question_type": "xunwu_pet",
+    "question_intent": "location_detail",
+    "candidate_theory_ids": ["T-GBL-026", "T-GBL-012"],
+    "gua_complete_level": "full",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "小狗在家附近居民楼被发现, 好心人看到告示后电话联系卦主。",
+    "expected_candidate_pattern": "寻宠可用家附近、居民楼、电话、告示等另显信息辅助定位。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["lost_pet_location", "near_home", "phone_notice_detail"],
+    "notes": "已在重建批次_07_页121-139.md 第128页核对来源; 适合作为寻宠细节定位样本, 初期只验证候选提示与元数据。",
+}
+
+CANDIDATE_GBL_CASE_NATIONAL_DAY_HOLIDAY = {
+    "case_id": "gbl_pdf_p14_national_day_holiday",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_01_页1-20.md",
+    "source_rebuild_batch": "01",
+    "source_page_range": "1-20",
+    "source_page": 14,
+    "source_title": "国庆厂里放假吗",
+    "question": "国庆厂里放假吗？",
+    "question_type": "work_holiday",
+    "question_intent": "worry",
+    "candidate_theory_ids": ["T-GBL-012", "T-GBL-025"],
+    "gua_complete_level": "full",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "国庆放假。",
+    "expected_candidate_pattern": "不确定是否放假而起卦, 可按心态卦识别主观期盼与应爻子孙放心信息。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["worry_context", "holiday_truth_check", "mindset_gua"],
+    "notes": "已在重建批次_01_页1-20.md 第14页核对来源; 用于补充日常小事中的心态卦/真假确认样本。",
+}
+
+CANDIDATE_GBL_CASE_LOST_BOOK_CHILD_HELP = {
+    "case_id": "gbl_pdf_p42_lost_book_child_help",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_03_页41-60.md",
+    "source_rebuild_batch": "03",
+    "source_page_range": "41-60",
+    "source_page": 42,
+    "source_title": "孩子是寻物的好帮手",
+    "question": "某本书是否在去年搬办公室时拿到单位仓库, 还是仍在家里？",
+    "question_type": "xunwu_book",
+    "question_intent": "location_detail",
+    "candidate_theory_ids": ["T-GBL-012", "T-GBL-026"],
+    "gua_complete_level": "text_only",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "书由女儿从家中书架相关位置找出。",
+    "expected_candidate_pattern": "寻物卦中子孙局克忧虑鬼, 可提示由孩子/晚辈协助找回物品。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["lost_item_location", "child_helper", "mindset_gua"],
+    "notes": "已在重建批次_03_页41-60.md 第42页核对来源; 用于补充寻物定位中孩子协助的候选提示。",
+}
+
+CANDIDATE_GBL_CASE_TRAVEL_SNOW_SAFETY = {
+    "case_id": "gbl_pdf_p65_travel_snow_safety",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_04_页61-80.md",
+    "source_rebuild_batch": "04",
+    "source_page_range": "61-80",
+    "source_page": 65,
+    "source_title": "感悟“逢劫必停”",
+    "question": "明天下雪天开车去郑州路上是否安全？",
+    "question_type": "travel_safety",
+    "question_intent": "worry",
+    "candidate_theory_ids": ["T-GBL-012", "T-GBL-027"],
+    "gua_complete_level": "text_only",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "路上安全但多处堵车, 走走停停较疲惫。",
+    "expected_candidate_pattern": "劫煞可作为阻滞/停顿细节提示, 但不应直接覆盖安全吉凶定性。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["travel_worry", "jie_sha_delay", "detail_not_core_jixiong"],
+    "notes": "已在重建批次_04_页61-80.md 第65页核对来源; 用于补充星煞只作细节提示的边界样本。",
+}
+
+CANDIDATE_GBL_CASE_TRAFFIC_JAM_TIMING = {
+    "case_id": "gbl_pdf_p113_traffic_jam_timing",
+    "source": "gbl_pdf_candidate",
+    "source_pdf": "docs/reference/郭丙李六爻实战案例汇总_20260421更新.pdf",
+    "source_rebuild_doc": "docs/reference/new/郭丙李六爻实战案例汇总_重建批次_06_页101-120.md",
+    "source_rebuild_batch": "06",
+    "source_page_range": "101-120",
+    "source_page": 113,
+    "source_title": "感悟心态卦形式的应期卦",
+    "question": "堵车什么时候能通车？",
+    "question_type": "traffic_timing",
+    "question_intent": "timing",
+    "candidate_theory_ids": ["T-GBL-016", "T-GBL-012"],
+    "gua_complete_level": "text_only",
+    "feedback_quality": "objective_high",
+    "expected_outcome": "次日中午 12:30 左右开始逐步通车。",
+    "expected_candidate_pattern": "应期卦可呈现心态卦结构, 用冲去忧虑鬼与子孙发力辅助判断通车时间。",
+    "should_affect_core_judgement": False,
+    "validation_status": "candidate",
+    "candidate_hints": ["timing_context", "mindset_timing", "traffic_blockage"],
+    "notes": "已在重建批次_06_页101-120.md 第113页核对来源; 用于补充心态卦形式应期样本。",
+}
+
+CANDIDATE_GBL_CASES = [
+    CANDIDATE_GBL_CASE_NATIONAL_DAY_HOLIDAY,
+    CANDIDATE_GBL_CASE_TRAIN_TICKET,
+    CANDIDATE_GBL_CASE_LOST_BOOK_CHILD_HELP,
+    CANDIDATE_GBL_CASE_TRAVEL_SNOW_SAFETY,
+    CANDIDATE_GBL_CASE_TIANXI_DISEASE_TRUTH,
+    CANDIDATE_GBL_CASE_TRAFFIC_JAM_TIMING,
+    CANDIDATE_GBL_CASE_LOST_DOG_PHONE,
+]
+
+CANDIDATE_GBL_CASES_BY_ID = {case["case_id"]: case for case in CANDIDATE_GBL_CASES}
+
+CANDIDATE_GBL_ALLOWED_INTENTS = {
+    "worry",
+    "choice",
+    "competitive",
+    "truth_check",
+    "timing",
+    "location_detail",
+}
+
+CANDIDATE_GBL_ALLOWED_QUALITY = {
+    "objective_high",
+    "objective_medium",
+    "subjective_low",
+    "no_feedback",
+}
