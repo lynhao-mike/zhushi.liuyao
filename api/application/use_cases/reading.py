@@ -33,6 +33,7 @@ from api.infrastructure.database.models import AnalysisCache, HexagramTemplate, 
 from api.application.use_cases.dto import ReadingCreateCommand, TemplateCreateCommand
 from api.application.use_cases.engine import analyze, should_use_dual
 from liuyao.domain.data import QUESTION_TYPE_LABELS
+from liuyao.report_archive import archive_reports
 
 log = get_logger(__name__)
 settings = get_settings()
@@ -60,6 +61,7 @@ async def create_reading(
     cached_payload = await get_cache(cache_key)
     if cached_payload:
         log.info("reading_cache_hit", fingerprint=fingerprint)
+        _ensure_report_files(cached_payload)
         return _payload_to_response(cached_payload, from_cache=True)
 
     # 4. Check persistent analysis cache (DB layer)
@@ -67,6 +69,7 @@ async def create_reading(
     if db_cache:
         log.info("reading_db_cache_hit", fingerprint=fingerprint)
         payload = db_cache.payload
+        _ensure_report_files(payload)
         # Warm Redis back up
         await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
         return _payload_to_response(payload, from_cache=True)
@@ -249,6 +252,32 @@ async def _invalidate_reading_collection_caches() -> None:
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
+def _ensure_report_files(payload: Dict[str, Any]) -> None:
+    if payload.get("report_files"):
+        return
+    payload["report_files"] = archive_reports(
+        report_text=payload.get("report_text"),
+        report_readable=payload.get("report_readable"),
+        meta={
+            "question": payload.get("question") or "",
+            "querent": payload.get("querent_name") or "",
+            "hexagram_input": {
+                "question": payload.get("question") or "",
+                "querent": payload.get("querent_name") or "",
+                "question_type": payload.get("question_type"),
+                "is_dual": payload.get("is_dual"),
+                "gan_zhi": payload.get("gan_zhi"),
+                "xun_kong": payload.get("xun_kong"),
+                "ben_gua_name": payload.get("ben_gua_name"),
+                "bian_gua_name": payload.get("bian_gua_name"),
+                "palace_name": payload.get("palace_name"),
+                "palace_wu_xing": payload.get("palace_wu_xing"),
+                "lines": payload.get("lines"),
+            },
+        },
+    )
+
+
 def _build_payload(
     req: ReadingCreateCommand,
     result: Dict[str, Any],
@@ -279,6 +308,7 @@ def _build_payload(
         # Reports
         "report_text":     result.get("report_text"),
         "report_readable": result.get("report_readable"),
+        "report_files":    result.get("report_files", []),
     }
 
     if is_dual:
@@ -416,6 +446,32 @@ def _orm_to_response(row: ReadingSession) -> Dict[str, Any]:
         dpj = row.dual_perspectives_json
         perspectives = dpj if isinstance(dpj, list) else dpj.get("perspectives")
 
+    report_files = archive_reports(
+        report_text=row.report_text,
+        report_readable=row.report_readable,
+        meta={
+            "question": row.question or "",
+            "querent": row.querent_name or "",
+            "hexagram_input": {
+                "question": row.question or "",
+                "querent": row.querent_name or "",
+                "question_type": row.question_type,
+                "is_dual": row.is_dual,
+                "date": f"{row.cast_year:04d}-{row.cast_month:02d}-{row.cast_day:02d}" if row.cast_year and row.cast_month and row.cast_day else None,
+                "hour": row.cast_hour,
+                "yao_values": row.yao_values,
+                "ganzhi_override": row.ganzhi_override,
+                "gan_zhi": dict(row.gan_zhi or {}),
+                "xun_kong": list(row.xun_kong or []),
+                "ben_gua_name": row.ben_gua_name or "",
+                "bian_gua_name": row.bian_gua_name or "",
+                "palace_name": row.palace_name or "",
+                "palace_wu_xing": row.palace_wu_xing or "",
+                "lines": lines,
+            },
+        },
+    )
+
     return {
         "id": row.id,
         "question_type": row.question_type,
@@ -440,6 +496,7 @@ def _orm_to_response(row: ReadingSession) -> Dict[str, Any]:
         "dual_consensus": row.dual_consensus,
         "report_text": row.report_text,
         "report_readable": row.report_readable,
+        "report_files": report_files,
         "from_cache": False,
         "created_at": row.created_at,
     }
