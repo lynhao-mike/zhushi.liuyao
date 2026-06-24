@@ -29,8 +29,12 @@ from api.infrastructure.cache.redis_client import (
 from api.core.config import get_settings
 from api.core.exceptions import NotFoundError
 from api.core.logging import get_logger
-from api.infrastructure.database.models import AnalysisCache, HexagramTemplate, ReadingSession
-from api.application.use_cases.dto import ReadingCreateCommand, TemplateCreateCommand
+from api.infrastructure.database.models import AnalysisCache, HexagramTemplate, ReadingFeedback, ReadingSession
+from api.application.use_cases.dto import (
+    ReadingCreateCommand,
+    ReadingFeedbackCreateCommand,
+    TemplateCreateCommand,
+)
 from api.application.use_cases.engine import analyze, should_use_dual
 from liuyao.domain.data import QUESTION_TYPE_LABELS
 
@@ -155,6 +159,29 @@ async def delete_reading(reading_id: uuid.UUID, db: AsyncSession) -> None:
         raise NotFoundError(f"Reading {reading_id} not found")
     await db.delete(row)
     await _invalidate_reading_collection_caches()
+
+
+# ── Feedback ──────────────────────────────────────────────────────────────────
+
+async def create_reading_feedback(
+    reading_id: uuid.UUID,
+    req: ReadingFeedbackCreateCommand,
+    db: AsyncSession,
+) -> Dict[str, Any]:
+    row = await db.get(ReadingSession, reading_id)
+    if not row:
+        raise NotFoundError(f"Reading {reading_id} not found")
+
+    feedback = ReadingFeedback(
+        reading_id=reading_id,
+        actual_outcome=req.actual_outcome,
+        feedback_text=req.feedback_text,
+        status="submitted",
+        original_judgement=row.jixiong_json,
+    )
+    db.add(feedback)
+    await db.flush()
+    return _feedback_to_dict(feedback)
 
 
 # ── Stats ─────────────────────────────────────────────────────────────────────
@@ -397,7 +424,6 @@ def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> Dict[str,
 
     # Ensure created_at is a datetime
     if isinstance(data.get("created_at"), str):
-        from datetime import datetime
         data["created_at"] = datetime.fromisoformat(data["created_at"])
     elif "created_at" not in data:
         data["created_at"] = datetime.now(timezone.utc)
@@ -458,6 +484,18 @@ def _orm_to_summary(row: ReadingSession) -> Dict[str, Any]:
         "gua_ju_pattern": row.gua_ju_pattern,
         "is_dual": row.is_dual,
         "created_at": row.created_at,
+    }
+
+
+def _feedback_to_dict(row: ReadingFeedback) -> Dict[str, Any]:
+    return {
+        "id": row.id,
+        "reading_id": row.reading_id,
+        "actual_outcome": row.actual_outcome,
+        "feedback_text": row.feedback_text,
+        "status": row.status,
+        "original_judgement": row.original_judgement,
+        "created_at": row.created_at or datetime.now(timezone.utc),
     }
 
 

@@ -725,6 +725,27 @@ def _readable_conclusion(dual_report):
     return lines
 
 
+def _readable_feedback_calibration_lines(analysis):
+    """根据候选反馈样本沉淀报告层表达校准提示, 不改变核心吉凶。"""
+    lines = []
+    is_dual = hasattr(analysis, "perspectives") and analysis.perspectives
+
+    if is_dual and getattr(analysis, "question_type", "") == "shiwu":
+        ji_set = {p.jixiong_result.get("ji_xiong") for p in analysis.perspectives}
+        if "凶" in ji_set and ji_set != {"吉"}:
+            lines.append("  · 失物反馈校准：卦中即使出现近身、低处、原路线等线索象，")
+            lines.append("    也只能作为查找方向；当视角分歧或存在凶象时，不应把线索象直接等同于可找回。")
+
+    if not is_dual and getattr(analysis, "question_type", "") in {"hun_male", "hun_female"}:
+        ying_line = getattr(analysis, "ying_line", None)
+        ji_xiong = (getattr(analysis, "jixiong_result", {}) or {}).get("ji_xiong")
+        if ji_xiong == "吉" and getattr(ying_line, "is_xun_kong", False):
+            lines.append("  · 感情应期校准：方向趋吉不等于当天彻底恢复；应爻旬空时，")
+            lines.append("    宜区分即时缓和与真正恢复，真正转暖多待出空或数日内落实。")
+
+    return lines
+
+
 def format_readable_report(analysis, meta=None):
     """
     生成面向客户的可读性断卦报告。
@@ -882,6 +903,11 @@ def format_readable_report(analysis, meta=None):
     out.append("▌ 六、综合结论")
     out.append("─" * (W + 2))
     out.extend(_readable_conclusion(analysis))
+    calibration_lines = _readable_feedback_calibration_lines(analysis)
+    if calibration_lines:
+        out.append("")
+        out.append("  反馈校准提示：")
+        out.extend(calibration_lines)
     out.append("")
 
     # ── 七、建议 ──────────────────────────────────────────────────────

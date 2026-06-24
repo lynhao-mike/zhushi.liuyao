@@ -3,6 +3,7 @@ SQLAlchemy ORM models.
 
 Schema design principles:
   - ReadingSession  : core aggregate — one row per divination reading.
+  - ReadingFeedback : user-submitted actual outcome/feedback for a reading.
   - HexagramTemplate: reusable named hexagram configurations (optional convenience).
   - AnalysisCache   : denormalized cache table for repeated identical readings
                       (supplements Redis; survives restarts).
@@ -111,6 +112,11 @@ class ReadingSession(Base):
         onupdate=_utcnow, server_default=func.now()
     )
 
+    # ── Relationships ─────────────────────────────────────────────────
+    feedbacks: Mapped[list["ReadingFeedback"]] = relationship(
+        back_populates="reading", cascade="all, delete-orphan"
+    )
+
     # ── Indexes ───────────────────────────────────────────────────────
     __table_args__ = (
         Index("ix_reading_sessions_created_at", "created_at"),
@@ -120,6 +126,34 @@ class ReadingSession(Base):
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<ReadingSession {self.id} {self.ben_gua_name} {self.ji_xiong}>"
+
+
+# ── ReadingFeedback ───────────────────────────────────────────────────────────
+
+class ReadingFeedback(Base):
+    """User feedback for a completed reading."""
+
+    __tablename__ = "reading_feedbacks"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    reading_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("reading_sessions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    actual_outcome: Mapped[str] = mapped_column(Text, nullable=False)
+    feedback_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(32), default="submitted", nullable=False, index=True)
+    original_judgement: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow, server_default=func.now()
+    )
+
+    reading: Mapped[ReadingSession] = relationship(back_populates="feedbacks")
+
+    __table_args__ = (
+        Index("ix_reading_feedbacks_status_created", "status", "created_at"),
+    )
 
 
 # ── AnalysisCache ─────────────────────────────────────────────────────────────
