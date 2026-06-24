@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Extract candidate classic Liuyao judgements from reference markdown files."""
+"""Extract candidate classic Liuyao judgements from 《黄金策》 reference markdown files."""
 
 from __future__ import annotations
 
@@ -15,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "data" / "classic_judgements.jsonl"
 SOURCE_DIRS = {
     "huangjince": ROOT / "docs" / "reference" / "huangjince",
-    "yimao": ROOT / "docs" / "reference" / "yimao",
 }
 
 JUDGEMENT_KEYWORDS = (

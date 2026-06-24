@@ -10,6 +10,7 @@ from .data import (
     WU_XING_SHENG, WU_XING_KE,
 )
 from .rules import P0_RULES, RuleContext, RuleEngine
+from .rules.dynamic_rules import evaluate_dynamic_classic_rules
 
 
 # 用神选择表: 问事类型 -> 用神六亲
@@ -236,9 +237,12 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         month_zhi=month_zhi,
         day_zhi=day_zhi,
     )
+    def with_classic_candidates(result):
+        return _attach_classic_rule_candidates(result, rule_context)
+
     rule_result = RuleEngine(P0_RULES).evaluate(rule_context)
     if rule_result:
-        return rule_result.to_jixiong()
+        return with_classic_candidates(rule_result.to_jixiong())
 
     # =========================================================================
     # 特例检查 (优先于一般规则)
@@ -249,7 +253,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         month_zhi, day_zhi
     )
     if special:
-        return special
+        return with_classic_candidates(special)
 
     # =========================================================================
     # 按照传统理论优先级判断:
@@ -262,11 +266,11 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
 
     # 1. 世用受克局: 用神与世重叠, 受动爻克 (最严重, 优先判断)
     if yong_is_shi and shi_interaction["受克"]:
-        return {
+        return with_classic_candidates({
             "pattern": "世用受克局",
             "ji_xiong": "凶",
             "explanation": f"用神持世, 受动爻克({', '.join(shi_interaction['受克'])}), 凶",
-        }
+        })
 
     # 2. 世爻受伤局: 世受有用动爻克, 或世动化衰
     shi_hurt = False
@@ -290,73 +294,85 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
 
     # If world is hurt, it overrides auspicious patterns (用旺世兴 etc.)
     if shi_hurt:
-        return shi_hurt_result
+        return with_classic_candidates(shi_hurt_result)
 
     # 3. 世用受生局: 用神与世重叠, 受有用动爻生
     if yong_is_shi and shi_interaction["受生"]:
-        return {
+        return with_classic_candidates({
             "pattern": "世用受生局",
             "ji_xiong": "吉",
             "explanation": f"用神持世, 受动爻生({', '.join(shi_interaction['受生'])}), 大吉",
-        }
+        })
 
     # 4. 用神生世局: 用神为有用动爻且生世
     if primary_yong.is_moving and primary_yong.position in useful_moving:
         if WU_XING_SHENG[yong_wx] == shi_wx:
-            return {
+            return with_classic_candidates({
                 "pattern": "用神生世局",
                 "ji_xiong": "吉",
                 "explanation": f"用神{primary_yong.di_zhi}{yong_wx}动而生世爻{shi_line.di_zhi}{shi_wx}, 吉",
-            }
+            })
 
     # 5. 用旺世衰局
     if yong_is_wang and not shi_has_support:
-        return {
+        return with_classic_candidates({
             "pattern": "用旺世衰局",
             "ji_xiong": "凶",
             "explanation": "用神旺但世爻无日月扶助, 事可成但于己不利",
-        }
+        })
 
     # 6. 用神克世局
     if primary_yong.is_moving and primary_yong.position in useful_moving:
         if WU_XING_KE[yong_wx] == shi_wx:
-            return {
+            return with_classic_candidates({
                 "pattern": "用神克世局",
                 "ji_xiong": "凶",
                 "explanation": f"用神{primary_yong.di_zhi}{yong_wx}动克世爻{shi_line.di_zhi}{shi_wx}, 凶",
-            }
+            })
 
     # 7. 用旺世兴局
     if yong_is_wang and shi_has_support:
-        return {
+        return with_classic_candidates({
             "pattern": "用旺世兴局",
             "ji_xiong": "吉",
             "explanation": f"用神旺相, 世爻得日月扶助, 吉",
-        }
+        })
 
     # 8. 动兆临日月: 用神发动且变出临日/月, 以动兆得令优先于静态衰败。
     primary_moving = moving_analyses.get(primary_yong.position, {})
     if primary_yong.is_moving and "化出临日月" in primary_moving.get("趋旺", []):
-        return {
+        return with_classic_candidates({
             "pattern": "用神动化临日月",
             "ji_xiong": "吉",
             "explanation": f"用神{primary_yong.di_zhi}{yong_wx}发动, 变出临日月, 动兆得令为吉",
-        }
+        })
 
     # 9. 用神衰败局
     if yong_is_shuai:
-        return {
+        return with_classic_candidates({
             "pattern": "用神衰败局",
             "ji_xiong": "凶",
             "explanation": f"用神{primary_yong.di_zhi}{yong_wx}衰弱({primary_yong_ws['details']}), 凶",
-        }
+        })
 
     # 无明显吉凶模式
-    return {
+    return with_classic_candidates({
         "pattern": "平局",
         "ji_xiong": "平",
         "explanation": "卦局平和, 无明显吉凶倾向",
-    }
+    })
+
+
+def _attach_classic_rule_candidates(result, rule_context):
+    """附加《黄金策》动态候选规则证据, 不改变既有吉凶主判。"""
+    if not result:
+        return result
+    candidates = evaluate_dynamic_classic_rules(rule_context)
+    if not candidates:
+        return result
+    enriched = dict(result)
+    enriched["classic_rule_candidates"] = [candidate.to_jixiong() for candidate in candidates]
+    return enriched
 
 
 def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,

@@ -9,6 +9,7 @@
 
 from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
 from liuyao.domain.classic_judgements import search_classic_judgements
+from liuyao.domain.classic_imagery import search_classic_imagery
 from liuyao.application.use_cases.analysis import build_verdict, GUA_JU_BAIHUA
 
 # 问事类型中文名 (从 data 模块导入, 此处保留别名以兼容模块内引用)
@@ -167,6 +168,44 @@ def _format_rule_review_lines(jixiong_result):
     return lines
 
 
+def _classic_rule_candidate_source(candidate):
+    """提取动态经典候选规则来源信息。"""
+    for item in candidate.get("evidence") or []:
+        if item.get("source"):
+            source_file = item.get("source_file", "")
+            line_start = item.get("line_start", "")
+            review_status = item.get("review_status", "")
+            if source_file and line_start:
+                return f"来源：{source_file}:{line_start}；状态：{review_status}"
+    return ""
+
+
+def _format_classic_rule_candidate_lines(jixiong_result, *, indent="  ", limit=3):
+    """格式化动态经典候选规则证据; 只展示, 不改变吉凶主判。"""
+    candidates = jixiong_result.get("classic_rule_candidates") or []
+    if not candidates:
+        return []
+
+    lines = [f"{indent}经典候选规则参考（不改判）:"]
+    for candidate in candidates[:limit]:
+        ji_xiong = candidate.get("ji_xiong", "平")
+        pattern = candidate.get("pattern", "经典候选")
+        explanation = candidate.get("explanation", "")
+        lines.append(f"{indent}  · 【{ji_xiong}】{pattern}: {explanation}")
+
+        meta_parts = []
+        if candidate.get("rule_id"):
+            meta_parts.append(f"规则：{candidate['rule_id']}")
+        if candidate.get("theory_id"):
+            meta_parts.append(f"理论：{candidate['theory_id']}")
+        source = _classic_rule_candidate_source(candidate)
+        if source:
+            meta_parts.append(source)
+        meta_parts.append("仅作候选证据")
+        lines.append(f"{indent}    {'；'.join(meta_parts)}。")
+    return lines
+
+
 def _format_jixiong_block(jixiong_result):
     """格式化吉凶判断段落"""
     lines = []
@@ -181,6 +220,9 @@ def _format_jixiong_block(jixiong_result):
     review_lines = _format_rule_review_lines(jx)
     if review_lines:
         lines.extend(review_lines)
+    candidate_lines = _format_classic_rule_candidate_lines(jx)
+    if candidate_lines:
+        lines.extend(candidate_lines)
     lines.append("")
     return lines
 
@@ -456,6 +498,9 @@ def _format_perspective_block(idx, perspective):
     lines.append(f"    卦局: {jx.get('pattern', '-')}")
     lines.append(f"    判断: 【{ji_xiong_mark}】")
     lines.append(f"    解释: {jx.get('explanation', '-')}")
+    candidate_lines = _format_classic_rule_candidate_lines(jx, indent="    ")
+    if candidate_lines:
+        lines.extend(candidate_lines)
 
     # 应期摘要 (仅展示前2个用神爻, 各最多3个候选)
     if p.yingqi_results:
@@ -840,7 +885,7 @@ def _readable_classic_reference_lines(analysis, limit=3):
         if _classic_reference_is_relevant(reference, question_type)
     ][:limit]
 
-    source_names = {"huangjince": "黄金策", "yimao": "易冒"}
+    source_names = {"huangjince": "黄金策"}
     lines = []
     for reference in references:
         source_name = source_names.get(reference.source, reference.source)
@@ -852,6 +897,56 @@ def _readable_classic_reference_lines(analysis, limit=3):
         )
     return lines
 
+
+_CLASSIC_IMAGERY_REQUIRED_SECTIONS = {
+    "hun_male": ("六亲", "世应", "五行", "用神"),
+    "cai": ("六亲", "五行", "用神"),
+    "shiwu": ("六亲", "六神", "方位", "五行", "用神"),
+    "bing": ("六亲", "六神", "五行", "用神"),
+    "kaoshi": ("六亲", "五行", "用神"),
+    "chuxing": ("六亲", "六神", "方位", "五行", "用神"),
+}
+
+_CLASSIC_IMAGERY_MAX_TEXT_LENGTH = 86
+
+
+def _classic_imagery_is_relevant(imagery, question_type):
+    """报告层象法相关性过滤; 只影响展示, 不参与核心吉凶。"""
+    if imagery.source != "yimao":
+        return False
+    if not question_type:
+        return True
+    section = imagery.section or ""
+    required_sections = _CLASSIC_IMAGERY_REQUIRED_SECTIONS.get(question_type)
+    if required_sections and not any(term in section for term in required_sections):
+        return False
+    return True
+
+
+def _readable_classic_imagery_lines(analysis, limit=2):
+    """生成经典象法参考段落; 仅辅助取象解释, 不改变核心吉凶。"""
+    keywords = _classic_reference_keywords(analysis)
+    question_type = _classic_reference_question_type(getattr(analysis, "question_type", ""))
+    search_limit = max(limit * 100, 100)
+    imagery_records = search_classic_imagery(keywords, question_type=question_type, limit=search_limit)
+    if not imagery_records and question_type:
+        imagery_records = search_classic_imagery(keywords, limit=search_limit)
+    imagery_records = [
+        imagery for imagery in imagery_records
+        if _classic_imagery_is_relevant(imagery, question_type)
+    ][:limit]
+
+    source_names = {"yimao": "易冒"}
+    lines = []
+    for imagery in imagery_records:
+        source_name = source_names.get(imagery.source, imagery.source)
+        section = f"·{imagery.section}" if imagery.section else ""
+        text = _shorten_classic_reference_text(imagery.raw_text, _CLASSIC_IMAGERY_MAX_TEXT_LENGTH)
+        lines.append(f"  · 《{source_name}》{section}：{text}")
+        lines.append(
+            f"    来源：{imagery.source_file}:{imagery.line_start}；类型：{imagery.imagery_type}；状态：{imagery.review_status}；仅作象法参考。"
+        )
+    return lines
 
 
 def _readable_feedback_calibration_lines(analysis):
@@ -1061,6 +1156,9 @@ def format_readable_report(analysis, meta=None):
             review_lines = _format_rule_review_lines(jx)
             if review_lines:
                 out.extend(review_lines)
+            candidate_lines = _format_classic_rule_candidate_lines(jx)
+            if candidate_lines:
+                out.extend(candidate_lines)
             out.append("")
     else:
         ys = analysis.yong_shen_liu_qin
@@ -1088,6 +1186,9 @@ def format_readable_report(analysis, meta=None):
         review_lines = _format_rule_review_lines(jx)
         if review_lines:
             out.extend(review_lines)
+        candidate_lines = _format_classic_rule_candidate_lines(jx)
+        if candidate_lines:
+            out.extend(candidate_lines)
         out.append("")
 
     # ── 六、综合结论 ──────────────────────────────────────────────────
@@ -1099,6 +1200,11 @@ def format_readable_report(analysis, meta=None):
         out.append("")
         out.append("  经典断语参考：")
         out.extend(classic_reference_lines)
+    classic_imagery_lines = _readable_classic_imagery_lines(analysis)
+    if classic_imagery_lines:
+        out.append("")
+        out.append("  经典象法参考：")
+        out.extend(classic_imagery_lines)
     calibration_lines = _readable_feedback_calibration_lines(analysis)
     if calibration_lines:
         out.append("")

@@ -1,0 +1,192 @@
+{
+  "by_compilability": {
+    "auto_compilable": 13,
+    "not_compilable": 210
+  },
+  "by_polarity": {
+    "中性": 64,
+    "凶": 61,
+    "吉": 77,
+    "待审": 21
+  },
+  "by_question_type": {
+    "bing": 26,
+    "cai": 13,
+    "chuxing": 42,
+    "hun_male": 32,
+    "kaoshi": 19,
+    "other": 97,
+    "shiwu": 17
+  },
+  "compiled_drafts": 13,
+  "manual_compile_drafts": 210,
+  "queue_size": 210,
+  "runtime_isolation": {
+    "audit_outputs": [
+      "data/huangjince_dynamic_rule_draft_audit.json",
+      "data/huangjince_dynamic_rule_compile_queue.jsonl"
+    ],
+    "candidate_rules_path": "data/huangjince_candidate_rules.jsonl",
+    "note": "审计队列不被默认动态规则加载器读取；只有人工编译后写入候选规则库才可能参与候选证据层。"
+  },
+  "source": "huangjince_dynamic_rule_drafts",
+  "top_queue_candidates": [
+    {
+      "compile_priority_score": 37,
+      "draft_id": "draft_classic_huangjince_774d6b5442e0",
+      "line_start": 644,
+      "queue_id": "compile_queue_classic_huangjince_774d6b5442e0",
+      "reasons": [
+        "含 6 个现有事实抽取器可支持关键词",
+        "高价值章节：婚姻",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：hun_male",
+        "断语可按分句拆解"
+      ],
+      "section": "婚姻",
+      "source_text": "鬼克飞爻，果信绿窗之难嫁；官合财位，方知绮席之易婚。"
+    },
+    {
+      "compile_priority_score": 34,
+      "draft_id": "draft_classic_huangjince_842294dae5a5",
+      "line_start": 205,
+      "queue_id": "compile_queue_classic_huangjince_842294dae5a5",
+      "reasons": [
+        "含 5 个现有事实抽取器可支持关键词",
+        "高价值章节：总断千金赋",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：bing,chuxing",
+        "断语可按分句拆解"
+      ],
+      "section": "总断千金赋",
+      "source_text": "朱雀本口舌之神，然须兄弟；疾病大宜天喜，若临凶杀，必生悲。出行最怕往亡，如系吉神终获利，是故吉凶神杀之多端，何如生克制化之一理。"
+    },
+    {
+      "compile_priority_score": 31,
+      "draft_id": "draft_classic_huangjince_796f36528440",
+      "line_start": 325,
+      "queue_id": "compile_queue_classic_huangjince_796f36528440",
+      "reasons": [
+        "含 8 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：吉",
+        "可绑定问事类型：hun_male,shiwu",
+        "断语可按分句拆解"
+      ],
+      "section": "年时",
+      "source_text": "世还为地，逢空则人物多灾。太岁逢兄乘旺，有温州之大飓，流年值鬼带刑，成汉寝之轰雷。发动妻财，旱若成汤之日；交重父母，涝如尧帝之时。"
+    },
+    {
+      "compile_priority_score": 31,
+      "draft_id": "draft_classic_huangjince_9131a6def71f",
+      "line_start": 596,
+      "queue_id": "compile_queue_classic_huangjince_9131a6def71f",
+      "reasons": [
+        "含 7 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：吉",
+        "可绑定问事类型：chuxing",
+        "断语可按分句拆解"
+      ],
+      "section": "求名书读五车",
+      "source_text": "世动化空用旺，则豹变翻成蝶梦；"
+    },
+    {
+      "compile_priority_score": 31,
+      "draft_id": "draft_classic_huangjince_29246f027d2f",
+      "line_start": 848,
+      "queue_id": "compile_queue_classic_huangjince_29246f027d2f",
+      "reasons": [
+        "含 6 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：吉",
+        "可绑定问事类型：hun_male",
+        "断语可按分句拆解"
+      ],
+      "section": "娼家养身于花柳之中",
+      "source_text": "子慎防倾倒；官如墓绝，探花郎那得栖迟。妻财官鬼二者不可相应，财鬼父兄子孙皆宜"
+    },
+    {
+      "compile_priority_score": 30,
+      "draft_id": "draft_classic_huangjince_29689992226e",
+      "line_start": 162,
+      "queue_id": "compile_queue_classic_huangjince_29689992226e",
+      "reasons": [
+        "含 5 个现有事实抽取器可支持关键词",
+        "高价值章节：总断千金赋",
+        "吉凶倾向较明确：中性"
+      ],
+      "section": "总断千金赋",
+      "source_text": "杀生身莫将吉断，用克世勿作凶看，盖生中有刑害之两防，而合处有克伤之一虑。"
+    },
+    {
+      "compile_priority_score": 30,
+      "draft_id": "draft_classic_huangjince_bb44c820e128",
+      "line_start": 324,
+      "queue_id": "compile_queue_classic_huangjince_bb44c820e128",
+      "reasons": [
+        "含 9 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：kaoshi",
+        "断语可按分句拆解"
+      ],
+      "section": "年时",
+      "source_text": "次察群黎，吉在旺生之地。三言府县官僚，兄弟则征科必迫；四论朝廷宰相，冲身则巡警无私。五为君上之爻，六为昊天之位。应亦为天，克世则天心不顺；"
+    },
+    {
+      "compile_priority_score": 30,
+      "draft_id": "draft_classic_huangjince_e51978f0330a",
+      "line_start": 339,
+      "queue_id": "compile_queue_classic_huangjince_e51978f0330a",
+      "reasons": [
+        "含 7 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：cai",
+        "断语可按分句拆解"
+      ],
+      "section": "国朝",
+      "source_text": "凶神生合世神，玄宗信林甫之佞；君位伤克四位，商纣害比干之忠。离宫变入坎宫带凶杀，而徽钦亡身于漠北；乾象化为巽象有吉曜，而孙刘鼎足于东南。"
+    },
+    {
+      "compile_priority_score": 30,
+      "draft_id": "draft_classic_huangjince_7e599b005c33",
+      "line_start": 655,
+      "queue_id": "compile_queue_classic_huangjince_7e599b005c33",
+      "reasons": [
+        "含 4 个现有事实抽取器可支持关键词",
+        "高价值章节：婚姻",
+        "吉凶倾向较明确：凶",
+        "可绑定问事类型：hun_male",
+        "断语可按分句拆解"
+      ],
+      "section": "婚姻",
+      "source_text": "如逢财鬼空亡，乃婚姻之大忌；苟遇阴阳得位，实天命之所关。"
+    },
+    {
+      "compile_priority_score": 30,
+      "draft_id": "draft_classic_huangjince_a82616125d60",
+      "line_start": 850,
+      "queue_id": "compile_queue_classic_huangjince_a82616125d60",
+      "reasons": [
+        "含 10 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：bing",
+        "断语可按分句拆解"
+      ],
+      "section": "娼家养身于花柳之中",
+      "source_text": "子孙藏伏蹙眉追陪。财化福爻，家出从良之妓；官居刑地，门招恶病之人。忌动衰空，闲是闲非闲挠括；财兴克世，有财有利有惊疑。"
+    }
+  ],
+  "top_sections": {
+    "产育": 12,
+    "六畜": 11,
+    "医药病不求医": 8,
+    "失脱附盗贼、捕贼民苦饥寒": 7,
+    "婚姻": 14,
+    "总断千金赋": 28,
+    "求名书读五车": 11,
+    "求财": 10,
+    "求馆附束修学得明师": 8,
+    "词讼": 8,
+    "身命": 13,
+    "避乱人有穷通": 13
+  },
+  "total_drafts": 223
+}

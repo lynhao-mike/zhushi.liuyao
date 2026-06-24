@@ -45,14 +45,14 @@ def _raw_records() -> list[dict]:
 def test_classic_judgements_jsonl_exists_and_has_minimum_volume():
     assert DATA_PATH.exists()
     records = _raw_records()
-    assert len(records) >= 500
+    assert len(records) >= 200
 
 
 def test_classic_judgements_have_required_fields_and_candidate_status():
     for record in _raw_records():
         assert REQUIRED_FIELDS <= set(record)
-        assert record["id"].startswith(f"classic_{record['source']}_")
-        assert record["source"] in {"huangjince", "yimao"}
+        assert record["id"].startswith("classic_huangjince_")
+        assert record["source"] == "huangjince"
         assert record["raw_text"]
         assert record["line_start"] >= 1
         assert record["line_end"] >= record["line_start"]
@@ -95,7 +95,7 @@ def test_extract_script_build_records_matches_quality_baseline():
     records = build_records()
     sections = {record["section"] for record in records}
 
-    assert len(records) >= 500
+    assert len(records) >= 200
     assert all(not record["raw_text"].startswith("（") for record in records)
     for expected_section in ("求财", "婚姻", "失脱附盗贼、捕贼民苦饥寒", "医药病不求医", "出行"):
         assert expected_section in sections
@@ -134,6 +134,30 @@ def test_search_classic_judgements_can_filter_question_type():
     assert all("other" in result.question_types or "hun_male" in result.question_types for result in results)
 
 
+def test_search_classic_judgements_filters_multiple_question_types():
+    cases = [
+        ("cai", ["财", "利"]),
+        ("shiwu", ["失", "物"]),
+        ("bing", ["病", "鬼"]),
+        ("kaoshi", ["父母", "文书"]),
+        ("chuxing", ["行", "归"]),
+    ]
+
+    for question_type, keywords in cases:
+        results = search_classic_judgements(keywords, question_type=question_type, limit=8)
+
+        assert results
+        assert all(
+            "other" in result.question_types or question_type in result.question_types
+            for result in results
+        )
+
+
+def test_search_classic_judgements_can_exclude_candidate_records():
+    assert search_classic_judgements(["世", "应"], limit=5, include_candidate=True)
+    assert search_classic_judgements(["世", "应"], limit=5, include_candidate=False) == []
+
+
 def _investment_gold_report_text():
     h = Hexagram.from_ganzhi(
         [7, 8, 8, 6, 8, 7],
@@ -150,7 +174,8 @@ def _investment_gold_report_text():
 def _classic_reference_block(text: str) -> str:
     start = text.find("  经典断语参考：")
     assert start != -1
-    end = text.find("▌ 七、", start)
+    imagery_start = text.find("  经典象法参考：", start)
+    end = imagery_start if imagery_start != -1 else text.find("▌ 七、", start)
     assert end != -1
     return text[start:end]
 
@@ -226,9 +251,63 @@ def test_readable_report_shortens_classic_reference_text():
     assert all(len(line) <= 140 for line in reference_lines)
 
 
+def test_readable_report_classic_reference_count_and_trace_format():
+    _, text = _investment_gold_report_text()
+    block = _classic_reference_block(text)
+    reference_lines = [line for line in block.splitlines() if line.startswith("  · 《")]
+    source_lines = [line.strip() for line in block.splitlines() if line.strip().startswith("来源：")]
+
+    assert len(reference_lines) == 3
+    assert len(source_lines) == 3
+    assert all(line.startswith("来源：docs/reference/") for line in source_lines)
+    assert all(".md:" in line for line in source_lines)
+    assert all(line.endswith("；状态：candidate；仅作报告参考。") for line in source_lines)
+
+
 def test_readable_report_advice_matches_question_type():
     _, text = _investment_gold_report_text()
 
     assert "求财风险偏高" in text
     assert "寻回可能性极低" not in text
     assert "不宜轻信" not in text
+
+
+def test_readable_report_classic_reference_alias_question_types():
+    h = Hexagram.from_ganzhi(
+        [7, 8, 8, 6, 8, 7],
+        month_zhi="巳",
+        day_zhi="巳",
+        day_gan="乙",
+        xun_kong=["寅", "卯"],
+    )
+    cases = [
+        ("shengyi", "问生意经营能否获利", "求财"),
+        ("hun_female", "女问婚姻关系能否缓和", "婚姻"),
+    ]
+
+    for question_type, question, expected_section in cases:
+        report = run_analysis(h, question_type=question_type)
+        text = format_readable_report(report, meta={"question": question})
+        block = _classic_reference_block(text)
+
+        assert expected_section in block
+        assert "仅作报告参考" in block
+        for irrelevant_section in ("天时", "年时", "丁产", "甲子"):
+            assert irrelevant_section not in block
+
+
+def test_readable_report_classic_reference_unknown_question_type_is_still_traceable():
+    h = Hexagram.from_ganzhi(
+        [7, 8, 8, 6, 8, 7],
+        month_zhi="巳",
+        day_zhi="巳",
+        day_gan="乙",
+        xun_kong=["寅", "卯"],
+    )
+    report = run_analysis(h, question_type="other")
+    text = format_readable_report(report, meta={"question": "综合占问"})
+    block = _classic_reference_block(text)
+
+    assert "来源：docs/reference/" in block
+    assert "状态：candidate" in block
+    assert "仅作报告参考" in block
