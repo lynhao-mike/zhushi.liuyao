@@ -187,6 +187,7 @@ class ReadingResponse(BaseModel):
     # Formatted reports
     report_text: Optional[str] = None
     report_readable: Optional[str] = None
+    report_files: List[str] = Field(default_factory=list)
 
     # Meta
     from_cache: bool = False

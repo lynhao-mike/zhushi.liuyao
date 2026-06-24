@@ -14,7 +14,8 @@ from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.data import HEXAGRAM_BY_NAME, BINARY_TO_GUA, BA_GUA
 from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
 from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
-from liuyao.interfaces.cli.reporting import format_report, format_dual_report
+from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
+from liuyao.report_archive import archive_reports
 
 
 def parse_args():
@@ -148,12 +149,67 @@ def main():
             (args.dual or args.question_type in DUAL_PERSPECTIVE_TABLE)
         )
 
+        report_meta = {
+            "question": args.name or args.question_type,
+            "querent": "",
+            "hexagram_input": {
+                "question": args.name or args.question_type,
+                "question_type": args.question_type,
+                "is_dual": use_dual,
+                "date": args.date,
+                "hour": args.hour,
+                "yao_values": yao_values,
+                "gan_zhi": h.gan_zhi,
+                "xun_kong": list(h.xun_kong),
+                "ben_gua_name": h.ben_gua_name,
+                "bian_gua_name": h.bian_gua_name,
+                "palace_name": h.palace_name,
+                "palace_wu_xing": h.palace_wu_xing,
+                "shi_pos": h.shi_pos,
+                "ying_pos": h.ying_pos,
+                "lines": [
+                    {
+                        "position": line.position,
+                        "yao_type": line.yao_type,
+                        "yin_yang": line.yin_yang,
+                        "is_moving": line.is_moving,
+                        "tian_gan": line.tian_gan,
+                        "di_zhi": line.di_zhi,
+                        "wu_xing": line.wu_xing,
+                        "liu_qin": line.liu_qin,
+                        "liu_shen": line.liu_shen,
+                        "is_shi": line.is_shi,
+                        "is_ying": line.is_ying,
+                        "is_xun_kong": line.is_xun_kong,
+                        "bian_tian_gan": line.bian_tian_gan,
+                        "bian_di_zhi": line.bian_di_zhi,
+                        "bian_wu_xing": line.bian_wu_xing,
+                        "bian_liu_qin": line.bian_liu_qin,
+                    }
+                    for line in h.lines
+                ],
+            },
+        }
         if use_dual:
             dual_report = run_dual_analysis(h, args.question_type)
-            print(format_dual_report(dual_report))
+            report_text = format_dual_report(dual_report)
+            report_readable = format_readable_report(dual_report, meta=report_meta)
         else:
             report = run_analysis(h, args.question_type)
-            print(format_report(report))
+            report_text = format_report(report)
+            report_readable = format_readable_report(report, meta=report_meta)
+
+        print(report_text)
+        report_files = archive_reports(
+            report_text=report_text,
+            report_readable=report_readable,
+            meta=report_meta,
+        )
+        if report_files:
+            print()
+            print("[报告已归档]")
+            for report_file in report_files:
+                print(f"- {report_file}")
     except Exception as e:
         print(f"分析错误: {e}")
         sys.exit(1)

@@ -29,6 +29,7 @@ from liuyao import (
     format_dual_report,
     format_readable_report,
 )
+from liuyao.report_archive import archive_reports
 from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
 
 log = get_logger(__name__)
@@ -61,6 +62,42 @@ def _yao_line_to_dict(line) -> Dict[str, Any]:
         "bian_di_zhi":   line.bian_di_zhi,
         "bian_wu_xing":  line.bian_wu_xing,
         "bian_liu_qin":  line.bian_liu_qin,
+    }
+
+
+def _hexagram_input_snapshot(
+    *,
+    yao_values: List[int],
+    year: Optional[int],
+    month: Optional[int],
+    day: Optional[int],
+    hour: int,
+    question_type: str,
+    is_dual: bool,
+    ganzhi_override: Optional[Dict[str, Any]],
+    querent_name: Optional[str],
+    question: Optional[str],
+    meta: Dict[str, Any],
+) -> Dict[str, Any]:
+    date = f"{year:04d}-{month:02d}-{day:02d}" if year and month and day else None
+    return {
+        "question": question or "",
+        "querent": querent_name or "",
+        "question_type": question_type,
+        "is_dual": is_dual,
+        "date": date,
+        "hour": hour,
+        "yao_values": list(yao_values),
+        "ganzhi_override": ganzhi_override,
+        "gan_zhi": meta.get("gan_zhi"),
+        "xun_kong": meta.get("xun_kong"),
+        "ben_gua_name": meta.get("ben_gua_name"),
+        "bian_gua_name": meta.get("bian_gua_name"),
+        "palace_name": meta.get("palace_name"),
+        "palace_wu_xing": meta.get("palace_wu_xing"),
+        "shi_pos": meta.get("shi_pos"),
+        "ying_pos": meta.get("ying_pos"),
+        "lines": meta.get("lines"),
     }
 
 
@@ -155,11 +192,30 @@ def _run_analysis_sync(
             analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
 
             report_started = perf_counter()
-            report_text     = format_dual_report(dual)
-            report_readable = format_readable_report(dual, meta={
+            report_meta = {
                 "question": question or "",
                 "querent":  querent_name or "",
-            })
+                "hexagram_input": _hexagram_input_snapshot(
+                    yao_values=yao_values,
+                    year=year,
+                    month=month,
+                    day=day,
+                    hour=hour,
+                    question_type=question_type,
+                    is_dual=is_dual,
+                    ganzhi_override=ganzhi_override,
+                    querent_name=querent_name,
+                    question=question,
+                    meta=meta,
+                ),
+            }
+            report_text     = format_dual_report(dual)
+            report_readable = format_readable_report(dual, meta=report_meta)
+            report_files = archive_reports(
+                report_text=report_text,
+                report_readable=report_readable,
+                meta=report_meta,
+            )
             report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
             analysis_data   = _dual_report_to_dict(dual)
             log.info(
@@ -176,6 +232,7 @@ def _run_analysis_sync(
                 "analysis":       analysis_data,
                 "report_text":    report_text,
                 "report_readable": report_readable,
+                "report_files":   report_files,
                 # Summary fields (for DB denormalisation)
                 "ji_xiong":       _extract_ji_xiong_dual(dual),
                 "gua_ju_pattern": _extract_pattern_dual(dual),
@@ -185,11 +242,30 @@ def _run_analysis_sync(
             analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
 
             report_started = perf_counter()
-            report_text = format_report(report)
-            report_readable = format_readable_report(report, meta={
+            report_meta = {
                 "question": question or "",
                 "querent":  querent_name or "",
-            })
+                "hexagram_input": _hexagram_input_snapshot(
+                    yao_values=yao_values,
+                    year=year,
+                    month=month,
+                    day=day,
+                    hour=hour,
+                    question_type=question_type,
+                    is_dual=is_dual,
+                    ganzhi_override=ganzhi_override,
+                    querent_name=querent_name,
+                    question=question,
+                    meta=meta,
+                ),
+            }
+            report_text = format_report(report)
+            report_readable = format_readable_report(report, meta=report_meta)
+            report_files = archive_reports(
+                report_text=report_text,
+                report_readable=report_readable,
+                meta=report_meta,
+            )
             report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
             analysis_data = _report_to_dict(report)
             log.info(
@@ -206,6 +282,7 @@ def _run_analysis_sync(
                 "analysis":       analysis_data,
                 "report_text":    report_text,
                 "report_readable": report_readable,
+                "report_files":   report_files,
                 "ji_xiong":       report.jixiong_result.get("ji_xiong", "平"),
                 "gua_ju_pattern": report.jixiong_result.get("pattern", ""),
             }
