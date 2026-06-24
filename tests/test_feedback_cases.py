@@ -24,6 +24,10 @@ BASELINE_FEEDBACK_RULE_HITS = {
         "rule_id": "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK",
         "pattern": "财动化鬼风控",
     },
+    "feedback_cup_broken_external_omen_001": {
+        "rule_id": "PARENT_BAIHU_WANG_INJURY_AND_FUCAI_XUNKONG_LOSS",
+        "pattern": "父母白虎旺相主长辈伤灾，财伏旬空主破财",
+    },
 }
 
 RULE_FEEDBACK_CASES = [case for case in FEEDBACK_CASES if "expected_ji_xiong" in case]
@@ -107,6 +111,15 @@ def test_feedback_case_rule_hit_snapshot(case):
         for signal in expected_evidence["risk_signals"]:
             assert signal in first["risk_signals"]
         assert first["decision_path"] == expected_evidence["decision_path"]
+        assert "counter_signals" in first
+    elif case["id"] == "feedback_cup_broken_external_omen_001":
+        assert first["position"] == expected_evidence["parent_baihu_position"]
+        assert first["ben_zhi"] == expected_evidence["parent_baihu_zhi"]
+        assert first["liu_shen"] == expected_evidence["parent_baihu_liu_shen"]
+        assert first["shi_position"] == expected_evidence["shi_position"]
+        assert first["shi_zhi"] == expected_evidence["shi_zhi"]
+        assert "财爻不现/藏伏" in first["wealth_signals"]
+        assert first["decision_path"] == "external_omen_broken_object_review"
         assert "counter_signals" in first
 
 

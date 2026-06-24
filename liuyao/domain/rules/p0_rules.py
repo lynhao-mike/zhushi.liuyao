@@ -282,6 +282,76 @@ class InvestmentWealthTurnsGhostRiskRule(BaseRule):
         )
 
 
+class ExternalOmenBrokenObjectRule(BaseRule):
+    """破损外应: 父母白虎旺相主长辈/身体伤灾, 财不现或空亡主破财。"""
+
+    rule_id = "PARENT_BAIHU_WANG_INJURY_AND_FUCAI_XUNKONG_LOSS"
+    theory_id = "反馈迭代_破损外应_父母白虎财伏空"
+    priority = 842
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "external_omen":
+            return None
+
+        parent_baihu = None
+        for line in ctx.hexagram.lines:
+            if line.liu_qin != "父母" or line.liu_shen != "白虎":
+                continue
+            ws = ctx.wangshuai_of(line)
+            if ws.get("overall") == "旺" or line.di_zhi == ctx.month_zhi:
+                parent_baihu = (line, ws)
+                break
+        if not parent_baihu:
+            return None
+
+        line, ws = parent_baihu
+        wealth_lines = [item for item in ctx.hexagram.lines if item.liu_qin == "妻财"]
+        wealth_signals = []
+        for wealth in wealth_lines:
+            if wealth.is_xun_kong:
+                wealth_signals.append("财爻旬空")
+            if LIU_CHONG.get(ctx.month_zhi) == wealth.di_zhi:
+                wealth_signals.append("财爻逢月冲")
+            if LIU_CHONG.get(ctx.day_zhi) == wealth.di_zhi:
+                wealth_signals.append("财爻逢日冲")
+        if not wealth_lines:
+            wealth_signals.append("财爻不现/藏伏")
+
+        if not wealth_signals:
+            # 本规则的反馈场景要求“伤灾 + 破财”双信号并见，避免泛化所有外应。
+            return None
+
+        moving_ghost_signal = None
+        if ctx.shi_line and ctx.shi_line.is_moving and getattr(ctx.shi_line, "bian_liu_qin", None) == "官鬼":
+            moving_ghost_signal = "世爻动化官鬼"
+
+        explanation = (
+            f"破损外应类占问, 不机械取触发者为用神; 第{line.position}爻父母{line.di_zhi}{line.wu_xing}"
+            f"临白虎且旺相, 主长辈、身体、骨伤血光; "
+            f"同时见{','.join(dict.fromkeys(wealth_signals))}, 主钱财落空或投资破耗。"
+        )
+        evidence = [{
+            "position": line.position,
+            "ben_zhi": line.di_zhi,
+            "ben_wu_xing": line.wu_xing,
+            "liu_qin": line.liu_qin,
+            "liu_shen": line.liu_shen,
+            "wangshuai": ws,
+            "shi_position": getattr(ctx.shi_line, "position", None),
+            "shi_zhi": getattr(ctx.shi_line, "di_zhi", None),
+            "wealth_signals": list(dict.fromkeys(wealth_signals)),
+            "omen_signals": [signal for signal in ["破损外应", "父母临白虎旺相", moving_ghost_signal] if signal],
+            "decision_path": "external_omen_broken_object_review",
+            "counter_signals": ["事件触发者不等于应事承受者", "子孙持世动化鬼只作引线, 不覆盖父母白虎与财空信号"],
+        }]
+        return self.result(
+            "父母白虎旺相主长辈伤灾，财伏旬空主破财",
+            "凶",
+            explanation,
+            evidence=evidence,
+        )
+
+
 class CompetitiveSelectionOpponentFailsRule(BaseRule):
     """短期差额选拔: 间爻竞争者发动化衰, 竞争者自败则世可胜出。"""
 
@@ -453,6 +523,7 @@ P0_RULES = [
     JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
     InvestmentWealthTurnsGhostRiskRule(),
+    ExternalOmenBrokenObjectRule(),
     CompetitiveSelectionOpponentFailsRule(),
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),
