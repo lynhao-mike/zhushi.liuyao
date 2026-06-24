@@ -13,12 +13,17 @@ from api.infrastructure.database.session import get_db
 from api.interfaces.http.schemas.reading import (
     PaginatedReadings,
     ReadingCreateRequest,
+    ReadingFeedbackCreateRequest,
+    ReadingFeedbackResponse,
     ReadingResponse,
     StatsResponse,
 )
 from api.application.use_cases import reading as reading_svc
 from api.core.config import get_settings
-from api.interfaces.http.schemas.mappers import reading_create_command_from_request
+from api.interfaces.http.schemas.mappers import (
+    reading_create_command_from_request,
+    reading_feedback_create_command_from_request,
+)
 
 settings = get_settings()
 router = APIRouter(prefix="/readings", tags=["readings"])
@@ -90,6 +95,21 @@ async def get_reading(
     db: AsyncSession = Depends(get_db),
 ) -> ReadingResponse:
     return await reading_svc.get_reading(reading_id, db)
+
+
+@router.post(
+    "/{reading_id}/feedback",
+    response_model=ReadingFeedbackResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit feedback for a reading",
+)
+async def create_feedback(
+    reading_id: uuid.UUID,
+    req: ReadingFeedbackCreateRequest,
+    db: AsyncSession = Depends(get_db),
+) -> ReadingFeedbackResponse:
+    command = reading_feedback_create_command_from_request(req)
+    return await reading_svc.create_reading_feedback(reading_id, command, db)
 
 
 @router.delete(

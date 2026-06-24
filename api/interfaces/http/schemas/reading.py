@@ -196,6 +196,23 @@ class ReadingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReadingFeedbackCreateRequest(BaseModel):
+    actual_outcome: str = Field(..., min_length=1, max_length=2000)
+    feedback_text: Optional[str] = Field(None, max_length=4000)
+
+
+class ReadingFeedbackResponse(BaseModel):
+    id: uuid.UUID
+    reading_id: uuid.UUID
+    actual_outcome: str
+    feedback_text: Optional[str]
+    status: str
+    original_judgement: Optional[Dict[str, Any]]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
 class ReadingSummary(BaseModel):
     """Lightweight row for list endpoints."""
     id: uuid.UUID

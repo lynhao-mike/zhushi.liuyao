@@ -6,8 +6,16 @@ application service internals.
 """
 from __future__ import annotations
 
-from api.application.use_cases.dto import ReadingCreateCommand, TemplateCreateCommand
-from api.interfaces.http.schemas.reading import ReadingCreateRequest, TemplateCreateRequest
+from api.application.use_cases.dto import (
+    ReadingCreateCommand,
+    ReadingFeedbackCreateCommand,
+    TemplateCreateCommand,
+)
+from api.interfaces.http.schemas.reading import (
+    ReadingCreateRequest,
+    ReadingFeedbackCreateRequest,
+    TemplateCreateRequest,
+)
 
 
 def reading_create_command_from_request(req: ReadingCreateRequest) -> ReadingCreateCommand:
@@ -22,6 +30,13 @@ def reading_create_command_from_request(req: ReadingCreateRequest) -> ReadingCre
         day=req.day,
         hour=req.hour,
         ganzhi_override=req.ganzhi_override.model_dump() if req.ganzhi_override else None,
+    )
+
+
+def reading_feedback_create_command_from_request(req: ReadingFeedbackCreateRequest) -> ReadingFeedbackCreateCommand:
+    return ReadingFeedbackCreateCommand(
+        actual_outcome=req.actual_outcome,
+        feedback_text=req.feedback_text,
     )
 
 

@@ -20,6 +20,10 @@ BASELINE_FEEDBACK_RULE_HITS = {
         "rule_id": "P1_COMPETITIVE_SELECTION_OPPONENT_FAILS",
         "pattern": "竞争者化破",
     },
+    "feedback_investment_gold_risk_001": {
+        "rule_id": "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK",
+        "pattern": "财动化鬼风控",
+    },
 }
 
 RULE_FEEDBACK_CASES = [case for case in FEEDBACK_CASES if "expected_ji_xiong" in case]
@@ -83,14 +87,27 @@ def test_feedback_case_rule_hit_snapshot(case):
     assert evidence, "反馈规则应输出 evidence, 用于解释角色映射与成败路径"
     first = evidence[0]
     expected_evidence = case["expected_evidence"]
-    assert first["position"] == expected_evidence["opponent_position"]
-    assert first["ben_zhi"] == expected_evidence["opponent_zhi"]
-    assert first["bian_zhi"] == expected_evidence["transformed_zhi"]
-    assert first["shi_position"] == expected_evidence["shi_position"]
-    assert first["shi_zhi"] == expected_evidence["shi_zhi"]
-    assert expected_evidence["decline_sign"] in first["decline_reasons"]
-    assert first["decision_path"] == "competitive_selection_review"
-    assert "counter_signals" in first
+
+    if case["id"] == "feedback_kaoyan_fushi_001":
+        assert first["position"] == expected_evidence["opponent_position"]
+        assert first["ben_zhi"] == expected_evidence["opponent_zhi"]
+        assert first["bian_zhi"] == expected_evidence["transformed_zhi"]
+        assert first["shi_position"] == expected_evidence["shi_position"]
+        assert first["shi_zhi"] == expected_evidence["shi_zhi"]
+        assert expected_evidence["decline_sign"] in first["decline_reasons"]
+        assert first["decision_path"] == "competitive_selection_review"
+        assert "counter_signals" in first
+    elif case["id"] == "feedback_investment_gold_risk_001":
+        assert first["position"] == expected_evidence["moving_position"]
+        assert first["ben_zhi"] == expected_evidence["moving_zhi"]
+        assert first["bian_zhi"] == expected_evidence["transformed_zhi"]
+        assert first["bian_liu_qin"] == expected_evidence["transformed_liu_qin"]
+        assert first["shi_position"] == expected_evidence["shi_position"]
+        assert first["shi_zhi"] == expected_evidence["shi_zhi"]
+        for signal in expected_evidence["risk_signals"]:
+            assert signal in first["risk_signals"]
+        assert first["decision_path"] == expected_evidence["decision_path"]
+        assert "counter_signals" in first
 
 
 def test_feedback_case_report_contains_dual_path_review():

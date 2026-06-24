@@ -12,7 +12,7 @@ P0 吉凶规则
 引擎已经构造出的卦象事实进行保守判定, 不用案例编号硬编码结论。
 """
 
-from liuyao.domain.data import DI_ZHI_WU_XING, LIU_HE, SAN_HE, WU_XING_KE, WU_XING_SHENG
+from liuyao.domain.data import DI_ZHI_WU_XING, LIU_CHONG, LIU_HE, SAN_HE, WU_XING_KE, WU_XING_SHENG
 
 from .result import RuleResult
 
@@ -231,6 +231,57 @@ class SelfChangeTerminalRule(BaseRule):
         return None
 
 
+class InvestmentWealthTurnsGhostRiskRule(BaseRule):
+    """投资求财: 世财发动化官鬼, 财旺不直接作可投吉断。"""
+
+    rule_id = "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK"
+    theory_id = "反馈迭代_投资风控_财动化鬼"
+    priority = 845
+
+    def evaluate(self, ctx):
+        if ctx.question_type not in ("cai", "shengyi"):
+            return None
+        if ctx.yong_shen_liu_qin != "妻财" or not ctx.shi_line:
+            return None
+        line = ctx.shi_line
+        if not line.is_moving or line.liu_qin != "妻财" or getattr(line, "bian_liu_qin", None) != "官鬼":
+            return None
+
+        risk_signals = ["世财发动化官鬼"]
+        for other in ctx.yong_lines:
+            if other.position == line.position:
+                continue
+            if LIU_CHONG.get(other.di_zhi) == line.di_zhi:
+                risk_signals.append("财爻相冲")
+                break
+        if getattr(ctx.hexagram, "ben_gua_type", "") == "游魂":
+            risk_signals.append("游魂卦心态反复")
+
+        explanation = (
+            f"投资求财卦中第{line.position}爻世财{line.di_zhi}{line.wu_xing}发动化官鬼"
+            f"{getattr(line, 'bian_di_zhi', '')}, 财旺代表看见机会, 但财化鬼主风险、压力与亏损隐患; "
+            "不宜把用旺世兴直接断为可重仓获利, 应以风控和避险为先"
+        )
+        evidence = [{
+            "position": line.position,
+            "ben_zhi": line.di_zhi,
+            "ben_wu_xing": line.wu_xing,
+            "bian_zhi": getattr(line, "bian_di_zhi", None),
+            "bian_liu_qin": getattr(line, "bian_liu_qin", None),
+            "shi_position": line.position,
+            "shi_zhi": line.di_zhi,
+            "risk_signals": risk_signals,
+            "decision_path": "investment_risk_control",
+            "counter_signals": ["财旺持世只代表机会与入场意愿, 不等于稳健获利"],
+        }]
+        return self.result(
+            "财动化鬼风控",
+            "凶",
+            explanation,
+            evidence=evidence,
+        )
+
+
 class CompetitiveSelectionOpponentFailsRule(BaseRule):
     """短期差额选拔: 间爻竞争者发动化衰, 竞争者自败则世可胜出。"""
 
@@ -401,6 +452,7 @@ P0_RULES = [
     SanHeJuPriorityRule(),
     JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
+    InvestmentWealthTurnsGhostRiskRule(),
     CompetitiveSelectionOpponentFailsRule(),
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),

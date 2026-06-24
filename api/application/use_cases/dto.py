@@ -25,6 +25,12 @@ class ReadingCreateCommand:
 
 
 @dataclass(frozen=True)
+class ReadingFeedbackCreateCommand:
+    actual_outcome: str
+    feedback_text: Optional[str] = None
+
+
+@dataclass(frozen=True)
 class TemplateCreateCommand:
     name: str
     description: Optional[str]

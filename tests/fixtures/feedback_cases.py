@@ -97,6 +97,7 @@ FEEDBACK_CASE_SHEFU_WASP_STING_001 = {
     ],
 }
 
+<<<<<<< HEAD
 FEEDBACK_CASE_CUP_BROKEN_EXTERNAL_OMEN_001 = {
     "id": "feedback_cup_broken_external_omen_001",
     "description": "午月己未日占小儿子打碎杯子预示什么, 风山渐之风地观。",
@@ -146,4 +147,52 @@ FEEDBACK_CASES = [
     FEEDBACK_CASE_KAOYAN_FUSHI_001,
     FEEDBACK_CASE_SHEFU_WASP_STING_001,
     FEEDBACK_CASE_CUP_BROKEN_EXTERNAL_OMEN_001,
+=======
+FEEDBACK_CASE_INVESTMENT_GOLD_RISK_001 = {
+    "id": "feedback_investment_gold_risk_001",
+    "description": "巳月乙巳日占是否能投资黄金交易获利, 山雷颐之火雷噬嗑。",
+    "source": "user_feedback",
+    "month_zhi": "巳",
+    "day_gan": "乙",
+    "day_zhi": "巳",
+    "xun_kong": ["寅", "卯"],
+    # 初爻 -> 上爻: 初少阳、二少阴、三少阴、四老阴、五少阴、上少阳。
+    "yao_types": [7, 8, 8, 6, 8, 7],
+    "ben_gua": "山雷颐",
+    "bian_gua": "火雷噬嗑",
+    "question_type": "cai",
+    "yong_shen": "妻财",
+    "expected_ji_xiong": "凶",
+    "expected_rule_id": "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK",
+    "expected_pattern": "财动化鬼风控",
+    "expected_evidence": {
+        "shi_position": 4,
+        "shi_zhi": "戌",
+        "moving_position": 4,
+        "moving_zhi": "戌",
+        "transformed_zhi": "酉",
+        "transformed_liu_qin": "官鬼",
+        "risk_signals": ["世财发动化官鬼", "财爻相冲"],
+        "decision_path": "investment_risk_control",
+    },
+    "original_misread": {
+        "ji_xiong": "吉",
+        "reason": "当前引擎按普通用旺世兴局, 把财旺持世直接断为吉, 未让财动化鬼和财爻相冲覆盖投资风控。",
+    },
+    "feedback": "卦主担心投资风险, 最终未进行投资; 黄金行情至反馈时已处于下跌态势, 卦主庆幸没有投资。",
+    "corrected_method": "投资求财不能只看财旺。世爻妻财戌土发动化官鬼酉金, 且辰戌两财相冲, 应断为有机会但风险优先; 对重仓、杠杆、追涨交易取避险结论。",
+    "theory_points": [
+        "妻财旺持世表示看见机会、求财心动, 不等于可以稳定获利。",
+        "世财发动化官鬼, 求财之念转成压力、风险、亏损或套牢隐患。",
+        "辰戌两财相冲, 主价格与资金反复拉扯, 容易利润回吐。",
+        "投资交易类占问应优先输出风控建议, 不宜把普通用旺世兴直接作重仓可投。",
+    ],
+}
+
+
+FEEDBACK_CASES = [
+    FEEDBACK_CASE_KAOYAN_FUSHI_001,
+    FEEDBACK_CASE_SHEFU_WASP_STING_001,
+    FEEDBACK_CASE_INVESTMENT_GOLD_RISK_001,
+>>>>>>> ca164f38703823c6d114c278ba1070596b7926fd
 ]
