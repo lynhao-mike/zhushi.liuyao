@@ -8,6 +8,7 @@
 """
 
 from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
+from liuyao.domain.classic_judgements import search_classic_judgements
 from liuyao.application.use_cases.analysis import build_verdict, GUA_JU_BAIHUA
 
 # 问事类型中文名 (从 data 模块导入, 此处保留别名以兼容模块内引用)
@@ -725,6 +726,134 @@ def _readable_conclusion(dual_report):
     return lines
 
 
+def _classic_reference_question_type(question_type):
+    """将系统问事类型映射到经典断语库的粗粒度占类。"""
+    if question_type in {"hun_male", "hun_female"}:
+        return "hun_male"
+    if question_type in {"cai", "shengyi"}:
+        return "cai"
+    if question_type in {"shiwu", "bing", "kaoshi", "chuxing"}:
+        return question_type
+    return None
+
+
+_CLASSIC_QUESTION_KEYWORDS = {
+    "hun_male": ["妻", "财", "应"],
+    "hun_female": ["夫", "官", "应"],
+    "cai": ["财", "利"],
+    "shengyi": ["财", "利"],
+    "shiwu": ["财", "失", "物"],
+    "bing": ["病", "鬼"],
+    "kaoshi": ["父母", "官", "文书"],
+    "chuxing": ["行", "归"],
+}
+
+
+def _classic_reference_keywords(analysis):
+    """提取报告层经典断语检索关键词, 只用于引用, 不参与吉凶判断。"""
+    keywords = ["世", "应"]
+    question_type = getattr(analysis, "question_type", "")
+    keywords.extend(_CLASSIC_QUESTION_KEYWORDS.get(question_type, []))
+
+    hexagram = getattr(analysis, "hexagram", None)
+    if hexagram:
+        moving_lines = [line for line in hexagram.lines if getattr(line, "is_moving", False)]
+        if moving_lines:
+            keywords.extend(["动", "变"])
+        if any(getattr(line, "is_xun_kong", False) for line in hexagram.lines):
+            keywords.extend(["空", "旬空"])
+        for line in hexagram.lines:
+            if getattr(line, "is_shi", False):
+                keywords.append(getattr(line, "liu_qin", ""))
+            if getattr(line, "is_ying", False):
+                keywords.append(getattr(line, "liu_qin", ""))
+
+    if hasattr(analysis, "perspectives") and analysis.perspectives:
+        for perspective in analysis.perspectives:
+            keywords.append(getattr(perspective, "yong_shen_liu_qin", ""))
+    else:
+        keywords.append(getattr(analysis, "yong_shen_liu_qin", ""))
+
+    deduped = []
+    for keyword in keywords:
+        if keyword and keyword not in deduped:
+            deduped.append(keyword)
+    return deduped
+
+
+_CLASSIC_REFERENCE_MAX_TEXT_LENGTH = 96
+
+_CLASSIC_REFERENCE_REQUIRED_SECTIONS = {
+    "hun_male": ("婚姻",),
+    "cai": ("求财",),
+    "shiwu": ("失脱", "盗贼", "失物"),
+    "bing": ("疾病", "病体", "医药"),
+    "kaoshi": ("求名", "求馆", "求师"),
+    "chuxing": ("出行", "行人", "舟船"),
+}
+
+_CLASSIC_REFERENCE_EXCLUDED_SECTIONS = {
+    "hun_male": ("天时", "年时", "征战", "蚕桑", "丁产", "甲子"),
+    "cai": ("天时", "年时", "国朝", "征战", "种作", "蚕桑", "胎孕", "产育", "婚姻", "丁产", "甲子"),
+    "shiwu": ("天时", "年时", "丁产", "甲子"),
+    "bing": ("天时", "年时", "丁产", "甲子"),
+    "kaoshi": ("天时", "年时", "丁产", "甲子", "鬼神"),
+    "chuxing": ("天时", "年时", "丁产", "甲子"),
+}
+
+
+def _classic_reference_is_relevant(reference, question_type):
+    """报告层引用相关性过滤; 只影响展示, 不参与核心吉凶。"""
+    if not question_type:
+        return True
+    if reference.raw_text.startswith("（"):
+        return False
+
+    section = reference.section or ""
+    if any(excluded in section for excluded in _CLASSIC_REFERENCE_EXCLUDED_SECTIONS.get(question_type, ())):
+        return False
+
+    required_sections = _CLASSIC_REFERENCE_REQUIRED_SECTIONS.get(question_type)
+    if required_sections and not any(term in section for term in required_sections):
+        return False
+    return True
+
+
+def _shorten_classic_reference_text(text, max_length=_CLASSIC_REFERENCE_MAX_TEXT_LENGTH):
+    """限制经典断语报告展示长度, 保留原始来源行号供追溯。"""
+    clean_text = text.strip()
+    if len(clean_text) <= max_length:
+        return clean_text
+    return clean_text[:max_length].rstrip("，。；：、 ") + "……"
+
+
+def _readable_classic_reference_lines(analysis, limit=3):
+    """生成经典断语参考段落; 仅增强报告解释, 不改变核心吉凶。"""
+    keywords = _classic_reference_keywords(analysis)
+    question_type = _classic_reference_question_type(getattr(analysis, "question_type", ""))
+    search_limit = max(limit * 100, 100)
+    references = search_classic_judgements(keywords, question_type=question_type, limit=search_limit)
+    if not references and question_type:
+        references = search_classic_judgements(keywords, limit=search_limit)
+    references = [
+        reference for reference in references
+        if _classic_reference_is_relevant(reference, question_type)
+    ][:limit]
+
+    source_names = {"huangjince": "黄金策", "yimao": "易冒"}
+    lines = []
+    for reference in references:
+        source_name = source_names.get(reference.source, reference.source)
+        section = f"·{reference.section}" if reference.section else ""
+        text = _shorten_classic_reference_text(reference.raw_text)
+        lines.append(f"  · 《{source_name}》{section}：{text}")
+        lines.append(
+            f"    来源：{reference.source_file}:{reference.line_start}；状态：{reference.review_status}；仅作报告参考。"
+        )
+    return lines
+
+
+
 def _readable_feedback_calibration_lines(analysis):
     """根据候选反馈样本沉淀报告层表达校准提示, 不改变核心吉凶。"""
     lines = []
@@ -744,6 +873,68 @@ def _readable_feedback_calibration_lines(analysis):
             lines.append("    宜区分即时缓和与真正恢复，真正转暖多待出空或数日内落实。")
 
     return lines
+
+
+def _readable_advice_lines(question_type, overall_ji):
+    """按问事类型生成建议段落, 避免失物话术套用到其他占类。"""
+    if question_type == "shiwu":
+        if overall_ji == "凶":
+            return [
+                "  · 卦象显示寻回可能性极低，建议尽早放下执念，避免在追查上",
+                "    投入过多时间与金钱，以免二次损耗。",
+                "  · 若有保险或官方渠道（如报警备案），可走正规途径留存记录，",
+                '    不宜轻信"帮忙寻物"的中间人，谨防再度受损。',
+                "  · 将此次失物视为一次提醒：贵重物品宜妥善保管，出门前",
+                "    养成清点携带物的习惯。",
+            ]
+        if overall_ji == "吉":
+            return [
+                "  · 卦象显示有望寻回，宜保持耐心，在应期所示时节留意线索。",
+                "  · 可通过正规渠道（报警、发布寻物信息）主动出击，",
+                "    增加寻回的机会。",
+                "  · 寻回后宜多加小心，做好防范，避免再度遗失。",
+            ]
+
+    if question_type in {"cai", "shengyi"}:
+        if overall_ji == "凶":
+            return [
+                "  · 卦象显示求财风险偏高，宜先守后攻，避免重仓、杠杆或追涨。",
+                "  · 若必须参与，应先设止损与退出条件，以风控优先于收益想象。",
+            ]
+        if overall_ji == "吉":
+            return [
+                "  · 卦象显示财机可用，但仍宜小步验证，先看现金流与风险边界。",
+                "  · 得利后宜及时落袋，不宜因一时顺势而扩大无把握投入。",
+            ]
+
+    if question_type in {"hun_male", "hun_female"}:
+        if overall_ji == "凶":
+            return [
+                "  · 卦象显示关系阻力较重，宜先降温沟通，避免继续争执扩大裂痕。",
+                "  · 若要修复关系，应重在兑现行动，不宜只靠口头解释。",
+            ]
+        if overall_ji == "吉":
+            return [
+                "  · 卦象显示关系有转圜余地，宜主动缓和语气，给对方台阶。",
+                "  · 仍需留意应期，不宜把短暂缓和当作问题已经完全解决。",
+            ]
+
+    if overall_ji == "凶":
+        return [
+            "  · 卦象显示阻力偏重，宜保守处理，先降低投入与损失扩大风险。",
+            "  · 待不利因素缓解后再行动，不宜急于强推。",
+        ]
+    if overall_ji == "吉":
+        return [
+            "  · 卦象显示趋势较有利，可顺势推进，但仍宜留意应期与条件变化。",
+            "  · 行动上宜稳中求进，避免因过度乐观而忽略细节。",
+        ]
+    return [
+        "  · 卦象平和，吉凶未定，建议持续关注事态发展，",
+        "    不宜过于急切，也不宜完全放弃。",
+        "  · 在应期所示时节，留意是否有相关线索出现。",
+    ]
+
 
 
 def format_readable_report(analysis, meta=None):
@@ -903,6 +1094,11 @@ def format_readable_report(analysis, meta=None):
     out.append("▌ 六、综合结论")
     out.append("─" * (W + 2))
     out.extend(_readable_conclusion(analysis))
+    classic_reference_lines = _readable_classic_reference_lines(analysis)
+    if classic_reference_lines:
+        out.append("")
+        out.append("  经典断语参考：")
+        out.extend(classic_reference_lines)
     calibration_lines = _readable_feedback_calibration_lines(analysis)
     if calibration_lines:
         out.append("")
@@ -920,22 +1116,7 @@ def format_readable_report(analysis, meta=None):
     else:
         overall_ji = analysis.jixiong_result.get("ji_xiong", "平")
 
-    if overall_ji == "凶":
-        out.append("  · 卦象显示寻回可能性极低，建议尽早放下执念，避免在追查上")
-        out.append("    投入过多时间与金钱，以免二次损耗。")
-        out.append("  · 若有保险或官方渠道（如报警备案），可走正规途径留存记录，")
-        out.append('    不宜轻信"帮忙寻物"的中间人，谨防再度受损。')
-        out.append("  · 将此次失物视为一次提醒：贵重物品宜妥善保管，出门前")
-        out.append("    养成清点携带物的习惯。")
-    elif overall_ji == "吉":
-        out.append("  · 卦象显示有望寻回，宜保持耐心，在应期所示时节留意线索。")
-        out.append("  · 可通过正规渠道（报警、发布寻物信息）主动出击，")
-        out.append("    增加寻回的机会。")
-        out.append("  · 寻回后宜多加小心，做好防范，避免再度遗失。")
-    else:
-        out.append("  · 卦象平和，吉凶未定，建议持续关注事态发展，")
-        out.append("    不宜过于急切，也不宜完全放弃。")
-        out.append("  · 在应期所示时节，留意是否有相关线索出现。")
+    out.extend(_readable_advice_lines(getattr(analysis, "question_type", ""), overall_ji))
 
     if meta.get("note"):
         out.append("")
