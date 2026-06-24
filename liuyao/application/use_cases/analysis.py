@@ -23,6 +23,7 @@ from liuyao.domain.jixiong import (
     JI_SHEN_TABLE,
 )
 from liuyao.domain.yingqi import analyze_yingqi
+from liuyao.domain.yimao_imagery import analyze_yimao_imagery
 from liuyao.domain.patterns import (
     analyze_all_patterns,
     analyze_perspective_patterns,
@@ -49,6 +50,7 @@ class AnalysisReport:
     dongbian_results: Dict = field(default_factory=dict)
     patterns_results: Dict = field(default_factory=dict)
     star_spirits: Dict = field(default_factory=dict)
+    yimao_imagery: Dict = field(default_factory=dict)
     jixiong_result: Dict = field(default_factory=dict)
     yingqi_results: List[Dict] = field(default_factory=list)
 
@@ -152,7 +154,13 @@ def run_analysis(hexagram, question_type="other",
                   gua=hexagram.ben_gua_name)
         report.star_spirits = {}
 
-    # 6. 吉凶判断
+    # 6. 《易冒》象法摘要(只作报告层细节, 不参与吉凶)
+    report.yimao_imagery = analyze_yimao_imagery(
+        hexagram, report.yong_shen_lines,
+        report.wangshuai_results, report.dongbian_results,
+    )
+
+    # 7. 吉凶判断
     try:
         report.jixiong_result = judge_jixiong(
             hexagram, report.yong_shen_liu_qin,
@@ -172,7 +180,7 @@ def run_analysis(hexagram, question_type="other",
             "explanation": f"吉凶判断过程异常: {e}",
         }
 
-    # 7. 应期推断 (使用 patterns 结果增强)
+    # 8. 应期推断 (使用 patterns 结果增强)
     try:
         report.yingqi_results = analyze_yingqi(
             hexagram, report.yong_shen_lines,
@@ -248,6 +256,9 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.wangshuai_results = shared_ws
         report.dongbian_results = shared_db
         report.star_spirits = dual.star_spirits
+        report.yimao_imagery = analyze_yimao_imagery(
+            hexagram, report.yong_shen_lines, shared_ws, shared_db,
+        )
 
         # 各视角仅计算依赖用神/问事类型的模式, 再合并共享结构模式
         try:

@@ -144,6 +144,10 @@ def test_feedback_case_report_contains_dual_path_review():
         assert "成败证据" in text
 
 
+    assert "《易冒》象法线索" in readable
+    assert "不覆盖上面的吉凶判断" in readable
+
+
 @pytest.mark.parametrize("case", SHEFU_FEEDBACK_CASES, ids=[case["id"] for case in SHEFU_FEEDBACK_CASES])
 def test_shefu_feedback_case_outputs_concrete_imagery(case):
     """射覆反馈案例应输出具象候选, 而不是只给抽象吉凶。"""

@@ -417,7 +417,6 @@ class TestAnalyzer:
         assert len(report.wangshuai_results) == 6
         assert "moving_analyses" in report.dongbian_results
         assert "ji_xiong" in report.jixiong_result
-
     def test_run_analysis_all_types(self):
         """测试所有问事类型"""
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
@@ -425,6 +424,19 @@ class TestAnalyzer:
             report = run_analysis(h, qtype)
             assert report.yong_shen_liu_qin != ""
             assert report.jixiong_result["ji_xiong"] in ("吉", "凶", "平")
+
+    def test_run_analysis_includes_yimao_imagery(self):
+        """单视角分析应生成《易冒》象法摘要, 供报告层取象。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        assert imagery["source"] == "docs/reference/yimao"
+        assert "用神定吉凶" in imagery["principle"]
+        assert imagery["trigram_images"]
+        assert any("用神" in item["roles"] for item in imagery["line_images"])
+        assert any(item["liu_qin_image"] for item in imagery["line_images"])
+
 
     def test_run_analysis_static_hexagram(self):
         """静卦分析"""
@@ -702,6 +714,15 @@ class TestDualPerspective:
             assert p.dongbian_results is dual.dongbian_results
             assert p.shi_line is dual.shi_line
 
+    def test_run_dual_analysis_includes_yimao_imagery_per_perspective(self):
+        """双视角每个视角都应保留各自用神对应的《易冒》象法摘要。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        dual = run_dual_analysis(h, "shiwu")
+
+        for p in dual.perspectives:
+            assert p.yimao_imagery["line_images"]
+            assert any("用神" in item["roles"] for item in p.yimao_imagery["line_images"])
+
     def test_format_dual_report_complete(self):
         """双视角报告应包含所有必要部分"""
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
@@ -720,6 +741,10 @@ class TestDualPerspective:
         assert "视角2" in text
         assert "贵重财物" in text  # 妻财视角标签（主视角）
         assert "物件本相" in text  # 父母视角标签（辅助）
+
+        # 《易冒》象法摘要
+        assert "《易冒》象法摘要" in text
+        assert "用神定吉凶" in text
 
         # 综合结论
         assert "综合" in text
