@@ -97,7 +97,53 @@ FEEDBACK_CASE_SHEFU_WASP_STING_001 = {
     ],
 }
 
+FEEDBACK_CASE_CUP_BROKEN_EXTERNAL_OMEN_001 = {
+    "id": "feedback_cup_broken_external_omen_001",
+    "description": "午月己未日占小儿子打碎杯子预示什么, 风山渐之风地观。",
+    "source": "user_feedback",
+    "month_zhi": "午",
+    "day_gan": "己",
+    "day_zhi": "未",
+    "xun_kong": ["子", "丑"],
+    # 初爻 -> 上爻: 初少阴、二少阴、三老阳、四少阴、五少阳、上少阳。
+    "yao_types": [8, 8, 9, 8, 7, 7],
+    "ben_gua": "风山渐",
+    "bian_gua": "风地观",
+    "question_type": "external_omen",
+    "yong_shen": "父母",
+    "expected_ji_xiong": "凶",
+    "expected_rule_id": "PARENT_BAIHU_WANG_INJURY_AND_FUCAI_XUNKONG_LOSS",
+    "expected_pattern": "父母白虎旺相主长辈伤灾，财伏旬空主破财",
+    "expected_evidence": {
+        "parent_baihu_position": 2,
+        "parent_baihu_zhi": "午",
+        "parent_baihu_liu_shen": "白虎",
+        "fucai_position": 5,
+        "fucai_zhi": "子",
+        "fucai_xun_kong": True,
+        "shi_position": 3,
+        "shi_zhi": "申",
+        "shi_moving": True,
+        "shi_transformed": "卯",
+    },
+    "original_misread": {
+        "ji_xiong": "平/小凶",
+        "reason": "被'小儿子打碎杯子'表面主语误导，直接取子孙爻为用神，断孩子受惊、小伤、小病、家中口舌，忽略了父母白虎旺相与财伏旬空的更强信号。",
+    },
+    "feedback": "起卦第二天，母亲去按摩被按骨折；一周内期货亏钱。",
+    "corrected_method": "杯子打碎为破损外应，应看卦中最贴合'破损'信号的强爻：二爻父母午火临白虎旺相，主长辈伤灾；五爻伏妻财子水旬空受午月冲克，主投资破财。子孙持世动化官鬼只作触发引线，非主要承受者。",
+    "theory_points": [
+        "外应预兆类占问，不可机械取事件触发者为用神。",
+        "破损外应（打碎、破裂、摔坏）应优先提升父母爻、白虎、官鬼、妻财爻权重。",
+        "父母爻临白虎且得月日旺相，优先防长辈身体伤灾、骨伤、血光。",
+        "妻财伏藏或旬空且受月日冲克，优先防投资亏损、资金落空。",
+        "世爻动化官鬼，表示卦主被忧患牵缠，需结合全卦判断忧患落点。",
+        "风山渐归魂主家内、心神不安；变风地观主观察、看清风险。",
+    ],
+}
+
 FEEDBACK_CASES = [
     FEEDBACK_CASE_KAOYAN_FUSHI_001,
     FEEDBACK_CASE_SHEFU_WASP_STING_001,
+    FEEDBACK_CASE_CUP_BROKEN_EXTERNAL_OMEN_001,
 ]
