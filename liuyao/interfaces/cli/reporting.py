@@ -372,6 +372,52 @@ def _format_patterns_block(patterns_results):
     return lines
 
 
+def _format_yimao_imagery_block(yimao_imagery):
+    """格式化《易冒》象法摘要。"""
+    if not yimao_imagery:
+        return []
+
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【《易冒》象法摘要 — 细节层】")
+    lines.append("=" * 60)
+    lines.append(f"  总纲: {yimao_imagery.get('principle', '')}")
+
+    trigram_images = yimao_imagery.get("trigram_images", [])
+    if trigram_images:
+        lines.append("  八宫/卦象:")
+        for item in trigram_images:
+            lines.append(f"    {item['label']}{item['gua']}: {item['image']}")
+
+    line_images = yimao_imagery.get("line_images", [])
+    if line_images:
+        lines.append("  重点爻象:")
+        for item in line_images:
+            role = "、".join(item.get("roles", [])) or "重点"
+            parts = [
+                f"六亲={item.get('liu_qin_image', '')}",
+                f"六神={item.get('liu_shen_image', '')}",
+                f"五行={item.get('wu_xing_image', '')}",
+                f"爻位={item.get('yao_wei_image', '')}",
+            ]
+            if item.get("wangshuai"):
+                parts.append(f"旺衰={item['wangshuai']}")
+            moving = item.get("moving") or {}
+            if moving:
+                trends = []
+                if moving.get("qu_wang"):
+                    trends.append("趋旺:" + "、".join(moving["qu_wang"]))
+                if moving.get("qu_shuai"):
+                    trends.append("趋衰:" + "、".join(moving["qu_shuai"]))
+                if moving.get("bian_zhi"):
+                    trends.insert(0, f"变{moving['bian_zhi']}")
+                parts.append("动变=" + ";".join(trends))
+            lines.append(f"    第{item['position']}爻[{role}]: " + "；".join(parts))
+
+    lines.append("")
+    return lines
+
+
 def _format_star_spirits_block(star_spirits, hexagram):
     """格式化13星煞展示 (细节层面)"""
     if not star_spirits:
@@ -445,6 +491,9 @@ def format_report(report):
     # 新增: 卦象结构模式 (入墓/三绊/反吟/伏吟/六冲六合卦/三刑/六害/三会/心态卦/卦意法)
     if getattr(report, "patterns_results", None):
         lines.extend(_format_patterns_block(report.patterns_results))
+    # 新增: 《易冒》象法摘要 (细节层, 不改吉凶)
+    if getattr(report, "yimao_imagery", None):
+        lines.extend(_format_yimao_imagery_block(report.yimao_imagery))
     # 新增: 13星煞
     if getattr(report, "star_spirits", None):
         lines.extend(_format_star_spirits_block(report.star_spirits, report.hexagram))
@@ -547,6 +596,10 @@ def format_dual_report(dual_report):
     lines.extend(_format_riyue(h))
     lines.extend(_format_wangshuai(h, dual_report.wangshuai_results))
     lines.extend(_format_dongbian(h, dual_report.dongbian_results))
+
+    # 共享: 《易冒》象法摘要 (取第一视角用神)
+    if dual_report.perspectives and getattr(dual_report.perspectives[0], "yimao_imagery", None):
+        lines.extend(_format_yimao_imagery_block(dual_report.perspectives[0].yimao_imagery))
 
     # 共享: 13星煞 (各视角共用)
     if getattr(dual_report, "star_spirits", None):
@@ -949,6 +1002,39 @@ def _readable_classic_imagery_lines(analysis, limit=2):
     return lines
 
 
+def _readable_yimao_imagery_lines(analysis, limit=4):
+    """生成客户可读的《易冒》象法线索; 只讲细节, 不改吉凶。"""
+    if hasattr(analysis, "perspectives") and analysis.perspectives:
+        imagery = getattr(analysis.perspectives[0], "yimao_imagery", {}) or {}
+    else:
+        imagery = getattr(analysis, "yimao_imagery", {}) or {}
+    if not imagery:
+        return []
+
+    lines = []
+    trigram_images = imagery.get("trigram_images", [])[:2]
+    if trigram_images:
+        parts = [f"{item['label']}{item['gua']}主{item['image']}" for item in trigram_images]
+        lines.append("  · 卦象方所：" + "；".join(parts) + "。")
+
+    line_images = imagery.get("line_images", [])[:limit]
+    for item in line_images:
+        role = "、".join(item.get("roles", [])) or "重点"
+        snippets = []
+        if item.get("liu_qin_image"):
+            snippets.append(item["liu_qin_image"])
+        if item.get("liu_shen_image"):
+            snippets.append(item["liu_shen_image"])
+        if item.get("yao_wei_image"):
+            snippets.append(item["yao_wei_image"])
+        if snippets:
+            lines.append(f"  · 第{item['position']}爻（{role}）：" + "；".join(snippets[:3]) + "。")
+
+    if lines:
+        lines.insert(0, "  《易冒》象法提示：以下只作人物、方位、物象、情状线索，不覆盖上面的吉凶判断。")
+    return lines
+
+
 def _readable_feedback_calibration_lines(analysis):
     """根据候选反馈样本沉淀报告层表达校准提示, 不改变核心吉凶。"""
     lines = []
@@ -1191,8 +1277,16 @@ def format_readable_report(analysis, meta=None):
             out.extend(candidate_lines)
         out.append("")
 
-    # ── 六、综合结论 ──────────────────────────────────────────────────
-    out.append("▌ 六、综合结论")
+    # ── 六、《易冒》象法线索 ────────────────────────────────────────────
+    yimao_lines = _readable_yimao_imagery_lines(analysis)
+    if yimao_lines:
+        out.append("▌ 六、《易冒》象法线索")
+        out.append("─" * (W + 2))
+        out.extend(yimao_lines)
+        out.append("")
+
+    # ── 七、综合结论 ──────────────────────────────────────────────────
+    out.append("▌ 七、综合结论")
     out.append("─" * (W + 2))
     out.extend(_readable_conclusion(analysis))
     classic_reference_lines = _readable_classic_reference_lines(analysis)
@@ -1212,8 +1306,8 @@ def format_readable_report(analysis, meta=None):
         out.extend(calibration_lines)
     out.append("")
 
-    # ── 七、建议 ──────────────────────────────────────────────────────
-    out.append("▌ 七、给卦主的建议")
+    # ── 八、建议 ──────────────────────────────────────────────────────
+    out.append("▌ 八、给卦主的建议")
     out.append("─" * (W + 2))
     # 取综合吉凶
     if is_dual:
