@@ -10,9 +10,9 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from liuyao.analyzer import run_analysis
+from liuyao.application.use_cases.analysis import run_analysis
 from liuyao.domain.classic_imagery import load_classic_imagery, search_classic_imagery
-from liuyao.hexagram import Hexagram
+from liuyao.domain.hexagram import Hexagram
 from liuyao.interfaces.cli.reporting import format_readable_report
 from scripts.extract_classic_imagery import build_records, match_section
 

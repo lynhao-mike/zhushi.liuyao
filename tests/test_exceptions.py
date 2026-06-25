@@ -3,13 +3,13 @@
 """
 
 import pytest
-from liuyao.exceptions import (
+from liuyao.domain.exceptions import (
     LiuyaoError,
     ArrangementError,
     AnalysisError,
     CalendarError,
 )
-from liuyao.hexagram import Hexagram
+from liuyao.domain.hexagram import Hexagram
 
 
 class TestExceptionHierarchy:

@@ -6,9 +6,9 @@
 
 import pytest
 
-from liuyao.analyzer import run_analysis, run_dual_analysis
-from liuyao.hexagram import Hexagram
-from liuyao.report import format_readable_report
+from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
+from liuyao.domain.hexagram import Hexagram
+from liuyao.interfaces.cli.reporting import format_readable_report
 from tests.fixtures.candidate_feedback_cases import (
     CANDIDATE_FEEDBACK_ALLOWED_INTENTS,
     CANDIDATE_FEEDBACK_ALLOWED_QUALITY,

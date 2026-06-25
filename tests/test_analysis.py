@@ -5,14 +5,14 @@
 """
 
 import pytest
-from liuyao.hexagram import Hexagram
-from liuyao.wangshuai import (
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.wangshuai import (
     yue_jian_wangshuai,
     ri_chen_wangshuai,
     analyze_line_wangshuai,
     analyze_hexagram_wangshuai,
 )
-from liuyao.dongbian import (
+from liuyao.domain.dongbian import (
     is_hui_tou_sheng,
     is_hui_tou_ke,
     is_hua_jin_shen,
@@ -22,15 +22,15 @@ from liuyao.dongbian import (
     analyze_dongbian,
     detect_an_dong,
 )
-from liuyao.jixiong import (
+from liuyao.domain.jixiong import (
     determine_yong_shen,
     find_yong_shen_lines,
     find_shi_line,
     judge_jixiong,
 )
-from liuyao.yingqi import estimate_yingqi, analyze_yingqi
-from liuyao.analyzer import run_analysis, AnalysisReport
-from liuyao.report import format_report
+from liuyao.domain.yingqi import estimate_yingqi, analyze_yingqi
+from liuyao.application.use_cases.analysis import run_analysis, AnalysisReport
+from liuyao.interfaces.cli.reporting import format_report
 
 
 # =============================================================================
@@ -651,12 +651,12 @@ class TestIntegration:
 # 双视角分析测试
 # =============================================================================
 
-from liuyao.analyzer import run_dual_analysis, DualPerspectiveReport
-from liuyao.jixiong import (
+from liuyao.application.use_cases.analysis import run_dual_analysis, DualPerspectiveReport
+from liuyao.domain.jixiong import (
     DUAL_PERSPECTIVE_TABLE, get_dual_perspectives,
     YONG_SHEN_TABLE,
 )
-from liuyao.report import format_dual_report
+from liuyao.interfaces.cli.reporting import format_dual_report
 
 
 class TestDualPerspective:

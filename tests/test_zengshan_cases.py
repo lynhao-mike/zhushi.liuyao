@@ -20,9 +20,9 @@
 
 import pytest
 
-from liuyao.hexagram import Hexagram
-from liuyao.analyzer import run_analysis
-from liuyao.report import format_report
+from liuyao.domain.hexagram import Hexagram
+from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.interfaces.cli.reporting import format_report
 from tests.fixtures.zengshan_230_cases import (
     ZENGSHAN_CASES,
     CASE_01, CASE_03, CASE_04, CASE_09,
@@ -378,7 +378,7 @@ class TestTheoryRules:
 
     def test_yue_po_ri_ke_fei_yao_condition(self):
         """废爻型: 月破(月令冲) + 日令克。亥水在巳月(月破)未日(日克)。"""
-        from liuyao.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
+        from liuyao.domain.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
         _, yue_shuai = yue_jian_wangshuai("亥", "巳")
         _, ri_shuai = ri_chen_wangshuai("亥", "未")
         assert "月破" in yue_shuai, "亥水在巳月应为月破"
@@ -386,7 +386,7 @@ class TestTheoryRules:
 
     def test_jingang_yue_jian_ri_sheng_condition(self):
         """金刚型: 月建(临月令) + 日令生/合。申金在申月为临月令。"""
-        from liuyao.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
+        from liuyao.domain.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
         yue_wang, _ = yue_jian_wangshuai("申", "申")
         assert "临月令" in yue_wang, "申金在申月应为临月令"
         ri_wang, _ = ri_chen_wangshuai("申", "辰")
@@ -394,7 +394,7 @@ class TestTheoryRules:
 
     def test_hui_tou_ke_detection(self):
         """回头克: 变爻克动爻。"""
-        from liuyao.dongbian import is_hui_tou_ke
+        from liuyao.domain.dongbian import is_hui_tou_ke
         assert is_hui_tou_ke("寅", "申") is True   # 金克木
         assert is_hui_tou_ke("申", "午") is True   # 火克金
         assert is_hui_tou_ke("亥", "申") is False  # 金生水, 回头生
@@ -402,7 +402,7 @@ class TestTheoryRules:
 
     def test_hua_jin_shen_and_tui_shen(self):
         """进退神: 申->酉=进神, 酉->申=退神。"""
-        from liuyao.dongbian import is_hua_jin_shen, is_hua_tui_shen
+        from liuyao.domain.dongbian import is_hua_jin_shen, is_hua_tui_shen
         assert is_hua_jin_shen("申", "酉") is True
         assert is_hua_tui_shen("酉", "申") is True
         assert is_hua_jin_shen("酉", "申") is False
@@ -410,14 +410,14 @@ class TestTheoryRules:
 
     def test_san_he_ju_formation(self):
         """三合局: 含申子辰三动的卦旺衰可正常分析。"""
-        from liuyao.wangshuai import analyze_hexagram_wangshuai
+        from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
         h = Hexagram.from_ganzhi([6, 7, 9, 7, 7, 7], month_zhi="丑", day_zhi="寅", xun_kong=["子", "丑"])
         results = analyze_hexagram_wangshuai(h)
         assert len(results) == 6
 
     def test_xun_kong_detection(self):
         """旬空检测: 甲子->戌亥, 甲午->辰巳, 戊申->寅卯。"""
-        from liuyao.data import get_xun_kong
+        from liuyao.domain.data import get_xun_kong
         assert "戌" in get_xun_kong("甲", "子") or "亥" in get_xun_kong("甲", "子")
         assert "辰" in get_xun_kong("甲", "午") or "巳" in get_xun_kong("甲", "午")
         xk3 = get_xun_kong("戊", "申")
@@ -426,9 +426,9 @@ class TestTheoryRules:
     def test_ban_formation_hua_ban(self):
         """化绊: 动爻与变爻六合。验证 analyze_all_patterns 可正常运行。"""
         h = Hexagram.from_ganzhi([7, 7, 9, 7, 7, 7], month_zhi="丑", day_zhi="寅", xun_kong=["子", "丑"])
-        from liuyao.wangshuai import analyze_hexagram_wangshuai
-        from liuyao.dongbian import analyze_dongbian
-        from liuyao.patterns import analyze_all_patterns
+        from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
+        from liuyao.domain.dongbian import analyze_dongbian
+        from liuyao.domain.patterns import analyze_all_patterns
         ws = analyze_hexagram_wangshuai(h)
         db = analyze_dongbian(h, ws)
         patterns = analyze_all_patterns(h, ws, db, "父母", "官鬼", [], "bing")

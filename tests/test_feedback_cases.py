@@ -10,8 +10,8 @@
 
 import pytest
 
-from liuyao.analyzer import run_analysis
-from liuyao.hexagram import Hexagram
+from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.domain.hexagram import Hexagram
 from tests.fixtures.feedback_cases import FEEDBACK_CASES
 
 
@@ -125,7 +125,7 @@ def test_feedback_case_rule_hit_snapshot(case):
 
 def test_feedback_case_report_contains_dual_path_review():
     """技术报告与可读报告都应暴露常规取用/竞争选拔双路径复核。"""
-    from liuyao.report import format_readable_report, format_report
+    from liuyao.interfaces.cli.reporting import format_readable_report, format_report
 
     case = FEEDBACK_CASES[0]
     h = _build_hexagram(case)
