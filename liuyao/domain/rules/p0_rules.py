@@ -36,21 +36,6 @@ class BaseRule:
         )
 
 
-def _has_riyue_support(line_zhi, month_zhi, day_zhi):
-    """日月双支均对爻有扶助或六合, 用于识别旺相式金刚型。"""
-    line_wx = DI_ZHI_WU_XING[line_zhi]
-
-    def supports(zhi):
-        wx = DI_ZHI_WU_XING[zhi]
-        return (
-            wx == line_wx
-            or WU_XING_SHENG.get(wx) == line_wx
-            or LIU_HE.get(zhi, (None, None))[0] == line_zhi
-        )
-
-    return supports(month_zhi) and supports(day_zhi)
-
-
 class FeiYaoRiyueRule(BaseRule):
     """废爻型: 月破 + 日克, 高优先级定衰败。"""
 
@@ -188,7 +173,12 @@ class JingangMovingKeShiRule(BaseRule):
         for line in ctx.hexagram.lines:
             if not line.is_moving:
                 continue
-            if not _has_riyue_support(line.di_zhi, ctx.month_zhi, ctx.day_zhi):
+            # ponytail: 内联 _has_riyue_support，只此一处使用
+            line_wx = DI_ZHI_WU_XING[line.di_zhi]
+            def supports(zhi):
+                wx = DI_ZHI_WU_XING[zhi]
+                return wx == line_wx or WU_XING_SHENG.get(wx) == line_wx or LIU_HE.get(zhi, (None, None))[0] == line.di_zhi
+            if not (supports(ctx.month_zhi) and supports(ctx.day_zhi)):
                 continue
             if WU_XING_KE.get(line.wu_xing) != shi_wx:
                 continue
@@ -220,7 +210,8 @@ class SelfChangeTerminalRule(BaseRule):
         for label, line in (("用神", ctx.primary_yong), ("世爻", ctx.shi_line)):
             if not line:
                 continue
-            moving = ctx.moving_analyses.get(line.position)
+            # 用神直接用新访问器；世爻仍用 moving_analyses（非 primary_yong）
+            moving = ctx.primary_yong_moving if label == "用神" else ctx.moving_analyses.get(line.position)
             if moving and moving.get("趋衰"):
                 return self.result(
                     "内力动化衰败",
@@ -236,7 +227,7 @@ class InvestmentWealthTurnsGhostRiskRule(BaseRule):
 
     rule_id = "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK"
     theory_id = "反馈迭代_投资风控_财动化鬼"
-    priority = 845
+    priority = 745  # ponytail: P1规则统一低于所有P0规则(最低775)，修复命名与数值不自洽
 
     def evaluate(self, ctx):
         if ctx.question_type not in ("cai", "shengyi"):
@@ -403,7 +394,7 @@ class HuiTouShengRescueRule(BaseRule):
         line = ctx.primary_yong
         if not line or not line.is_moving:
             return None
-        moving = ctx.moving_analyses.get(line.position, {})
+        moving = ctx.primary_yong_moving  # ponytail: 使用新访问器
         if "回头生" in moving.get("趋旺", []):
             return self.result(
                 "用神动化回头生",
@@ -451,7 +442,7 @@ class MovingKeYongRule(BaseRule):
         line = ctx.primary_yong
         if not line:
             return None
-        interaction = ctx.dongbian_results.get("interactions", {}).get(line.position, {"受生": [], "受克": []})
+        interaction = ctx.yong_interaction()  # ponytail: 使用新访问器
         if interaction.get("受克"):
             return self.result(
                 "忌神动克用神",
