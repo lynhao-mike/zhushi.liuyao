@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import concurrent.futures
+import dataclasses
 from time import perf_counter
 from typing import Any, Dict, List, Optional
 
@@ -33,36 +34,27 @@ from liuyao.report_archive import archive_reports
 from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
 
 log = get_logger(__name__)
-settings = get_settings()
 
-# Dedicated thread pool — keeps CPU-bound work off the event loop
-_executor = concurrent.futures.ThreadPoolExecutor(
-    max_workers=settings.ENGINE_THREAD_POOL_SIZE,
-    thread_name_prefix="liuyao-engine",
-)
+# ponytail: lazy init so tests/CLI never create the pool; created on first analyze() call
+_executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
+
+
+def _get_executor() -> concurrent.futures.ThreadPoolExecutor:
+    global _executor
+    if _executor is None:
+        settings = get_settings()
+        _executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=settings.ENGINE_THREAD_POOL_SIZE,
+            thread_name_prefix="liuyao-engine",
+        )
+    return _executor
 
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────
 
 def _yao_line_to_dict(line) -> Dict[str, Any]:
-    return {
-        "position":      line.position,
-        "yao_type":      line.yao_type,
-        "yin_yang":      line.yin_yang,
-        "is_moving":     line.is_moving,
-        "tian_gan":      line.tian_gan,
-        "di_zhi":        line.di_zhi,
-        "wu_xing":       line.wu_xing,
-        "liu_qin":       line.liu_qin,
-        "liu_shen":      line.liu_shen,
-        "is_shi":        line.is_shi,
-        "is_ying":       line.is_ying,
-        "is_xun_kong":   line.is_xun_kong,
-        "bian_tian_gan": line.bian_tian_gan,
-        "bian_di_zhi":   line.bian_di_zhi,
-        "bian_wu_xing":  line.bian_wu_xing,
-        "bian_liu_qin":  line.bian_liu_qin,
-    }
+    # ponytail: dataclasses.asdict tracks YaoLine fields automatically
+    return dataclasses.asdict(line)
 
 
 def _hexagram_input_snapshot(
@@ -323,7 +315,7 @@ async def analyze(
     loop = asyncio.get_running_loop()
     started = perf_counter()
     result = await loop.run_in_executor(
-        _executor,
+        _get_executor(),
         _run_analysis_sync,
         yao_values,
         year,
@@ -341,7 +333,7 @@ async def analyze(
         question_type=question_type,
         is_dual=is_dual,
         elapsed_ms=round((perf_counter() - started) * 1000, 3),
-        thread_pool_size=settings.ENGINE_THREAD_POOL_SIZE,
+        thread_pool_size=_get_executor()._max_workers,
     )
     return result
 

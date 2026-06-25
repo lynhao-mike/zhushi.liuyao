@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 from api.infrastructure.cache.redis_client import close_redis, init_redis
+from api.application.use_cases.engine import _get_executor
 from api.core.config import get_settings
 from api.core.exceptions import register_exception_handlers
 from api.core.logging import configure_logging
@@ -43,6 +44,8 @@ async def lifespan(app: FastAPI):
     log.info("app_shutting_down")
     await close_redis()
     await close_engine()
+    executor = _get_executor()
+    executor.shutdown(wait=False)
     log.info("app_stopped")
 
 

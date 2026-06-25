@@ -4,15 +4,23 @@
 按优先级执行规则。第一条 ``matched=True`` 且 ``stop=True`` 的规则终止评估。
 """
 
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Protocol, runtime_checkable
 
 from .result import RuleResult
+
+
+@runtime_checkable
+class Rule(Protocol):
+    priority: int
+    stop: bool
+
+    def evaluate(self, context) -> Optional[RuleResult]: ...
 
 
 class RuleEngine:
     """轻量规则引擎。"""
 
-    def __init__(self, rules: Iterable[object]):
+    def __init__(self, rules: Iterable[Rule]):
         self.rules = sorted(rules, key=lambda rule: getattr(rule, "priority", 0), reverse=True)
 
     def evaluate(self, context) -> Optional[RuleResult]:
