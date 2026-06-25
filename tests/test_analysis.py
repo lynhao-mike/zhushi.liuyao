@@ -437,6 +437,68 @@ class TestAnalyzer:
         assert any("用神" in item["roles"] for item in imagery["line_images"])
         assert any(item["liu_qin_image"] for item in imagery["line_images"])
 
+    def test_yimao_imagery_has_source_and_relevance_fields(self):
+        """象法摘要每条爻象应有来源字段和问事相关性标记。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        assert imagery["question_type"] == "cai"
+        for item in imagery["line_images"]:
+            assert "liu_qin_source" in item
+            assert "liu_shen_source" in item
+            assert "yao_wei_source" in item
+            assert "liu_qin_relevant" in item
+        for tg in imagery["trigram_images"]:
+            assert "source" in tg
+
+    def test_yimao_imagery_filters_by_question_type(self):
+        """问财时妻财爻应标记为相关，官鬼不在关注列表时应标记不相关。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        # 求财关注妻财/子孙/兄弟, 官鬼不在关注列表
+        guan_items = [item for item in imagery["line_images"] if item["liu_qin"] == "官鬼"]
+        for item in guan_items:
+            assert item["liu_qin_relevant"] is False
+
+        cai_items = [item for item in imagery["line_images"] if item["liu_qin"] == "妻财"]
+        for item in cai_items:
+            assert item["liu_qin_relevant"] is True
+
+    def test_yimao_imagery_generates_combo_sentences(self):
+        """象法摘要应生成高频组合线索句（如白虎临官鬼动）。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        assert "sentences" in imagery
+        # 至少有一条组合句（如果卦中匹配到）或为空列表
+        assert isinstance(imagery["sentences"], list)
+        for s in imagery["sentences"]:
+            assert "sentence" in s
+            assert "source" in s
+            assert "position" in s
+            assert "signal_type" in s
+            assert s["signal_type"] in ("象法印证", "象法警示")
+
+    def test_yimao_signals_injected_into_jixiong_result(self):
+        """匹配到组合句时应注入 jixiong_result['yimao_signals']。"""
+        # 构造一个白虎临官鬼发动的卦（乙日起白虎，需在特定爻位匹配官鬼动爻）
+        # 用宽泛测试：只要有组合句就应注入；否则不注入（不报错）
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "bing")  # 问病，白虎临官鬼更易匹配
+        jx = report.jixiong_result
+
+        if report.yimao_imagery.get("sentences"):
+            assert "yimao_signals" in jx
+            for sig in jx["yimao_signals"]:
+                assert "signal_type" in sig
+                assert sig["signal_type"] in ("象法印证", "象法警示")
+        else:
+            assert "yimao_signals" not in jx or jx.get("yimao_signals") == []
+
 
     def test_run_analysis_static_hexagram(self):
         """静卦分析"""

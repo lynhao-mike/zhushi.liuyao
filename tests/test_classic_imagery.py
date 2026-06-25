@@ -56,7 +56,7 @@ def _investment_gold_report_text():
 def _classic_imagery_block(text: str) -> str:
     start = text.find("  经典象法参考：")
     assert start != -1
-    end = text.find("▌ 七、", start)
+    end = text.find("▌ 八、", start)
     assert end != -1
     return text[start:end]
 

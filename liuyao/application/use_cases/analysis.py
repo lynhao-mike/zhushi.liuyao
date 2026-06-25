@@ -158,6 +158,7 @@ def run_analysis(hexagram, question_type="other",
     report.yimao_imagery = analyze_yimao_imagery(
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results,
+        question_type=question_type,
     )
 
     # 7. 吉凶判断
@@ -172,6 +173,10 @@ def run_analysis(hexagram, question_type="other",
         kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
         if kuayi_patterns:
             report.jixiong_result["kuayi_supplements"] = kuayi_patterns
+        # 注入象法软信号（不覆盖吉凶裁决，只作解释层补充）
+        yimao_sentences = report.yimao_imagery.get("sentences", [])
+        if yimao_sentences:
+            report.jixiong_result["yimao_signals"] = yimao_sentences
     except Exception as e:
         log.error("jixiong_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
@@ -258,6 +263,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.star_spirits = dual.star_spirits
         report.yimao_imagery = analyze_yimao_imagery(
             hexagram, report.yong_shen_lines, shared_ws, shared_db,
+            question_type=question_type,
         )
 
         # 各视角仅计算依赖用神/问事类型的模式, 再合并共享结构模式
@@ -283,6 +289,9 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
             kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
             if kuayi_patterns:
                 report.jixiong_result["kuayi_supplements"] = kuayi_patterns
+            yimao_sentences = report.yimao_imagery.get("sentences", [])
+            if yimao_sentences:
+                report.jixiong_result["yimao_signals"] = yimao_sentences
         except Exception as e:
             log.error("jixiong_analysis_failed", exc_info=True,
                       gua=hexagram.ben_gua_name, perspective=label)
