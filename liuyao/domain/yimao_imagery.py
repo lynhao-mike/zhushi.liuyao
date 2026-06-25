@@ -179,6 +179,102 @@ _COMBO_SENTENCES: List[Dict[str, Any]] = [
         "source": "易冒·六神章第七",
         "signal_type": "象法印证",
     },
+    # 旬空组合（来源：易冒·旬空章第十七）
+    {
+        "liu_qin": "妻财", "is_xun_kong": True,
+        "sentence": "妻财旬空，财力暂虚，待出空后方见财效，急进反误。",
+        "source": "易冒·旬空章第十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_xun_kong": True,
+        "sentence": "官鬼旬空，官非病忧暂缓，出空后须留意变数。",
+        "source": "易冒·旬空章第十七",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "子孙", "is_xun_kong": True,
+        "sentence": "子孙旬空，福神力弱，医药化解之效暂时不显。",
+        "source": "易冒·旬空章第十七",
+        "signal_type": "象法警示",
+    },
+    # 用神动变组合（来源：易冒·动变章第十四）
+    {
+        "liu_qin": "妻财", "is_moving": True, "wangshuai": "旺",
+        "sentence": "妻财动而旺相，财机涌现，宜抓住时机主动出击。",
+        "source": "易冒·动变章第十四",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "is_moving": True, "wangshuai": "旺",
+        "sentence": "官鬼动而旺相，官威或病气盛发，宜防事态扩大。",
+        "source": "易冒·动变章第十四",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "兄弟", "is_moving": True, "wangshuai": "旺",
+        "sentence": "兄弟动而旺相，竞争耗财之力强，财事宜守不宜冒进。",
+        "source": "易冒·动变章第十四",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "is_moving": True, "wangshuai": "旺",
+        "sentence": "父母动而旺相，文书证件有动，长辈事宜留意。",
+        "source": "易冒·动变章第十四",
+        "signal_type": "象法印证",
+    },
+    # 世爻六神（来源：易冒·年运章第四十七）
+    {
+        "liu_shen": "青龙", "is_shi": True,
+        "sentence": "世爻逢青龙，身命喜庆有气，问事多有贵人相助。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_shen": "白虎", "is_shi": True,
+        "sentence": "世爻逢白虎，身命有伤灾之象，宜防意外及健康变化。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "玄武", "is_shi": True,
+        "sentence": "世爻逢玄武，事多暗昧难明，防小人暗中作梗。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "螣蛇", "is_shi": True,
+        "sentence": "世爻逢螣蛇，心神不宁，多虚惊怪梦，宜稳定情绪。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法警示",
+    },
+    # 应爻六神（来源：易冒·婚姻章第五十一）
+    {
+        "liu_shen": "白虎", "is_ying": True,
+        "sentence": "应爻逢白虎，对方有伤灾强硬之气，往来宜谨慎。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "青龙", "is_ying": True,
+        "sentence": "应爻逢青龙，对方喜庆有气，合作谋事有利。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    # 子孙动克官鬼（来源：易冒·疾病章第五十八）
+    {
+        "liu_qin": "子孙", "is_moving": True,
+        "sentence": "子孙发动，福神克制官鬼，忧患病患有望化解。",
+        "source": "易冒·疾病章第五十八",
+        "signal_type": "象法印证",
+    },
+    # 官鬼临应爻动（来源：易冒·疾病章第五十八）
+    {
+        "liu_qin": "官鬼", "is_ying": True, "is_moving": True,
+        "sentence": "官鬼临应爻发动，对方或外部有病忧压力之象，宜防波及。",
+        "source": "易冒·疾病章第五十八",
+        "signal_type": "象法警示",
+    },
 ]
 
 
@@ -195,6 +291,8 @@ def _match_combo_sentences(line: Any, wangshuai: str) -> List[Dict[str, Any]]:
         if "is_shi" in combo and combo["is_shi"] != getattr(line, "is_shi", False):
             continue
         if "is_ying" in combo and combo["is_ying"] != getattr(line, "is_ying", False):
+            continue
+        if "is_xun_kong" in combo and combo["is_xun_kong"] != getattr(line, "is_xun_kong", False):
             continue
         if "wangshuai" in combo and combo["wangshuai"] != wangshuai:
             continue
