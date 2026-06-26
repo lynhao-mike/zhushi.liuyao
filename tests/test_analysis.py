@@ -499,6 +499,81 @@ class TestAnalyzer:
         else:
             assert "yimao_signals" not in jx or jx.get("yimao_signals") == []
 
+    def test_yimao_combo_sentence_pool_expanded(self):
+        """高频组合句池应保持扩充后的规模，避免回退。"""
+        from liuyao.domain.yimao_imagery import _COMBO_SENTENCES
+
+        assert len(_COMBO_SENTENCES) >= 64
+        assert any(item.get("is_xun_kong") for item in _COMBO_SENTENCES)
+        assert any(item.get("is_shi") for item in _COMBO_SENTENCES)
+        assert any(item.get("is_ying") for item in _COMBO_SENTENCES)
+
+    def test_yimao_imagery_includes_structure_sentences(self):
+        """结构模式应能转成《易冒》结构类线索句。"""
+        from liuyao.domain.yimao_imagery import analyze_yimao_imagery
+
+        h = Hexagram([7, 7, 7, 7, 7, 7], 2024, 1, 15)
+        imagery = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[],
+            dongbian_results={},
+            patterns_results={
+                "chong_he_gua": {"pattern": "静卦六冲"},
+                "fan_yin": {},
+                "fu_yin": {},
+                "ru_mu": [],
+                "san_ban": [],
+            },
+            question_type="other",
+        )
+        assert any("六冲" in item["sentence"] for item in imagery["sentences"])
+
+        imagery2 = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[],
+            dongbian_results={"san_he_ju": [{"wu_xing": "木", "members": ["亥", "卯", "未"]}]},
+            patterns_results={
+                "chong_he_gua": {},
+                "fan_yin": {},
+                "fu_yin": {},
+                "ru_mu": [{"is_real": True}],
+                "san_ban": [{"ban_type": "日绊", "reason": "示例"}],
+                "san_hui": [{"wu_xing": "木", "members": ["寅", "卯", "辰"]}],
+                "san_xing": [{"type": "三刑", "group": ["寅", "巳", "申"], "positions": [1, 2, 3]}],
+                "liu_hai": [{"reason": "示例六害"}],
+            },
+            question_type="other",
+        )
+        texts = [item["sentence"] for item in imagery2["sentences"]]
+        assert any("三合" in text for text in texts)
+        assert any("三会" in text for text in texts)
+        assert any("三刑" in text for text in texts)
+        assert any("六害" in text for text in texts)
+        assert any("墓库" in text for text in texts)
+        assert any("绊象" in text for text in texts)
+
+    def test_yimao_imagery_includes_trend_sentences(self):
+        """动爻趋势（回头生/进退/化绝）应转成结构化句子。"""
+        from liuyao.domain.yimao_imagery import analyze_yimao_imagery
+
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        imagery = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[{"overall": "平"}] * 6,
+            dongbian_results={
+                "moving_analyses": {
+                    4: {"bian_zhi": "丑", "趋旺": ["化进神", "回头生"], "趋衰": []}
+                }
+            },
+            patterns_results={},
+            question_type="other",
+        )
+        assert any("回头生" in item["sentence"] for item in imagery["sentences"])
+        assert any("化进神" in item["sentence"] for item in imagery["sentences"])
+
 
     def test_run_analysis_static_hexagram(self):
         """静卦分析"""

@@ -158,6 +158,7 @@ def run_analysis(hexagram, question_type="other",
     report.yimao_imagery = analyze_yimao_imagery(
         hexagram, report.yong_shen_lines,
         report.wangshuai_results, report.dongbian_results,
+        patterns_results=report.patterns_results,
         question_type=question_type,
     )
 
@@ -263,6 +264,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.star_spirits = dual.star_spirits
         report.yimao_imagery = analyze_yimao_imagery(
             hexagram, report.yong_shen_lines, shared_ws, shared_db,
+            patterns_results=report.patterns_results,
             question_type=question_type,
         )
 

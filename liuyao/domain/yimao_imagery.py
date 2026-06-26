@@ -275,6 +275,202 @@ _COMBO_SENTENCES: List[Dict[str, Any]] = [
         "source": "易冒·疾病章第五十八",
         "signal_type": "象法警示",
     },
+    # 世应关系类（来源：易冒·世应章第八、年运章第四十七）
+    {
+        "liu_qin": "父母", "is_ying": True,
+        "sentence": "应爻父母显现，对方重文书礼节，往来多凭手续名义。",
+        "source": "易冒·世应章第八",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "兄弟", "is_ying": True,
+        "sentence": "应爻兄弟显现，对方竞争心重，往来易有分利相争。",
+        "source": "易冒·世应章第八",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "子孙", "is_ying": True,
+        "sentence": "应爻子孙显现，对方态度偏松和，事情有缓转余地。",
+        "source": "易冒·世应章第八",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_shen": "朱雀", "is_ying": True,
+        "sentence": "应爻逢朱雀，对方以言语信息先动，宜防口舌反复。",
+        "source": "易冒·六神章第七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "玄武", "is_ying": True,
+        "sentence": "应爻逢玄武，对方多隐情暗意，表里未必一致。",
+        "source": "易冒·六神章第七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "勾陈", "is_shi": True,
+        "sentence": "世爻逢勾陈，自身心态偏稳但事易拖延，宜防牵连滞缓。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "朱雀", "is_shi": True,
+        "sentence": "世爻逢朱雀，事由言语文章而起，宜慎口慎文。",
+        "source": "易冒·年运章第四十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "妻财", "is_ying": True, "is_moving": True,
+        "sentence": "应爻妻财发动，对方因利而动，财事婚事多见现实考量。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    # 婚姻专项（来源：易冒·婚姻章第五十一）
+    {
+        "liu_qin": "妻财", "is_ying": True, "is_xun_kong": True,
+        "sentence": "应爻妻财逢空，对方心意未定，男占婚事宜防热度有名无实。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_ying": True, "is_xun_kong": True,
+        "sentence": "应爻官鬼逢空，对方名分未定，女占婚事宜防承诺落空。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "妻财", "is_ying": True, "wangshuai": "旺",
+        "sentence": "应爻妻财旺相，男占婚事多见对方条件不弱，婚缘可议。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "is_ying": True, "wangshuai": "旺",
+        "sentence": "应爻官鬼旺相，女占婚事多见对方有主见有担当，但也较强势。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "妻财", "is_shi": True, "is_moving": True,
+        "sentence": "世爻妻财发动，男方自身动念求合，婚事多由己方主动推进。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    # 求财/经营专项（来源：易冒·理财章第六十六）
+    {
+        "liu_qin": "妻财", "is_shi": True,
+        "sentence": "世爻持财，自身财念重，求财多靠主动经营与把握时机。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "兄弟", "is_moving": True, "is_ying": True,
+        "sentence": "应爻兄弟发动，求财路上易遇同业竞争、分利耗财之事。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "is_moving": True, "is_ying": True,
+        "sentence": "应爻父母发动，求财多凭票据合同、门路文书，不可粗疏。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "子孙", "is_shi": True, "wangshuai": "旺",
+        "sentence": "世爻子孙旺相，求财有福气与变通，宜顺势取巧，不宜死守。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "兄弟", "is_shi": True, "wangshuai": "旺",
+        "sentence": "世爻兄弟旺相，求财心切却易耗财，宜防合伙失利或竞逐过度。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_moving": True, "is_shi": False,
+        "sentence": "官鬼发动临财局，经营途中多见政策、风险、债务或压力干扰。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "玄武", "liu_qin": "妻财", "is_moving": True,
+        "sentence": "玄武临财发动，财路偏暗，宜防账目不清、暗耗或隐损。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "青龙", "liu_qin": "妻财", "is_moving": True,
+        "sentence": "青龙临财发动，财机活络，利于顺势交易、喜庆得财。",
+        "source": "易冒·理财章第六十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "is_shi": True, "is_moving": True,
+        "sentence": "世爻官鬼发动，女方自身心意已动，婚事推进多由己方牵引。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_shen": "白虎", "liu_qin": "妻财", "is_ying": True,
+        "sentence": "应爻妻财逢白虎，婚事中易夹杂硬碰硬或现实伤损，宜慎言慎争。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "朱雀", "liu_qin": "官鬼", "is_ying": True,
+        "sentence": "应爻官鬼逢朱雀，婚事多由话语承诺而起，也易因言语生变。",
+        "source": "易冒·婚姻章第五十一",
+        "signal_type": "象法警示",
+    },
+    # 旺衰/动静类（来源：易冒·有无章第十七、动变章第十一、长生章第三十一）
+    {
+        "liu_qin": "妻财", "wangshuai": "衰", "is_moving": False,
+        "sentence": "妻财静而衰，财机未显，当前不宜强求厚利。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "wangshuai": "衰", "is_moving": False,
+        "sentence": "官鬼静而衰，忧患之气不盛，所惧之事未必成真。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "子孙", "wangshuai": "衰", "is_moving": False,
+        "sentence": "子孙静而衰，福力未充，化解之机偏弱，宜待时。",
+        "source": "易冒·长生章第三十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "wangshuai": "衰", "is_moving": False,
+        "sentence": "父母静而衰，文书长辈之力暂弱，手续资助难足。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "兄弟", "wangshuai": "衰", "is_moving": False,
+        "sentence": "兄弟静而衰，竞争耗财之力不足，阻隔可望渐轻。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "妻财", "wangshuai": "旺", "is_moving": False,
+        "sentence": "妻财静而旺，财物虽在，宜守成待机，不必躁进。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "wangshuai": "旺", "is_moving": False,
+        "sentence": "官鬼静而旺，压力实存但未发动，宜先防后应。",
+        "source": "易冒·有无章第十七",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "子孙", "wangshuai": "旺", "is_moving": False,
+        "sentence": "子孙静而旺，福神潜守，缓中有解，不宜自乱阵脚。",
+        "source": "易冒·长生章第三十一",
+        "signal_type": "象法印证",
+    },
 ]
 
 
@@ -324,11 +520,126 @@ def _line_roles(line: Any, yong_lines: List[Any]) -> List[str]:
     return roles
 
 
+def _build_structure_sentences(patterns_results: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """从结构模式中提炼少量高频结构句。"""
+    if not patterns_results:
+        return []
+
+    results: List[Dict[str, Any]] = []
+    chong_he = patterns_results.get("chong_he_gua", {}) or {}
+    pattern = chong_he.get("pattern")
+    if pattern == "六冲变六合":
+        results.append({
+            "sentence": "卦见六冲变六合，先散后合，眼前虽乱，后势有收拢转圜之机。",
+            "source": "易冒·合冲章第三十四",
+            "signal_type": "象法印证",
+            "basis": [pattern],
+            "position": 0,
+        })
+    elif pattern == "六合变六冲":
+        results.append({
+            "sentence": "卦见六合变六冲，先合后散，原有局面后续易生破坏反复。",
+            "source": "易冒·合冲章第三十四",
+            "signal_type": "象法警示",
+            "basis": [pattern],
+            "position": 0,
+        })
+    elif pattern in {"主卦六冲", "静卦六冲", "六冲变六冲"}:
+        results.append({
+            "sentence": "卦带六冲，事态多变不持久，宜防反复折腾、难以长守。",
+            "source": "易冒·合冲章第三十四",
+            "signal_type": "象法警示",
+            "basis": [pattern],
+            "position": 0,
+        })
+    elif pattern in {"主卦六合", "静卦六合", "六合变六合"}:
+        results.append({
+            "sentence": "卦带六合，事态缠绵牵连，短期不易速决，但有维系与缓和之象。",
+            "source": "易冒·合冲章第三十四",
+            "signal_type": "象法印证",
+            "basis": [pattern],
+            "position": 0,
+        })
+
+    fan_yin = patterns_results.get("fan_yin", {}) or {}
+    if fan_yin.get("卦象反吟") or fan_yin.get("卦宫反吟") or fan_yin.get("爻动反吟") or fan_yin.get("爻化反吟"):
+        results.append({
+            "sentence": "卦带反吟，主反复折腾、来回冲击，事情多见反复不宁。",
+            "source": "易冒·反伏章第十三",
+            "signal_type": "象法警示",
+            "basis": ["反吟"],
+            "position": 0,
+        })
+
+    fu_yin = patterns_results.get("fu_yin", {}) or {}
+    if fu_yin.get("爻动伏吟") or fu_yin.get("内卦伏吟") or fu_yin.get("外卦伏吟"):
+        results.append({
+            "sentence": "卦带伏吟，主气滞迟疑、哀怨停顿，宜防拖延与内耗。",
+            "source": "易冒·反伏章第十三",
+            "signal_type": "象法警示",
+            "basis": ["伏吟"],
+            "position": 0,
+        })
+
+    ru_mu = patterns_results.get("ru_mu", []) or []
+    if any(item.get("is_real") for item in ru_mu):
+        results.append({
+            "sentence": "用象真入墓库，事有闭藏受困之象，宜待冲开或时机转动。",
+            "source": "易冒·墓绝章第十八",
+            "signal_type": "象法警示",
+            "basis": ["真墓"],
+            "position": 0,
+        })
+
+    san_ban = patterns_results.get("san_ban", []) or []
+    if san_ban:
+        results.append({
+            "sentence": "卦见绊象，事情多有牵住难行，宜防被人被事绊脚。",
+            "source": "易冒·合冲章第三十四",
+            "signal_type": "象法警示",
+            "basis": ["绊"],
+            "position": 0,
+        })
+
+    san_hui = patterns_results.get("san_hui", []) or []
+    if san_hui:
+        results.append({
+            "sentence": "卦成三会，气势汇聚一方，事情多见同类聚拢、力量成片。",
+            "source": "易冒·局会章第三十七",
+            "signal_type": "象法印证",
+            "basis": ["三会"],
+            "position": 0,
+        })
+
+    san_xing = patterns_results.get("san_xing", []) or []
+    if san_xing:
+        results.append({
+            "sentence": "卦见三刑，主羞辱内耗或骨肉相伤，宜防事中生怨。",
+            "source": "易冒·刑害章第三十八",
+            "signal_type": "象法警示",
+            "basis": ["三刑"],
+            "position": 0,
+        })
+
+    liu_hai = patterns_results.get("liu_hai", []) or []
+    if liu_hai:
+        results.append({
+            "sentence": "卦见六害，主面和心背、暗中受损，往来关系宜多设防。",
+            "source": "易冒·刑害章第三十八",
+            "signal_type": "象法警示",
+            "basis": ["六害"],
+            "position": 0,
+        })
+
+    return results
+
+
 def analyze_yimao_imagery(
     hexagram,
     yong_lines: Optional[List[Any]] = None,
     wangshuai_results: Optional[List[Dict]] = None,
     dongbian_results: Optional[Dict] = None,
+    patterns_results: Optional[Dict] = None,
     question_type: str = "other",
 ) -> Dict[str, Any]:
     """生成《易冒》象法摘要, 仅供细节分析与报告展示。"""
@@ -393,8 +704,17 @@ def analyze_yimao_imagery(
         })
 
     # 生成高频组合线索句
-    sentences = []
-    seen_sentences: set = set()
+    sentences = _build_structure_sentences(patterns_results)
+    san_he_ju = dongbian_results.get("san_he_ju", []) or []
+    if san_he_ju:
+        sentences.append({
+            "sentence": "卦成三合，气机归一，事情多见同气相感、成局成势。",
+            "source": "易冒·局会章第三十七",
+            "signal_type": "象法印证",
+            "basis": ["三合"],
+            "position": 0,
+        })
+    seen_sentences: set = {item["sentence"] for item in sentences}
     for item in line_images:
         line_obj = hexagram.lines[item["position"] - 1]
         ws_level = item["wangshuai"]
@@ -402,6 +722,31 @@ def analyze_yimao_imagery(
             if s["sentence"] not in seen_sentences:
                 seen_sentences.add(s["sentence"])
                 sentences.append({**s, "position": item["position"], "roles": item["roles"]})
+
+        moving = item.get("moving") or {}
+        qu_wang = moving.get("qu_wang") or []
+        qu_shuai = moving.get("qu_shuai") or []
+        trend_specs = [
+            ("回头生", "第{position}爻动化回头生，后势有救，应验多在转机之后。", "易冒·变互章第十一", "象法印证"),
+            ("回头克", "第{position}爻动化回头克，后势自伤，宜防先动后败。", "易冒·变互章第十一", "象法警示"),
+            ("化进神", "第{position}爻化进神，事情有递增推进之象，后势较前更强。", "易冒·进退章第十六", "象法印证"),
+            ("化退神", "第{position}爻化退神，事情有递减退让之象，后势不如前势。", "易冒·进退章第十六", "象法警示"),
+            ("化绝", "第{position}爻化绝，后路断气，事情易有中断失续之象。", "易冒·长生章第三十一", "象法警示"),
+        ]
+        for keyword, template, source, signal_type in trend_specs:
+            haystack = qu_wang if keyword in {"回头生", "化进神"} else qu_shuai
+            if keyword in haystack:
+                sentence = template.format(position=item["position"])
+                if sentence not in seen_sentences:
+                    seen_sentences.add(sentence)
+                    sentences.append({
+                        "sentence": sentence,
+                        "source": source,
+                        "signal_type": signal_type,
+                        "basis": [keyword],
+                        "position": item["position"],
+                        "roles": item["roles"],
+                    })
 
     return {
         "source": "docs/reference/yimao",
