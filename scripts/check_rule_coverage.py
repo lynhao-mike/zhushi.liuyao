@@ -26,6 +26,83 @@ from tests.fixtures.zengshan_230_cases import ZENGSHAN_CASES
 from tests.fixtures.feedback_cases import FEEDBACK_CASES
 
 
+# ponytail: 规则覆盖率需要覆盖非古籍fixture的最小合成样本，避免为了触发规则硬造古籍案例。
+SYNTHETIC_RULE_CASES = [
+    {
+        "id": "synthetic_zi_gui_hu_hua",
+        "yao_types": [6, 8, 7, 8, 9, 9],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "shengchan",
+    },
+    {
+        "id": "synthetic_fu_zi_hu_hua",
+        "yao_types": [6, 6, 7, 6, 7, 8],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "kaoshi",
+    },
+    {
+        "id": "synthetic_cai_gui_hu_hua",
+        "yao_types": [6, 6, 6, 6, 6, 7],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "cai",
+    },
+    {
+        "id": "synthetic_lifetime_shixiao",
+        "yao_types": [6, 6, 6, 8, 7, 6],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "zhongshen_gongming",
+    },
+    {
+        "id": "synthetic_traveler_return",
+        "yao_types": [6, 7, 7, 7, 6, 8],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "xingren",
+    },
+    {
+        "id": "synthetic_keshichong_breaks_gangjing",
+        "yao_types": [6, 6, 9, 6, 8, 9],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "other",
+    },
+    {
+        "id": "synthetic_short_term_no_jin_tui",
+        "yao_types": [6, 8, 6, 7, 7, 9],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "jinshi",
+    },
+    {
+        "id": "synthetic_yuanshen_dufa_bianfei",
+        "yao_types": [7, 6, 7, 7, 8, 7],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "cai",
+    },
+    {
+        "id": "synthetic_zaizhan_simplified",
+        "yao_types": [6, 6, 6, 8, 6, 8],
+        "month_zhi": "子",
+        "day_zhi": "子",
+        "day_gan": "甲",
+        "question_type": "zaizhan",
+    },
+]
+
+
 def collect_all_rule_ids() -> set[str]:
     """从 p0_rules 模块中收集所有 rule_id（排除 base）。"""
     ids = set()
@@ -43,6 +120,7 @@ def run_case(case: dict) -> str | None:
             case["yao_types"],
             month_zhi=case["month_zhi"],
             day_zhi=case["day_zhi"],
+            day_gan=case.get("day_gan"),
             xun_kong=case.get("xun_kong"),
         )
         report = run_analysis(
@@ -61,8 +139,8 @@ def main():
     all_rule_ids = collect_all_rule_ids()
     hit_rule_ids: set[str] = set()
 
-    all_cases = list(ZENGSHAN_CASES) + list(FEEDBACK_CASES)
-    print(f"总 fixture 数：{len(all_cases)}")
+    all_cases = list(ZENGSHAN_CASES) + list(FEEDBACK_CASES) + SYNTHETIC_RULE_CASES
+    print(f"总案例数：{len(all_cases)}")
     print(f"已知规则数：{len(all_rule_ids)}\n")
 
     for case in all_cases:

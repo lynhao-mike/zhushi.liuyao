@@ -237,6 +237,48 @@ def estimate_yingqi_for_san_he(san_he_ju, hexagram):
     return candidates
 
 
+def estimate_yingqi_gen(hexagram, primary_yong, wangshuai_results, dongbian_results) -> list[str]:
+    """应期卦有根/无根判定: 无根则提示应期意外风险。"""
+    candidates = []
+    if not primary_yong:
+        return candidates
+    ws = wangshuai_results[primary_yong.position - 1]
+    moving_analyses = dongbian_results.get("moving_analyses", {})
+    has_dong = any(l.is_moving for l in hexagram.lines)
+    if has_dong:
+        return candidates  # ponytail: 有动即排除应期意外, 无需标记
+    # 静卦: 检查是否有日月生扶
+    has_month_support = bool(
+        ws.get("month_wang") and any(r in ("临月令", "月令生", "月令扶") for r in ws["month_wang"])
+    )
+    has_day_support = bool(
+        ws.get("day_wang") and any(r in ("临日令", "日令生", "日令扶") for r in ws["day_wang"])
+    )
+    if not (has_month_support or has_day_support):
+        candidates.append("无根提示: 静卦且用神无日月生扶, 应期意外风险, 不可确认必应")
+    return candidates
+
+
+def estimate_yingqi_dujing(hexagram, yong_shen_lines) -> list[str]:
+    """独静卦应期: 五爻动一爻静, 独静爻为应期焦点, 逢值逢冲应事。"""
+    candidates = []
+    moving_count = sum(1 for l in hexagram.lines if l.is_moving)
+    if moving_count != 5:
+        return candidates
+    static = [l for l in hexagram.lines if not l.is_moving]
+    if len(static) != 1:
+        return candidates
+    line = static[0]
+    zhi = line.di_zhi
+    chong = LIU_CHONG.get(zhi)
+    label = f"独静{line.liu_qin}{zhi}"
+    if chong:
+        candidates.append(f"独静: {zhi}日/月(逢值) 或 {chong}日/月(逢冲)")
+    else:
+        candidates.append(f"独静: {zhi}日/月(逢值)")
+    return candidates
+
+
 def estimate_yingqi_atypical(line, wangshuai_result, all_results,
                               yong_lines):
     """
@@ -332,6 +374,22 @@ def analyze_yingqi(hexagram, yong_shen_lines, wangshuai_results, dongbian_result
             "di_zhi": line.di_zhi,
             "liu_qin": line.liu_qin,
             "candidates": candidates,
+        })
+
+    # 应期卦有根/无根提示
+    gen = estimate_yingqi_gen(hexagram, yong_shen_lines[0] if yong_shen_lines else None,
+                              wangshuai_results, dongbian_results)
+    if gen:
+        results.append({"position": 0, "di_zhi": "", "liu_qin": "无根", "candidates": gen})
+
+    # 独静卦应期 (五动一静)
+    dujing = estimate_yingqi_dujing(hexagram, yong_shen_lines)
+    if dujing:
+        results.append({
+            "position": 0,
+            "di_zhi": "",
+            "liu_qin": "独静",
+            "candidates": dujing,
         })
 
     # 三合局应期 (单独添加)

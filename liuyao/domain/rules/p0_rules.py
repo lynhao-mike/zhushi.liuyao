@@ -159,6 +159,44 @@ class SanHeJuPriorityRule(BaseRule):
         return candidates
 
 
+class KeShiChongBreaksGangjingRule(BaseRule):
+    """克中带冲突破金刚型: 特殊日月组合不忌外克, 但冲克合一可突破。"""
+
+    rule_id = "P1_KESHICHONG_BREAKS_GANGJING"
+    theory_id = "特殊日月组合_克中带冲突破"
+    priority = 870  # 略低于纯金刚型(875), 高于内重外轻(850)
+
+    def evaluate(self, ctx):
+        if not ctx.shi_line or ctx.question_type == "shouming":
+            return None
+        shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
+        for line in ctx.hexagram.lines:
+            if not line.is_moving:
+                continue
+            # 条件: 动爻五行克世爻 且 地支冲世爻 = 克中带冲
+            if WU_XING_KE.get(line.wu_xing) != shi_wx:
+                continue
+            if LIU_CHONG.get(line.di_zhi) != ctx.shi_line.di_zhi:
+                continue
+            return self.result(
+                "忌神动克冲世爻",
+                "凶",
+                f"动爻{line.di_zhi}{line.wu_xing}克中带冲世爻{ctx.shi_line.di_zhi}{shi_wx}, "
+                f"冲克合一可突破特殊日月组合保护, 世爻受重创, 凶",
+                evidence=[{
+                    "position": line.position,
+                    "ben_zhi": line.di_zhi,
+                    "ben_wx": line.wu_xing,
+                    "shi_position": ctx.shi_line.position,
+                    "shi_zhi": ctx.shi_line.di_zhi,
+                    "shi_wx": shi_wx,
+                    "ke": True,
+                    "chong": True,
+                }],
+            )
+        return None
+
+
 class JingangMovingKeShiRule(BaseRule):
     """金刚型动爻虽化回头克, 吉凶层面仍可克世。"""
 
@@ -270,6 +308,227 @@ class InvestmentWealthTurnsGhostRiskRule(BaseRule):
             "凶",
             explanation,
             evidence=evidence,
+        )
+
+
+class ZaizhanSimplifiedRule(BaseRule):
+    """再占卦简化分析: 信息粗放, 动爻变废/化绝/化破等细化信息不应作为终局定性。"""
+
+    rule_id = "P1_ZAIZHAN_SIMPLIFIED"
+    theory_id = "再占卦_粗放分析"
+    priority = 760  # 低于内重外轻(850), 高于普通P1
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "zaizhan":
+            return None
+        if not ctx.primary_yong or not ctx.shi_line:
+            return None
+        for line in ctx.hexagram.lines:
+            if not line.is_moving:
+                continue
+            moving = ctx.moving_analyses.get(line.position, {})
+            if moving.get("is_useless"):
+                return self.result(
+                    "再占卦(动爻变废不作用终局)",
+                    "平",
+                    f"再占卦第{line.position}爻虽化{moving.get('useless_reason','')}, "
+                    f"但再占卦信息粗放, 此类细化细节不直接作为终局定性, 综合前后卦判断",
+                )
+        return None
+
+
+class ShortTermNoJinTuiRule(BaseRule):
+    """短近事占无化进化退: 问短事(数日内), 化进化退不应用作吉凶终局定性。"""
+
+    rule_id = "P1_SHORT_TERM_NO_JIN_TUI"
+    theory_id = "短占无进退_化进退不作终局"
+    priority = 765  # 高于普通P1, 低于P0终局
+
+    def evaluate(self, ctx):
+        if not ctx.shi_line or not ctx.primary_yong:
+            return None
+        # 仅对短占触发(数日内见分晓的事)
+        if ctx.question_type not in ("jinshi","dangri","mashang"):
+            return None
+        for line in ctx.hexagram.lines:
+            if not line.is_moving:
+                continue
+            ma = ctx.moving_analyses.get(line.position, {})
+            if "化退神" in ma.get("趋衰", []):
+                return self.result(
+                    "短占化退神(假退)",
+                    "平",
+                    f"占短事第{line.position}爻{line.di_zhi}化退神; 短占无进退, 化退在此只表过程不表终局",
+                )
+        return None
+
+
+class LifetimeShixiaoRule(BaseRule):
+    """终身时效卦: 明确终身问事中，持世六亲上升为吉凶核心。"""
+
+    rule_id = "P1_LIFETIME_SHIXIAO"
+    theory_id = "终身时效卦_持世主导"
+    priority = 755  # 低于P0硬规则，高于普通P1卦意规则
+
+    def evaluate(self, ctx):
+        if ctx.question_type not in ("zhongshen_gongming", "zhongshen_caifu", "zhongshen_yunshi"):
+            return None
+        if not ctx.shi_line:
+            return None
+
+        shi = ctx.shi_line
+        if ctx.question_type == "zhongshen_gongming":
+            if shi.liu_qin == "官鬼":
+                return self._lifetime_result(ctx, shi, "吉", "官鬼持世", "问终身功名, 官鬼持世为最终有功名之象")
+            if shi.liu_qin in ("子孙", "兄弟"):
+                return self._lifetime_result(ctx, shi, "凶", f"{shi.liu_qin}持世", "问终身功名, 子孙/兄弟持世主最终与功名无缘或受官运拖累")
+
+        if ctx.question_type == "zhongshen_caifu":
+            if shi.liu_qin == "妻财":
+                return self._lifetime_result(ctx, shi, "吉", "妻财持世", "问终身财福, 妻财持世为终身有财福着落之象")
+            if shi.liu_qin == "兄弟":
+                return self._lifetime_result(ctx, shi, "凶", "兄弟持世", "问终身财福, 兄弟持世主财福被耗, 长期不利")
+
+        if ctx.question_type == "zhongshen_yunshi" and ctx.wangshuai_of(shi).get("overall") == "衰":
+            return self._lifetime_result(ctx, shi, "凶", "世爻衰败", "问终身运势, 世爻为命根, 衰败则长期不利")
+        return None
+
+    def _lifetime_result(self, ctx, shi, ji_xiong, pattern, explanation):
+        return self.result(
+            f"终身时效卦({pattern})",
+            ji_xiong,
+            f"{explanation}; 持世信息在终身卦中由细节上升为吉凶核心。",
+            evidence=[{
+                "shi_position": shi.position,
+                "shi_liu_qin": shi.liu_qin,
+                "shi_zhi": shi.di_zhi,
+                "question_type": ctx.question_type,
+                "wangshuai": ctx.wangshuai_of(shi),
+            }],
+        )
+
+
+class TravelerReturnRule(BaseRule):
+    """占行人归期: 用神化退神=行人归来, 用神化进神=行人外出。"""
+
+    rule_id = "P1_TRAVELER_RETURN"
+    theory_id = "行人占_化进化退定归来"
+    priority = 730  # ponytail: P1 规则, 低于终身时效卦(755), 避免覆盖P0终局逻辑
+
+    def evaluate(self, ctx):
+        if ctx.question_type not in ("xingren", "xingren_gui"):
+            return None
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        moving = ctx.primary_yong_moving
+        cui_tui = moving.get("趋衰", [])
+        is_hua_tui = "化退神" in cui_tui
+        is_hua_jin = "化进神" in moving.get("趋旺", [])
+        if is_hua_tui:
+            if ctx.question_type == "xingren_gui":
+                return self._return_result(ctx, line, "化退", "行人归来(化退神=近我方)")
+        if is_hua_jin:
+            if ctx.question_type == "xingren":
+                return self._return_result(ctx, line, "化进", "行人外出能行(化进神=离我方)")
+        return None
+
+    def _return_result(self, ctx, line, change_type, explanation):
+        return self.result(
+            f"行人{change_type}神",
+            "吉",
+            f"问行人, 用神{line.di_zhi}{line.wu_xing}发动化{change_type}神; "
+            f"{explanation}。行人占中化进化退非旺衰信号, 而是往来方向信号。",
+            evidence=[{
+                "position": line.position,
+                "ben_zhi": line.di_zhi,
+                "ben_liu_qin": line.liu_qin,
+                "bian_zhi": getattr(line, "bian_di_zhi", None),
+                "change_type": change_type,
+                "question_type": ctx.question_type,
+            }],
+        )
+
+
+class YongJiMutualTransformRule(BaseRule):
+    """用忌互化: 子鬼/父子/财鬼互化的窄规则。"""
+
+    rule_id = "P1_YONG_JI_MUTUAL_TRANSFORM"
+    theory_id = "卦意分析法_用忌互化"
+    priority = 735  # 低于投资财化鬼专用规则，避免覆盖反馈样本
+
+    # ponytail: 只覆盖问事语境明确的三类互化，不泛化到所有动化。
+    SCENARIOS = (
+        (("shengchan", "zinv"), "子孙", "官鬼", "子鬼互化", "问孕育/子女遇子孙与官鬼互化, 主子息受鬼气牵缠, 凶"),
+        (("kaoshi", "fumu", "zinv"), "父母", "子孙", "父子互化", "问孩子/文书遇父母与子孙互化, 主子孙有麻烦或文书反复废弃, 凶"),
+        (("cai", "shengyi"), "妻财", "官鬼", "财鬼互化", "问财遇妻财与官鬼互化, 主因财招祸、财中藏忧, 凶"),
+    )
+
+    def evaluate(self, ctx):
+        for line in ctx.hexagram.lines:
+            if not line.is_moving or not getattr(line, "bian_liu_qin", None):
+                continue
+            for qtypes, a, b, pattern, explanation in self.SCENARIOS:
+                if ctx.question_type not in qtypes:
+                    continue
+                if {line.liu_qin, line.bian_liu_qin} != {a, b}:
+                    continue
+                return self.result(
+                    pattern,
+                    "凶",
+                    f"第{line.position}爻{line.liu_qin}{line.di_zhi}发动化{line.bian_liu_qin}{getattr(line, 'bian_di_zhi', '')}, {explanation}",
+                    evidence=[{
+                        "position": line.position,
+                        "ben_liu_qin": line.liu_qin,
+                        "ben_zhi": line.di_zhi,
+                        "bian_liu_qin": line.bian_liu_qin,
+                        "bian_zhi": getattr(line, "bian_di_zhi", None),
+                        "question_type": ctx.question_type,
+                    }],
+                )
+        return None
+
+
+class YuanShenDuFaBianFeiRule(BaseRule):
+    """元神独发变废定凶: 卦中唯一能动生用神的动爻, 自化回头克/化绝则事败。"""
+
+    rule_id = "P1_YUANSHEN_DUFA_BIANFEI"
+    theory_id = "反馈迭代_元神独发变废定凶"
+    priority = 830
+
+    def evaluate(self, ctx):
+        if not ctx.primary_yong or not ctx.shi_line:
+            return None
+        movings = [l for l in ctx.hexagram.lines if l.is_moving]
+        if len(movings) != 1:
+            return None
+        line = movings[0]
+        yong_wx = DI_ZHI_WU_XING[ctx.primary_yong.di_zhi]
+        if WU_XING_SHENG.get(line.wu_xing) != yong_wx:
+            return None
+        moving = ctx.moving_analyses.get(line.position, {})
+        trend = moving.get("趋衰", [])
+        is_hk = "回头克" in trend
+        is_hj = "化绝" in trend
+        if not (is_hk or is_hj):
+            return None
+        cause = "回头克" if is_hk else "化绝"
+        return self.result(
+            f"元神独发变废({cause})",
+            "凶",
+            f"第{line.position}爻{line.liu_qin}{line.di_zhi}独发化{cause}, "
+            f"为唯一能生用神{ctx.primary_yong.di_zhi}{yong_wx}的元神, 源头断绝, 事必败",
+            evidence=[{
+                "yong_position": ctx.primary_yong.position,
+                "yong_zhi": ctx.primary_yong.di_zhi,
+                "yong_wx": yong_wx,
+                "yong_liu_qin": ctx.primary_yong.liu_qin,
+                "yuan_position": line.position,
+                "yuan_zhi": line.di_zhi,
+                "yuan_wx": line.wu_xing,
+                "yuan_liu_qin": line.liu_qin,
+                "trend": cause,
+            }],
         )
 
 
@@ -511,8 +770,10 @@ P0_RULES = [
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
     SanHeJuPriorityRule(),
+    KeShiChongBreaksGangjingRule(),
     JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
+    LifetimeShixiaoRule(),
     InvestmentWealthTurnsGhostRiskRule(),
     ExternalOmenBrokenObjectRule(),
     CompetitiveSelectionOpponentFailsRule(),
@@ -520,4 +781,9 @@ P0_RULES = [
     HuiTouShengRescueRule(),
     MovingKeYongRule(),
     TransformedYongMediatorRule(),
+    ZaizhanSimplifiedRule(),
+    ShortTermNoJinTuiRule(),
+    TravelerReturnRule(),
+    YuanShenDuFaBianFeiRule(),
+    YongJiMutualTransformRule(),
 ]

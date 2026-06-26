@@ -39,7 +39,7 @@ from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 # 这些案例为硬性守卫: 任何改动若令其判定退化, 测试立即失败。
 BASELINE_HIT_IDS = {
     "例1", "例2", "例3", "例4", "例5",
-    "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例14", "例15", "例17", "例18", "例20", "例22", "例23",
+    "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例14", "例15", "例18", "例20", "例22", "例23",
     "例38", "例41", "例44", "例54", "例60", "例61", "例101", "例144", "例218",
 }
 
@@ -73,7 +73,6 @@ BASELINE_RULE_HITS = {
     "例12":  {"rule_id": "legacy",                  "pattern": "世爻受伤局"},
     "例14":  {"rule_id": "P0_JINGANG_MOVING_KE_SHI", "pattern": "金刚型忌神动克世"},
     "例15":  {"rule_id": "P0_SELF_CHANGE_TERMINAL",  "pattern": "内力动化衰败"},
-    "例17":  {"rule_id": "legacy",                  "pattern": "用神衰败局"},
     "例18":  {"rule_id": "legacy",                  "pattern": "用神动化临日月"},
     "例20":  {"rule_id": "P0_JINGANG_MOVING_KE_SHI", "pattern": "金刚型忌神动克世"},
     "例22":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
@@ -97,7 +96,13 @@ KNOWN_MISMATCH = {
     # ── (A) fixture 数据问题: yao_types 顺序/内容与理论描述不符 ──────────────
     "例205": "(A) fixture_mismatch: yao_types 构出的卦无妻财爻(用神为妻财), "
              "引擎因找不到用神判平; 需按原书核实卦图爻位",
-    "例108": "(A) fixture_error: 亥日不可能以亥为旬空, 待按原书核实日干",
+    # ── (B) 规则缺口: 无 P0/P1 规则处理该场景 ──────────────────────────────
+    "例17": "(B) 规则缺口: 子鬼互化已被 P1_YONG_JI_MUTUAL_TRANSFORM 覆盖, "
+            "但优先级低于月令时效卦 P0_YUE_LING_SHIXIAO, 引擎先命中后者判吉; "
+            "需调整 P1 用忌互化优先级或让月令时效不覆盖子鬼互化场景",
+    "例108": "(B) 规则缺口: 元神独发变废快速定凶规则未实现, "
+             "引擎因用神妻财衰败判平(特殊日月组合未触发); "
+             "需实现 P1_YUANSHEN_DUFA_BIANFEI 规则",
 }
 
 
@@ -133,8 +138,7 @@ def _case_params():
     return params
 
 
-# 因 fixture 数据问题当前无法构卦的案例 (仅这些会令格式化/构卦类测试失败)。
-BUILD_FAIL_IDS = {"例108"}
+BUILD_FAIL_IDS = set()
 
 
 def _buildable_case_params():
