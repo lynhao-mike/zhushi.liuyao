@@ -503,7 +503,7 @@ class TestAnalyzer:
         """高频组合句池应保持扩充后的规模，避免回退。"""
         from liuyao.domain.yimao_imagery import _COMBO_SENTENCES
 
-        assert len(_COMBO_SENTENCES) >= 64
+        assert len(_COMBO_SENTENCES) >= 88
         assert any(item.get("is_xun_kong") for item in _COMBO_SENTENCES)
         assert any(item.get("is_shi") for item in _COMBO_SENTENCES)
         assert any(item.get("is_ying") for item in _COMBO_SENTENCES)
