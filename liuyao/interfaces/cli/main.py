@@ -11,11 +11,17 @@ import argparse
 import sys
 
 from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.data import HEXAGRAM_BY_NAME, BINARY_TO_GUA, BA_GUA
+from liuyao.domain.data import HEXAGRAM_BY_NAME, BA_GUA
 from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
 from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
 from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
-from liuyao.report_archive import archive_reports
+from liuyao.report_archive import archive_reports, build_hexagram_input_snapshot
+
+
+def _exit_with_error(message):
+    print(message)
+    sys.exit(1)
+
 
 
 def parse_args():
@@ -97,42 +103,76 @@ def name_to_yao_values(gua_name, moving_lines):
     return yao_values
 
 
+def _parse_date(value):
+    try:
+        year_str, month_str, day_str = value.split("-")
+        return int(year_str), int(month_str), int(day_str)
+    except (ValueError, IndexError):
+        _exit_with_error("错误: 日期格式不正确, 请使用 YYYY-MM-DD 格式")
+
+
+
+def _resolve_yao_values(args):
+    if args.yao:
+        for value in args.yao:
+            if value not in (6, 7, 8, 9):
+                _exit_with_error(f"错误: 摇卦值必须为6/7/8/9, 收到: {value}")
+        return args.yao
+
+    if args.name:
+        try:
+            return name_to_yao_values(args.name, args.moving)
+        except ValueError as exc:
+            _exit_with_error(f"错误: {exc}")
+
+    _exit_with_error("错误: 必须提供 --yao 或 --name 参数")
+
+
+
+def _build_report_meta(args, *, use_dual, yao_values, hexagram):
+    question = args.name or args.question_type
+    return {
+        "question": question,
+        "querent": "",
+        "hexagram_input": build_hexagram_input_snapshot(
+            question=question,
+            question_type=args.question_type,
+            is_dual=use_dual,
+            date=args.date,
+            hour=args.hour,
+            yao_values=yao_values,
+            hexagram=hexagram,
+        ),
+    }
+
+
+
+def _render_reports(hexagram, *, question_type, use_dual, report_meta):
+    if use_dual:
+        dual_report = run_dual_analysis(hexagram, question_type)
+        report_text = format_dual_report(dual_report)
+        report_readable = format_readable_report(dual_report, meta=report_meta)
+        return report_text, report_readable
+
+    report = run_analysis(hexagram, question_type)
+    report_text = format_report(report)
+    report_readable = format_readable_report(report, meta=report_meta)
+    return report_text, report_readable
+
+
+
 def main():
     args = parse_args()
 
-    # 解析日期
-    try:
-        parts = args.date.split("-")
-        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
-    except (ValueError, IndexError):
-        print(f"错误: 日期格式不正确, 请使用 YYYY-MM-DD 格式")
-        sys.exit(1)
-
-    # 确定摇卦值
-    if args.yao:
-        yao_values = args.yao
-        # 验证输入
-        for v in yao_values:
-            if v not in (6, 7, 8, 9):
-                print(f"错误: 摇卦值必须为6/7/8/9, 收到: {v}")
-                sys.exit(1)
-    elif args.name:
-        try:
-            yao_values = name_to_yao_values(args.name, args.moving)
-        except ValueError as e:
-            print(f"错误: {e}")
-            sys.exit(1)
-    else:
-        print("错误: 必须提供 --yao 或 --name 参数")
-        sys.exit(1)
+    year, month, day = _parse_date(args.date)
+    yao_values = _resolve_yao_values(args)
 
     # 排卦
     try:
         h = Hexagram(yao_values, year, month, day, args.hour)
         h.display()
     except Exception as e:
-        print(f"排卦错误: {e}")
-        sys.exit(1)
+        _exit_with_error(f"排卦错误: {e}")
 
     # 运行分析
     print()
@@ -149,55 +189,13 @@ def main():
             (args.dual or args.question_type in DUAL_PERSPECTIVE_TABLE)
         )
 
-        report_meta = {
-            "question": args.name or args.question_type,
-            "querent": "",
-            "hexagram_input": {
-                "question": args.name or args.question_type,
-                "question_type": args.question_type,
-                "is_dual": use_dual,
-                "date": args.date,
-                "hour": args.hour,
-                "yao_values": yao_values,
-                "gan_zhi": h.gan_zhi,
-                "xun_kong": list(h.xun_kong),
-                "ben_gua_name": h.ben_gua_name,
-                "bian_gua_name": h.bian_gua_name,
-                "palace_name": h.palace_name,
-                "palace_wu_xing": h.palace_wu_xing,
-                "shi_pos": h.shi_pos,
-                "ying_pos": h.ying_pos,
-                "lines": [
-                    {
-                        "position": line.position,
-                        "yao_type": line.yao_type,
-                        "yin_yang": line.yin_yang,
-                        "is_moving": line.is_moving,
-                        "tian_gan": line.tian_gan,
-                        "di_zhi": line.di_zhi,
-                        "wu_xing": line.wu_xing,
-                        "liu_qin": line.liu_qin,
-                        "liu_shen": line.liu_shen,
-                        "is_shi": line.is_shi,
-                        "is_ying": line.is_ying,
-                        "is_xun_kong": line.is_xun_kong,
-                        "bian_tian_gan": line.bian_tian_gan,
-                        "bian_di_zhi": line.bian_di_zhi,
-                        "bian_wu_xing": line.bian_wu_xing,
-                        "bian_liu_qin": line.bian_liu_qin,
-                    }
-                    for line in h.lines
-                ],
-            },
-        }
-        if use_dual:
-            dual_report = run_dual_analysis(h, args.question_type)
-            report_text = format_dual_report(dual_report)
-            report_readable = format_readable_report(dual_report, meta=report_meta)
-        else:
-            report = run_analysis(h, args.question_type)
-            report_text = format_report(report)
-            report_readable = format_readable_report(report, meta=report_meta)
+        report_meta = _build_report_meta(args, use_dual=use_dual, yao_values=yao_values, hexagram=h)
+        report_text, report_readable = _render_reports(
+            h,
+            question_type=args.question_type,
+            use_dual=use_dual,
+            report_meta=report_meta,
+        )
 
         print(report_text)
         report_files = archive_reports(
@@ -211,8 +209,7 @@ def main():
             for report_file in report_files:
                 print(f"- {report_file}")
     except Exception as e:
-        print(f"分析错误: {e}")
-        sys.exit(1)
+        _exit_with_error(f"分析错误: {e}")
 
 
 if __name__ == "__main__":

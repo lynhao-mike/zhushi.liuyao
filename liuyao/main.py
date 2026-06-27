@@ -1,4 +1,6 @@
-from liuyao.interfaces.cli.main import *  # noqa: F401,F403
+from liuyao.interfaces.cli.main import main
+
+__all__ = ["main"]
 
 if __name__ == "__main__":
     main()

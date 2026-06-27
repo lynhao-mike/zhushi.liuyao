@@ -33,30 +33,32 @@
 
 ## 项目结构
 
+当前主路径不是对外 API，而是本地分析内核 + 知识资料：Codex 直接读取 [`data/`](data/classic_imagery.jsonl) 与 [`docs/`](docs/clean-architecture.md)，并通过 [`liuyao`](liuyao/__init__.py:1) 完成排卦与分析。
+
 ```text
 zhushi.liuyao/
 ├── liuyao/
-│   ├── __init__.py                  # 公开 Python API
+│   ├── __init__.py                  # 公开 Python API，本地分析首选入口
 │   ├── __main__.py                  # python -m liuyao 入口
 │   ├── main.py                      # CLI 兼容 facade
 │   ├── domain/                      # 排卦、旺衰、动变、吉凶、应期等纯领域逻辑
 │   ├── application/use_cases/       # analysis / dto / verdict
 │   └── interfaces/cli/              # CLI 与文本报告适配器
-├── api/
+├── data/                            # 经典规则、象法数据、知识输入
+├── docs/                            # 架构文档与理论资料
+├── examples/                        # 示例与报告归档
+├── tests/                           # 领域、规则与回归测试
+├── api/                             # 可选交付层，当前冻结，不作为近期主轴
 │   ├── app.py                       # FastAPI application factory
 │   ├── core/                        # 配置、日志、异常
 │   ├── application/use_cases/       # readings / feedback / templates / engine / support
 │   ├── infrastructure/              # Redis 与 SQLAlchemy 实现
 │   └── interfaces/http/             # FastAPI dependencies、routers 与 Pydantic schemas
-├── data/                            # 经典规则与象法数据
-├── docs/                            # 架构文档与理论资料
-├── examples/                        # 示例与报告归档
 ├── migrations/                      # Alembic 迁移
-├── scripts/                         # 数据抽取、规则构建、覆盖率脚本
-└── tests/                           # 领域、API、规则与回归测试
+└── scripts/                         # 数据抽取、规则构建、覆盖率脚本
 ```
 
-架构边界与重建蓝图见 [`docs/clean-architecture.md`](docs/clean-architecture.md)。边界守护测试见 [`tests/test_architecture_boundaries.py`](tests/test_architecture_boundaries.py)，用于防止内核反向依赖交付层、API 绕过 `liuyao/__init__.py` 公开门面直连内核内部、HTTP router 直连数据库 session 实现、旧平行目录复活、以及新增 `shared/common/utils` 大杂烩目录。
+架构边界与重建蓝图见 [`docs/clean-architecture.md`](docs/clean-architecture.md:1)。边界守护测试见 [`tests/test_architecture_boundaries.py`](tests/test_architecture_boundaries.py:1)，用于防止内核反向依赖交付层、冻结的 [`api`](api/app.py:1) 绕过 [`liuyao/__init__.py`](liuyao/__init__.py:1) 公开门面直连内核内部、HTTP router 直连数据库 session 实现、旧平行目录复活、以及新增 `shared/common/utils` 大杂烩目录。
 
 ---
 

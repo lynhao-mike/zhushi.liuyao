@@ -14,6 +14,24 @@ from typing import Any, Dict, Iterable, List, Optional
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPORTS_DIR = PROJECT_ROOT / "examples" / "reports"
+HEXAGRAM_INPUT_LABELS = {
+    "question": "占问事项",
+    "querent": "求测人",
+    "question_type": "占问类型",
+    "date": "起卦日期",
+    "hour": "起卦小时",
+    "yao_values": "摇卦值",
+    "ganzhi_override": "干支覆盖",
+    "gan_zhi": "干支",
+    "xun_kong": "旬空",
+    "ben_gua_name": "本卦",
+    "bian_gua_name": "变卦",
+    "palace_name": "卦宫",
+    "palace_wu_xing": "宫五行",
+    "shi_pos": "世爻",
+    "ying_pos": "应爻",
+    "lines": "六爻明细",
+}
 
 
 def _safe_filename_part(value: Optional[str], fallback: str = "未命名") -> str:
@@ -37,31 +55,13 @@ def _iter_hexagram_input_lines(value: Any) -> Iterable[str]:
     if isinstance(value, str):
         return [line.rstrip() for line in value.splitlines() if line.strip()]
     if isinstance(value, dict):
-        labels = {
-            "question": "占问事项",
-            "querent": "求测人",
-            "question_type": "占问类型",
-            "date": "起卦日期",
-            "hour": "起卦小时",
-            "yao_values": "摇卦值",
-            "ganzhi_override": "干支覆盖",
-            "gan_zhi": "干支",
-            "xun_kong": "旬空",
-            "ben_gua_name": "本卦",
-            "bian_gua_name": "变卦",
-            "palace_name": "卦宫",
-            "palace_wu_xing": "宫五行",
-            "shi_pos": "世爻",
-            "ying_pos": "应爻",
-            "lines": "六爻明细",
-        }
         lines: List[str] = []
-        for key, label in labels.items():
+        for key, label in HEXAGRAM_INPUT_LABELS.items():
             if key not in value or value[key] in (None, "", []):
                 continue
             lines.append(f"- {label}：{value[key]}")
         for key, item in value.items():
-            if key in labels or item in (None, "", []):
+            if key in HEXAGRAM_INPUT_LABELS or item in (None, "", []):
                 continue
             lines.append(f"- {key}：{item}")
         return lines
@@ -81,6 +81,57 @@ def _with_hexagram_input(content: str, meta: Optional[Dict[str, Any]]) -> str:
     if not section:
         return content
     return f"{section}\n---\n\n{content}"
+
+
+def build_hexagram_input_snapshot(
+    *,
+    question: str,
+    question_type: str,
+    is_dual: bool,
+    date: str,
+    hour: int,
+    yao_values: List[int],
+    hexagram: Any,
+) -> Dict[str, Any]:
+    """Build a reusable hexagram input snapshot for reporting/archive metadata."""
+    return {
+        "question": question,
+        "question_type": question_type,
+        "is_dual": is_dual,
+        "date": date,
+        "hour": hour,
+        "yao_values": list(yao_values),
+        "gan_zhi": hexagram.gan_zhi,
+        "xun_kong": list(hexagram.xun_kong),
+        "ben_gua_name": hexagram.ben_gua_name,
+        "bian_gua_name": hexagram.bian_gua_name,
+        "palace_name": hexagram.palace_name,
+        "palace_wu_xing": hexagram.palace_wu_xing,
+        "shi_pos": hexagram.shi_pos,
+        "ying_pos": hexagram.ying_pos,
+        "lines": [
+            {
+                "position": line.position,
+                "yao_type": line.yao_type,
+                "yin_yang": line.yin_yang,
+                "is_moving": line.is_moving,
+                "tian_gan": line.tian_gan,
+                "di_zhi": line.di_zhi,
+                "wu_xing": line.wu_xing,
+                "liu_qin": line.liu_qin,
+                "liu_shen": line.liu_shen,
+                "is_shi": line.is_shi,
+                "is_ying": line.is_ying,
+                "is_xun_kong": line.is_xun_kong,
+                "bian_tian_gan": line.bian_tian_gan,
+                "bian_di_zhi": line.bian_di_zhi,
+                "bian_wu_xing": line.bian_wu_xing,
+                "bian_liu_qin": line.bian_liu_qin,
+            }
+            for line in hexagram.lines
+        ],
+    }
+
 
 
 def archive_reports(

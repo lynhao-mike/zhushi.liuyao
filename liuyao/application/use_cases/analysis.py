@@ -10,7 +10,6 @@
 import logging
 
 from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
-from liuyao.application.use_cases.verdict import GUA_JU_BAIHUA, build_verdict
 from liuyao.domain.data import get_star_spirits
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
 from liuyao.domain.dongbian import analyze_dongbian
@@ -29,9 +28,39 @@ from liuyao.domain.patterns import (
     analyze_structural_patterns,
     merge_pattern_results,
 )
-from liuyao.domain.exceptions import AnalysisError
 
 log = logging.getLogger(__name__)
+
+
+
+def _safe_star_spirits(hexagram, *, question_type=None, perspective=None):
+    try:
+        return get_star_spirits(
+            hexagram.gan_zhi["day_gan"],
+            hexagram.gan_zhi["day_zhi"],
+            hexagram.gan_zhi["month_zhi"],
+        )
+    except Exception:
+        log.error(
+            "star_spirits_failed",
+            exc_info=True,
+            gua=hexagram.ben_gua_name,
+            question_type=question_type,
+            perspective=perspective,
+        )
+        return {}
+
+
+
+def _attach_jixiong_extras(report):
+    kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
+    if kuayi_patterns:
+        report.jixiong_result["kuayi_supplements"] = kuayi_patterns
+
+    yimao_sentences = report.yimao_imagery.get("sentences", [])
+    if yimao_sentences:
+        report.jixiong_result["yimao_signals"] = yimao_sentences
+
 
 
 def run_analysis(hexagram, question_type="other",
@@ -90,16 +119,7 @@ def run_analysis(hexagram, question_type="other",
         report.patterns_results = {}
 
     # 5. 13星煞计算
-    try:
-        report.star_spirits = get_star_spirits(
-            hexagram.gan_zhi["day_gan"],
-            hexagram.gan_zhi["day_zhi"],
-            hexagram.gan_zhi["month_zhi"],
-        )
-    except Exception:
-        log.error("star_spirits_failed", exc_info=True,
-                  gua=hexagram.ben_gua_name)
-        report.star_spirits = {}
+    report.star_spirits = _safe_star_spirits(hexagram, question_type=question_type)
 
     # 6. 《易冒》象法摘要(只作报告层细节, 不参与吉凶)
     report.yimao_imagery = analyze_yimao_imagery(
@@ -117,14 +137,7 @@ def run_analysis(hexagram, question_type="other",
             question_type,
             patterns_results=report.patterns_results,
         )
-        # 注入卦意法附加判断
-        kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
-        if kuayi_patterns:
-            report.jixiong_result["kuayi_supplements"] = kuayi_patterns
-        # 注入象法软信号（不覆盖吉凶裁决，只作解释层补充）
-        yimao_sentences = report.yimao_imagery.get("sentences", [])
-        if yimao_sentences:
-            report.jixiong_result["yimao_signals"] = yimao_sentences
+        _attach_jixiong_extras(report)
     except Exception as e:
         log.error("jixiong_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
@@ -174,16 +187,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
     dual.ying_line = ying_line
 
     # 3. 13星煞 (只算一次)
-    try:
-        dual.star_spirits = get_star_spirits(
-            hexagram.gan_zhi["day_gan"],
-            hexagram.gan_zhi["day_zhi"],
-            hexagram.gan_zhi["month_zhi"],
-        )
-    except Exception:
-        log.error("star_spirits_failed", exc_info=True,
-                  gua=hexagram.ben_gua_name)
-        dual.star_spirits = {}
+    dual.star_spirits = _safe_star_spirits(hexagram, question_type=question_type)
 
     # 4. 与用神无关的结构模式只计算一次, 各视角复用
     try:
@@ -235,12 +239,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
                 hexagram, yong_shen, shared_ws, shared_db, question_type,
                 patterns_results=report.patterns_results,
             )
-            kuayi_patterns = report.patterns_results.get("kuayi_patterns", [])
-            if kuayi_patterns:
-                report.jixiong_result["kuayi_supplements"] = kuayi_patterns
-            yimao_sentences = report.yimao_imagery.get("sentences", [])
-            if yimao_sentences:
-                report.jixiong_result["yimao_signals"] = yimao_sentences
+            _attach_jixiong_extras(report)
         except Exception as e:
             log.error("jixiong_analysis_failed", exc_info=True,
                       gua=hexagram.ben_gua_name, perspective=label)
