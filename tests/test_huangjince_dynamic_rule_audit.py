@@ -39,7 +39,7 @@ def test_huangjince_dynamic_rule_audit_outputs_exist_and_are_isolated():
 
     assert audit["runtime_isolation"]["candidate_rules_path"] == "data/huangjince_candidate_rules.jsonl"
     assert "data/huangjince_dynamic_rule_compile_queue.jsonl" in audit["runtime_isolation"]["audit_outputs"]
-    assert len(candidate_rules) == 13
+    assert len(candidate_rules) == 54
     assert len(queue) == audit["queue_size"]
     assert all(item["runtime_isolation"]["default_loader"] == "not_loaded" for item in queue)
 
@@ -52,9 +52,9 @@ def test_huangjince_dynamic_rule_audit_statistics_match_drafts():
     manual = [draft for draft in drafts if not draft.get("compiled_rule_id")]
 
     assert audit["total_drafts"] == len(drafts)
-    assert audit["compiled_drafts"] == len(compiled) == 13
+    assert audit["compiled_drafts"] == len(compiled) == 54
     assert audit["manual_compile_drafts"] == len(manual)
-    assert audit["by_compilability"]["auto_compilable"] == 13
+    assert audit["by_compilability"]["auto_compilable"] == 54
     assert audit["by_compilability"]["not_compilable"] == len(manual)
 
 
@@ -64,7 +64,7 @@ def test_huangjince_dynamic_rule_compile_queue_is_deterministic_against_drafts()
     rebuilt_queue = build_compile_queue(drafts)
 
     assert rebuilt_queue == saved_queue
-    assert len(saved_queue) >= 200
+    assert len(saved_queue) >= 169
     assert all(item["queue_id"].startswith("compile_queue_classic_huangjince_") for item in saved_queue)
     assert all(not item["draft_id"].startswith("classic_huangjince_dynamic_") for item in saved_queue)
 
@@ -98,6 +98,6 @@ def test_huangjince_dynamic_rule_compile_queue_does_not_change_default_runtime_r
     rules = get_huangjince_candidate_rules()
     queue_ids = {item["queue_id"] for item in _jsonl(QUEUE_PATH)}
 
-    assert len(rules) == 13
+    assert len(rules) == 54
     assert all(rule.rule_id not in queue_ids for rule in rules)
     assert all(not rule.rule_id.startswith("compile_queue_") for rule in rules)

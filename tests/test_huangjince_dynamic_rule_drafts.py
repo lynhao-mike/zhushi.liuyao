@@ -71,7 +71,7 @@ def test_draft_only_records_do_not_enter_default_dynamic_rule_loader():
     get_huangjince_candidate_rules.cache_clear()
     rules = get_huangjince_candidate_rules()
 
-    assert len(rules) == 13
+    assert len(rules) == 54
     assert all(not rule.rule_id.startswith("draft_") for rule in rules)
 
 

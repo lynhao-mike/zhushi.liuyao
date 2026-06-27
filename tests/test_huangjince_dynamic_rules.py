@@ -203,7 +203,7 @@ def test_huangjince_candidate_rules_load_and_validate_from_default_path():
     assert DEFAULT_HUANGJINCE_RULES_PATH.exists()
     records = load_dynamic_classic_rule_records()
 
-    assert len(records) >= 13
+    assert len(records) >= 17
     assert validate_classic_rules(records) == []
     assert {record["source"] for record in records} == {"huangjince"}
     assert all(record["safety"]["allow_override"] is False for record in records)
@@ -359,6 +359,52 @@ def test_auto_compiled_hun_ying_unstable_bing_ghost_and_chuxing_shi_empty_match_
     assert chuxing_result is not None
     assert chuxing_result.rule_id == "classic_huangjince_dynamic_chuxing_shi_empty"
     assert chuxing_result.ji_xiong == "吉"
+
+
+
+def test_auto_compiled_bing_fumu_hun_wang_kaoshi_empty_and_chuxing_both_empty_match_contexts():
+    bing_fumu_shi = _line(1, "子", "水", "父母", is_shi=True)
+    bing_fumu_ying = _line(4, "丑", "土", "官鬼", is_ying=True)
+    bing_fumu_context = _context_from_shi_ying(bing_fumu_shi, bing_fumu_ying, question_type="bing")
+
+    hun_wang_shi = _line(1, "子", "水", "妻财", is_shi=True)
+    hun_wang_ying = _line(4, "丑", "土", "官鬼", is_ying=True)
+    hun_wang_context = _context_from_shi_ying(
+        hun_wang_shi,
+        hun_wang_ying,
+        question_type="hun_male",
+        wangshuai_by_position={1: {"overall": "旺", "details": "测试旺相"}},
+    )
+
+    kaoshi_shi = _line(1, "子", "水", "妻财", is_shi=True, is_empty=True)
+    kaoshi_ying = _line(4, "丑", "土", "官鬼", is_ying=True)
+    kaoshi_context = _context_from_shi_ying(kaoshi_shi, kaoshi_ying, question_type="kaoshi")
+
+    chuxing_both_empty_shi = _line(1, "子", "水", "妻财", is_shi=True, is_empty=True)
+    chuxing_both_empty_ying = _line(4, "丑", "土", "官鬼", is_ying=True, is_empty=True)
+    chuxing_both_empty_context = _context_from_shi_ying(
+        chuxing_both_empty_shi,
+        chuxing_both_empty_ying,
+        question_type="chuxing",
+    )
+
+    bing_fumu_result = DynamicClassicRule(_record("classic_huangjince_dynamic_bing_shi_fumu")).evaluate(bing_fumu_context)
+    hun_wang_result = DynamicClassicRule(_record("classic_huangjince_dynamic_hun_shi_wang")).evaluate(hun_wang_context)
+    kaoshi_result = DynamicClassicRule(_record("classic_huangjince_dynamic_kaoshi_shi_empty")).evaluate(kaoshi_context)
+    chuxing_both_empty_result = DynamicClassicRule(_record("classic_huangjince_dynamic_chuxing_shi_ying_both_empty")).evaluate(chuxing_both_empty_context)
+
+    assert bing_fumu_result is not None
+    assert bing_fumu_result.rule_id == "classic_huangjince_dynamic_bing_shi_fumu"
+    assert bing_fumu_result.ji_xiong == "凶"
+    assert hun_wang_result is not None
+    assert hun_wang_result.rule_id == "classic_huangjince_dynamic_hun_shi_wang"
+    assert hun_wang_result.ji_xiong == "吉"
+    assert kaoshi_result is not None
+    assert kaoshi_result.rule_id == "classic_huangjince_dynamic_kaoshi_shi_empty"
+    assert kaoshi_result.ji_xiong == "凶"
+    assert chuxing_both_empty_result is not None
+    assert chuxing_both_empty_result.rule_id == "classic_huangjince_dynamic_chuxing_shi_ying_both_empty"
+    assert chuxing_both_empty_result.ji_xiong == "凶"
 
 
 

@@ -1,7 +1,7 @@
 {
   "by_compilability": {
-    "auto_compilable": 13,
-    "not_compilable": 210
+    "auto_compilable": 54,
+    "not_compilable": 169
   },
   "by_polarity": {
     "中性": 64,
@@ -18,9 +18,9 @@
     "other": 97,
     "shiwu": 17
   },
-  "compiled_drafts": 13,
-  "manual_compile_drafts": 210,
-  "queue_size": 210,
+  "compiled_drafts": 54,
+  "manual_compile_drafts": 169,
+  "queue_size": 169,
   "runtime_isolation": {
     "audit_outputs": [
       "data/huangjince_dynamic_rule_draft_audit.json",
@@ -146,21 +146,6 @@
     },
     {
       "compile_priority_score": 30,
-      "draft_id": "draft_classic_huangjince_7e599b005c33",
-      "line_start": 655,
-      "queue_id": "compile_queue_classic_huangjince_7e599b005c33",
-      "reasons": [
-        "含 4 个现有事实抽取器可支持关键词",
-        "高价值章节：婚姻",
-        "吉凶倾向较明确：凶",
-        "可绑定问事类型：hun_male",
-        "断语可按分句拆解"
-      ],
-      "section": "婚姻",
-      "source_text": "如逢财鬼空亡，乃婚姻之大忌；苟遇阴阳得位，实天命之所关。"
-    },
-    {
-      "compile_priority_score": 30,
       "draft_id": "draft_classic_huangjince_a82616125d60",
       "line_start": 850,
       "queue_id": "compile_queue_classic_huangjince_a82616125d60",
@@ -172,6 +157,19 @@
       ],
       "section": "娼家养身于花柳之中",
       "source_text": "子孙藏伏蹙眉追陪。财化福爻，家出从良之妓；官居刑地，门招恶病之人。忌动衰空，闲是闲非闲挠括；财兴克世，有财有利有惊疑。"
+    },
+    {
+      "compile_priority_score": 29,
+      "draft_id": "draft_classic_huangjince_89b7ac9834eb",
+      "line_start": 875,
+      "queue_id": "compile_queue_classic_huangjince_89b7ac9834eb",
+      "reasons": [
+        "含 7 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：中性",
+        "可绑定问事类型：hun_male"
+      ],
+      "section": "进人口独夫处世",
+      "source_text": "用爻生合世爻，必得其力，主象克冲身象，难服其心。"
     }
   ],
   "top_sections": {
