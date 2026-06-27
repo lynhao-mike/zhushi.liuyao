@@ -11,7 +11,6 @@ Reading Service — orchestrates the full request lifecycle:
 """
 from __future__ import annotations
 
-import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -229,8 +228,7 @@ async def create_reading(
     payload["id"] = str(session_id)
     payload["created_at"] = datetime.now(timezone.utc).isoformat()
 
-    # ponytail: fire-and-forget — Redis/DB cache write failure doesn't block response
-    asyncio.ensure_future(cache.set(fingerprint, req.question_type, is_dual, payload))
+    await cache.set(fingerprint, req.question_type, is_dual, payload)
 
     return _payload_to_response(payload, from_cache=False)
 

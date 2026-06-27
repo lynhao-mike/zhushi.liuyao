@@ -50,6 +50,13 @@ def _get_executor() -> concurrent.futures.ThreadPoolExecutor:
     return _executor
 
 
+def shutdown_executor() -> None:
+    global _executor
+    if _executor is not None:
+        _executor.shutdown(wait=False)
+        _executor = None
+
+
 # ── Serialisation helpers ─────────────────────────────────────────────────────
 
 def _yao_line_to_dict(line) -> Dict[str, Any]:
