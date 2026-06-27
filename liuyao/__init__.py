@@ -48,14 +48,9 @@
 __version__ = "0.2.0"
 
 from liuyao.domain.hexagram import Hexagram, YaoLine
-from liuyao.application.use_cases.analysis import (
-    run_analysis,
-    run_dual_analysis,
-    AnalysisReport,
-    DualPerspectiveReport,
-    build_verdict,
-    GUA_JU_BAIHUA,
-)
+from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
+from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
+from liuyao.application.use_cases.verdict import build_verdict, GUA_JU_BAIHUA
 from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
 from liuyao.domain.exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
 from liuyao.domain.data import JiXiong, QUESTION_TYPE_LABELS

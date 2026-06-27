@@ -15,7 +15,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from api.application.use_cases.dto import ReadingCreateCommand
-from api.application.use_cases.reading import _orm_to_response, create_reading
+from api.application.use_cases.readings import create_reading
+from api.application.use_cases.reading_support import orm_to_response as _orm_to_response
 
 
 # ── Fake DB ───────────────────────────────────────────────────────────────────
@@ -92,11 +93,11 @@ async def test_create_reading_returns_response_with_id():
     db = _FakeSession()
 
     with (
-        patch("api.application.use_cases.reading.get_cache", AsyncMock(return_value=None)),
-        patch("api.application.use_cases.reading.set_cache", AsyncMock()),
-        patch("api.application.use_cases.reading.invalidate_prefix", AsyncMock(return_value=0)),
-        patch("api.application.use_cases.reading.analyze", AsyncMock(return_value=_STUB_ENGINE_RESULT)),
-        patch("api.application.use_cases.reading.archive_reports", MagicMock(return_value=[])),
+        patch("api.application.use_cases.readings.get_cache", AsyncMock(return_value=None)),
+        patch("api.application.use_cases.readings.set_cache", AsyncMock()),
+        patch("api.application.use_cases.readings.invalidate_prefix", AsyncMock(return_value=0)),
+        patch("api.application.use_cases.readings.analyze", AsyncMock(return_value=_STUB_ENGINE_RESULT)),
+        patch("api.application.use_cases.reading_support.archive_reports", MagicMock(return_value=[])),
     ):
         result = await create_reading(_STUB_REQ, db)
 
@@ -133,10 +134,10 @@ async def test_cache_hit_with_missing_report_files_is_rewarmed_after_recovery():
     set_cache = AsyncMock()
 
     with (
-        patch("api.application.use_cases.reading.get_cache", AsyncMock(return_value=cached_payload)),
-        patch("api.application.use_cases.reading.set_cache", set_cache),
-        patch("api.application.use_cases.reading.archive_reports", MagicMock(return_value=["examples/reports/recovered.txt"])),
-        patch("api.application.use_cases.reading.analyze", AsyncMock(side_effect=AssertionError("engine should not run on cache hit"))),
+        patch("api.application.use_cases.readings.get_cache", AsyncMock(return_value=cached_payload)),
+        patch("api.application.use_cases.readings.set_cache", set_cache),
+        patch("api.application.use_cases.reading_support.archive_reports", MagicMock(return_value=["examples/reports/recovered.txt"])),
+        patch("api.application.use_cases.readings.analyze", AsyncMock(side_effect=AssertionError("engine should not run on cache hit"))),
     ):
         result = await create_reading(_STUB_REQ, db)
 
@@ -174,8 +175,8 @@ async def test_create_reading_returns_cache_hit_without_db_write():
     }
 
     with (
-        patch("api.application.use_cases.reading.get_cache", AsyncMock(return_value=cached_payload)),
-        patch("api.application.use_cases.reading.analyze", AsyncMock(side_effect=AssertionError("engine should not run on cache hit"))),
+        patch("api.application.use_cases.readings.get_cache", AsyncMock(return_value=cached_payload)),
+        patch("api.application.use_cases.readings.analyze", AsyncMock(side_effect=AssertionError("engine should not run on cache hit"))),
     ):
         result = await create_reading(_STUB_REQ, db)
 
@@ -192,11 +193,11 @@ async def test_create_reading_cache_key_includes_question_context():
     get_cache = AsyncMock(return_value=None)
 
     with (
-        patch("api.application.use_cases.reading.get_cache", get_cache),
-        patch("api.application.use_cases.reading.set_cache", AsyncMock()),
-        patch("api.application.use_cases.reading.invalidate_prefix", AsyncMock(return_value=0)),
-        patch("api.application.use_cases.reading.analyze", AsyncMock(return_value=_STUB_ENGINE_RESULT)),
-        patch("api.application.use_cases.reading.archive_reports", MagicMock(return_value=[])),
+        patch("api.application.use_cases.readings.get_cache", get_cache),
+        patch("api.application.use_cases.readings.set_cache", AsyncMock()),
+        patch("api.application.use_cases.readings.invalidate_prefix", AsyncMock(return_value=0)),
+        patch("api.application.use_cases.readings.analyze", AsyncMock(return_value=_STUB_ENGINE_RESULT)),
+        patch("api.application.use_cases.reading_support.archive_reports", MagicMock(return_value=[])),
     ):
         await create_reading(_STUB_REQ, db)
         await create_reading(
@@ -236,7 +237,7 @@ def test_orm_to_response_is_read_only_for_archived_report_text():
     )
 
     with patch(
-        "api.application.use_cases.reading.archive_reports",
+        "api.application.use_cases.reading_support.archive_reports",
         MagicMock(side_effect=AssertionError("GET should not archive reports")),
     ):
         result = _orm_to_response(reading)

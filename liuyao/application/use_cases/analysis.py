@@ -8,10 +8,9 @@
 """
 
 import logging
-from dataclasses import dataclass, field
-from typing import List, Dict, Optional
 
-from liuyao.domain.hexagram import Hexagram
+from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
+from liuyao.application.use_cases.verdict import GUA_JU_BAIHUA, build_verdict
 from liuyao.domain.data import get_star_spirits
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
 from liuyao.domain.dongbian import analyze_dongbian
@@ -33,58 +32,6 @@ from liuyao.domain.patterns import (
 from liuyao.domain.exceptions import AnalysisError
 
 log = logging.getLogger(__name__)
-
-
-@dataclass
-class AnalysisReport:
-    """单视角分析报告"""
-    # 基本信息
-    hexagram: Hexagram = None
-    question_type: str = ""
-    yong_shen_liu_qin: str = ""
-    ji_shen_liu_qin: str = ""
-    perspective_label: str = ""  # 视角标签 (如"物件本相视角"), 单视角时为空
-
-    # 分析结果
-    wangshuai_results: List[Dict] = field(default_factory=list)
-    dongbian_results: Dict = field(default_factory=dict)
-    patterns_results: Dict = field(default_factory=dict)
-    star_spirits: Dict = field(default_factory=dict)
-    yimao_imagery: Dict = field(default_factory=dict)
-    jixiong_result: Dict = field(default_factory=dict)
-    yingqi_results: List[Dict] = field(default_factory=list)
-
-    # 用神信息
-    yong_shen_lines: List = field(default_factory=list)
-    shi_line: Optional[object] = None
-    ying_line: Optional[object] = None
-
-
-@dataclass
-class DualPerspectiveReport:
-    """
-    双(多)视角分析报告。
-
-    共享: 排卦信息、日月、各爻旺衰、动变分析、模式识别、星煞 (只算一次)。
-    各自: 用神选定、卦意分析、吉凶判断、应期推断。
-
-    适用于多个合理用神并存的占类(失物、问病等)。
-    """
-    hexagram: Hexagram = None
-    question_type: str = ""
-
-    # 共享部分
-    wangshuai_results: List[Dict] = field(default_factory=list)
-    dongbian_results: Dict = field(default_factory=dict)
-    star_spirits: Dict = field(default_factory=dict)
-    shi_line: Optional[object] = None
-    ying_line: Optional[object] = None
-
-    # 各视角分析结果
-    perspectives: List[AnalysisReport] = field(default_factory=list)
-
-    # 综合结论 (一致吉/一致凶/分歧)
-    consensus: str = ""
 
 
 def run_analysis(hexagram, question_type="other",
@@ -328,95 +275,3 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
     return dual
 
 
-# ── Verdict computation (business logic, not formatting) ─────────────────────
-
-# 卦局白话解释 — 权威来源 (report.py 从此处导入, 不再重复定义)
-GUA_JU_BAIHUA: dict = {
-    "世用受克局":   "用神与世爻合一却遭受动爻克伤——失物与主人的缘分已断，凶。",
-    "世爻受伤局":   "世爻被有力的动爻克伤——主人追寻此物的力量受阻，凶。",
-    "世用受生局":   "用神与世爻合一且受动爻生扶——失物有归还之象，吉。",
-    "用神生世局":   "用神主动生旺世爻——物与主人气场相连，有望寻回，吉。",
-    "用旺世兴局":   "用神旺盛，世爻亦得日月扶助——天时地利俱备，可寻回，吉。",
-    "用旺世衰局":   "用神虽旺，世爻却衰弱——物虽存在，主人无力追回，凶。",
-    "用神克世局":   "用神动而克世——物事对主人有所伤损，凶（短期失物若世旺可酌情看吉）。",
-    "用神衰败局":   "用神本身衰弱——所失之物已残损或难觅踪迹，凶。",
-    "失物特例(用克世)": "用神动克世但世爻有日月扶助——短期内有望寻回（属特例之吉）。",
-    "静卦用旺世兴": "静卦中用神旺、世爻兴——物在某处静候，可寻，吉。",
-    "静卦用衰":     "静卦用神衰败——物已难觅，凶。",
-    "静卦用克世":   "静卦用神克世——寻物对主人构成损耗，凶。",
-    "用神持世":     "用神就是世爻——物与人同在，情形密切，可寻，吉。",
-    "平局":         "卦局平和，吉凶未明，需结合细节综合研判。",
-}
-
-
-def build_verdict(analysis) -> dict:
-    """
-    从 AnalysisReport 或 DualPerspectiveReport 中提取综合断语。
-
-    返回:
-        {
-            "verdict":      str,   # 断语文本，如 "凶——此物难以寻回"
-            "tone":         str,   # 解释段落（多行）
-            "yingqi_lines": list,  # 扁平化去重后的应期列表 [{position, di_zhi, ...}]
-        }
-    """
-    is_dual = hasattr(analysis, "perspectives") and bool(analysis.perspectives)
-
-    if is_dual:
-        perspectives = analysis.perspectives
-        j1 = perspectives[0].jixiong_result
-        j2 = perspectives[1].jixiong_result if len(perspectives) > 1 else j1
-        p1_label = perspectives[0].perspective_label
-        p2_label = perspectives[1].perspective_label if len(perspectives) > 1 else ""
-
-        both_xiong = j1.get("ji_xiong") == "凶" and j2.get("ji_xiong") == "凶"
-        both_ji    = j1.get("ji_xiong") == "吉" and j2.get("ji_xiong") == "吉"
-
-        if both_xiong:
-            verdict = "凶——此物难以寻回"
-            tone = (
-                "从物件本相（父母爻）与财物价值（妻财爻）两个角度审视，"
-                "卦象均指向同一结论：\n"
-                f"  · {p1_label}：{GUA_JU_BAIHUA.get(j1['pattern'], j1.get('explanation',''))}\n"
-                f"  · {p2_label}：{GUA_JU_BAIHUA.get(j2['pattern'], j2.get('explanation',''))}\n"
-                "两路相验，结论趋同，说明卦象给出的信号相当确定。"
-            )
-        elif both_ji:
-            verdict = "吉——此物有望寻回"
-            tone = (
-                "两个视角均显示吉象：\n"
-                f"  · {p1_label}：{GUA_JU_BAIHUA.get(j1['pattern'], j1.get('explanation',''))}\n"
-                f"  · {p2_label}：{GUA_JU_BAIHUA.get(j2['pattern'], j2.get('explanation',''))}\n"
-                "双视角互证，寻回可期。"
-            )
-        else:
-            v1 = j1.get("ji_xiong", "平")
-            v2 = j2.get("ji_xiong", "平")
-            p1_ys = perspectives[0].yong_shen_liu_qin
-            p2_ys = perspectives[1].yong_shen_liu_qin if len(perspectives) > 1 else ""
-            verdict = f"两视角分歧（{p1_ys}视角：{v1} / {p2_ys}视角：{v2}）"
-            tone = (
-                "两个用神角度给出不同信号，宜谨慎研判，\n"
-                "建议以吉凶更明显的一方为主，结合问卦人实际情况综合判断。"
-            )
-
-        # Deduplicate yingqi across perspectives
-        seen: set = set()
-        yingqi_lines = []
-        for p in perspectives:
-            for yq in (p.yingqi_results or []):
-                key = yq["position"]
-                if key not in seen:
-                    seen.add(key)
-                    yingqi_lines.append(yq)
-
-    else:
-        jx = analysis.jixiong_result
-        ji_xiong = jx.get("ji_xiong", "平")
-        pattern  = jx.get("pattern", "")
-        verdict_map = {"吉": "吉——事可成", "凶": "凶——事难成", "平": "平——尚待观望"}
-        verdict = verdict_map.get(ji_xiong, ji_xiong)
-        tone = GUA_JU_BAIHUA.get(pattern, jx.get("explanation", ""))
-        yingqi_lines = analysis.yingqi_results or []
-
-    return {"verdict": verdict, "tone": tone, "yingqi_lines": yingqi_lines}

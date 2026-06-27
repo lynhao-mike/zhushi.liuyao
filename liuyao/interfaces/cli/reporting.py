@@ -10,7 +10,7 @@
 from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
 from liuyao.domain.classic_judgements import search_classic_judgements
 from liuyao.domain.classic_imagery import search_classic_imagery
-from liuyao.application.use_cases.analysis import build_verdict, GUA_JU_BAIHUA
+from liuyao.application.use_cases.verdict import build_verdict, GUA_JU_BAIHUA
 
 # 问事类型中文名 (从 data 模块导入, 此处保留别名以兼容模块内引用)
 QUESTION_TYPE_NAMES = QUESTION_TYPE_LABELS

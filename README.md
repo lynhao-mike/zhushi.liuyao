@@ -33,31 +33,27 @@
 
 ## 项目结构
 
-```
+```text
 zhushi.liuyao/
 ├── liuyao/
-│   ├── __init__.py        # 公开 API 入口
-│   ├── __main__.py        # python -m liuyao 入口
-│   ├── main.py            # CLI 解析与主流程
-│   ├── hexagram.py        # 排卦引擎（Hexagram / YaoLine）
-│   ├── calendar_utils.py  # 干支历换算（依赖 sxtwl）
-│   ├── data.py            # 基础数据（八卦、纳甲、六亲、六神等）
-│   ├── wangshuai.py       # 旺衰分析
-│   ├── dongbian.py        # 动变分析
-│   ├── jixiong.py         # 吉凶判断（含 DUAL_PERSPECTIVE_TABLE）
-│   ├── yingqi.py          # 应期推断
-│   ├── analyzer.py        # 分析编排器（run_analysis / run_dual_analysis）
-│   └── report.py          # 报告格式化（format_report / format_dual_report）
-├── examples/
-│   ├── shiwu_fenghuo_feng.py   # 失物占示例：雷火丰（双视角）
-│   └── reports/
-│       └── 20260525_金首饰丢失能否找回_技术报告.txt  # 上例自动生成的技术报告
-├── tests/
-│   ├── test_hexagram.py   # 排卦引擎测试
-│   └── test_analysis.py   # 分析全流程测试（含双视角，共 110 个用例）
-├── liuyao-gushizhenquan_part*.md   # 《古筮真诠》原文分段
-├── zhishidianzongjie.md            # 知识点汇总
-└── README.md
+│   ├── __init__.py                  # 公开 Python API
+│   ├── __main__.py                  # python -m liuyao 入口
+│   ├── main.py                      # CLI 兼容 facade
+│   ├── domain/                      # 排卦、旺衰、动变、吉凶、应期等纯领域逻辑
+│   ├── application/use_cases/       # analysis / dto / verdict
+│   └── interfaces/cli/              # CLI 与文本报告适配器
+├── api/
+│   ├── app.py                       # FastAPI application factory
+│   ├── core/                        # 配置、日志、异常
+│   ├── application/use_cases/       # readings / feedback / templates / engine / support
+│   ├── infrastructure/              # Redis 与 SQLAlchemy 实现
+│   └── interfaces/http/             # FastAPI routers 与 Pydantic schemas
+├── data/                            # 经典规则与象法数据
+├── docs/                            # 架构文档与理论资料
+├── examples/                        # 示例与报告归档
+├── migrations/                      # Alembic 迁移
+├── scripts/                         # 数据抽取、规则构建、覆盖率脚本
+└── tests/                           # 领域、API、规则与回归测试
 ```
 
 ---

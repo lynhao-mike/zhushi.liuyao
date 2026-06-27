@@ -18,7 +18,8 @@ from api.interfaces.http.schemas.reading import (
     ReadingResponse,
     StatsResponse,
 )
-from api.application.use_cases import reading as reading_svc
+from api.application.use_cases import feedback as feedback_svc
+from api.application.use_cases import readings as reading_svc
 from api.core.config import get_settings
 from api.interfaces.http.schemas.mappers import (
     reading_create_command_from_request,
@@ -109,7 +110,7 @@ async def create_feedback(
     db: AsyncSession = Depends(get_db),
 ) -> ReadingFeedbackResponse:
     command = reading_feedback_create_command_from_request(req)
-    return await reading_svc.create_reading_feedback(reading_id, command, db)
+    return await feedback_svc.create_reading_feedback(reading_id, command, db)
 
 
 @router.delete(
