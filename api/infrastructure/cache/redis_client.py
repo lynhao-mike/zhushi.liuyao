@@ -80,8 +80,8 @@ class CacheKey:
         return f"analysis:{fingerprint}"
 
     @staticmethod
-    def listing(question_type: str, page: int, size: int) -> str:
-        return f"listing:{question_type}:{page}:{size}"
+    def listing(question_type: str, page: int, size: int, ji_xiong: str | None = None) -> str:
+        return f"listing:{question_type}:{ji_xiong or 'all'}:{page}:{size}"
 
     @staticmethod
     def stats() -> str:
@@ -96,16 +96,25 @@ class CacheKey:
 
 def build_fingerprint(
     yao_values: list[int],
-    ganzhi_key: str,
+    context_key: Any,
     question_type: str,
     is_dual: bool,
 ) -> str:
     """
     Deterministic SHA-256 fingerprint for an analysis request.
     Same inputs → same fingerprint → cache hit.
-    ponytail: one json.dumps, encode directly — avoids double-serialization
     """
-    raw = f"{sorted(yao_values)}|{ganzhi_key}|{question_type}|{is_dual}"
+    raw = json.dumps(
+        {
+            "yao_values": list(yao_values),
+            "context": context_key,
+            "question_type": question_type,
+            "is_dual": is_dual,
+        },
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     return hashlib.sha256(raw.encode()).hexdigest()
 
 

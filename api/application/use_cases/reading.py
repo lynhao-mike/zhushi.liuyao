@@ -57,14 +57,16 @@ class ReadingCacheRepo:
         payload = await get_cache(cache_key)
         if payload:
             log.info("reading_cache_hit", fingerprint=fingerprint)
-            _ensure_report_files(payload)
+            if _ensure_report_files(payload):
+                await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
             return payload
 
         row = await self._get_db_row(fingerprint)
         if row:
             log.info("reading_db_cache_hit", fingerprint=fingerprint)
             payload = row.payload
-            _ensure_report_files(payload)
+            if _ensure_report_files(payload):
+                row.payload = payload
             await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
             return payload
 
@@ -198,8 +200,13 @@ async def create_reading(
     """Full create-reading flow with cache-aside."""
     is_dual = should_use_dual(req.question_type, req.is_dual)
 
-    ganzhi_key  = build_ganzhi_key(req.year, req.month, req.day, req.hour, req.ganzhi_override)
-    fingerprint = build_fingerprint(req.yao_values, ganzhi_key, req.question_type, is_dual)
+    ganzhi_key = build_ganzhi_key(req.year, req.month, req.day, req.hour, req.ganzhi_override)
+    context_key = {
+        "ganzhi": ganzhi_key,
+        "question": req.question or "",
+        "querent_name": req.querent_name or "",
+    }
+    fingerprint = build_fingerprint(req.yao_values, context_key, req.question_type, is_dual)
 
     cache = ReadingCacheRepo(db)
     cached_payload = await cache.get(fingerprint)
@@ -247,7 +254,7 @@ async def list_readings(
     page: int,
     size: int,
 ) -> Dict[str, Any]:
-    cache_key = CacheKey.listing(question_type or "all", page, size)
+    cache_key = CacheKey.listing(question_type or "all", page, size, ji_xiong or "all")
     cached = await get_cache(cache_key)
     if cached:
         return cached
@@ -380,9 +387,9 @@ async def _invalidate_reading_collection_caches() -> None:
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
-def _ensure_report_files(payload: Dict[str, Any]) -> None:
+def _ensure_report_files(payload: Dict[str, Any]) -> bool:
     if payload.get("report_files"):
-        return
+        return False
     payload["report_files"] = archive_reports(
         report_text=payload.get("report_text"),
         report_readable=payload.get("report_readable"),
@@ -404,6 +411,7 @@ def _ensure_report_files(payload: Dict[str, Any]) -> None:
             },
         },
     )
+    return True
 
 
 def _build_payload(
@@ -480,34 +488,9 @@ def _orm_to_response(row: ReadingSession) -> Dict[str, Any]:
         dpj = row.dual_perspectives_json
         perspectives = dpj if isinstance(dpj, list) else dpj.get("perspectives")
 
-    # ponytail: guard prevents writing files on repeated get_reading calls
+    # GET must be read-only. Report files are archived during create/cache recovery,
+    # not regenerated on every detail request.
     report_files: List[str] = []
-    if row.report_text or row.report_readable:
-        report_files = archive_reports(
-            report_text=row.report_text,
-            report_readable=row.report_readable,
-            meta={
-                "question": row.question or "",
-                "querent": row.querent_name or "",
-                "hexagram_input": {
-                    "question": row.question or "",
-                    "querent": row.querent_name or "",
-                    "question_type": row.question_type,
-                    "is_dual": row.is_dual,
-                    "date": f"{row.cast_year:04d}-{row.cast_month:02d}-{row.cast_day:02d}" if row.cast_year and row.cast_month and row.cast_day else None,
-                    "hour": row.cast_hour,
-                    "yao_values": row.yao_values,
-                    "ganzhi_override": row.ganzhi_override,
-                    "gan_zhi": dict(row.gan_zhi or {}),
-                    "xun_kong": list(row.xun_kong or []),
-                    "ben_gua_name": row.ben_gua_name or "",
-                    "bian_gua_name": row.bian_gua_name or "",
-                    "palace_name": row.palace_name or "",
-                    "palace_wu_xing": row.palace_wu_xing or "",
-                    "lines": lines,
-                },
-            },
-        )
 
     return {
         "id": row.id,
