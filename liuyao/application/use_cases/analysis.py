@@ -213,12 +213,6 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.wangshuai_results = shared_ws
         report.dongbian_results = shared_db
         report.star_spirits = dual.star_spirits
-        report.yimao_imagery = analyze_yimao_imagery(
-            hexagram, report.yong_shen_lines, shared_ws, shared_db,
-            patterns_results=report.patterns_results,
-            question_type=question_type,
-        )
-
         # 各视角仅计算依赖用神/问事类型的模式, 再合并共享结构模式
         try:
             perspective_patterns = analyze_perspective_patterns(
@@ -233,6 +227,12 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
             log.error("patterns_analysis_failed", exc_info=True,
                       gua=hexagram.ben_gua_name, perspective=label)
             report.patterns_results = {}
+
+        report.yimao_imagery = analyze_yimao_imagery(
+            hexagram, report.yong_shen_lines, shared_ws, shared_db,
+            patterns_results=report.patterns_results,
+            question_type=question_type,
+        )
 
         try:
             report.jixiong_result = judge_jixiong(

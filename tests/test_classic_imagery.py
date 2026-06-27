@@ -11,7 +11,11 @@ from collections import Counter
 from pathlib import Path
 
 from liuyao.application.use_cases.analysis import run_analysis
-from liuyao.domain.classic_imagery import load_classic_imagery, search_classic_imagery
+from liuyao.domain.classic_imagery import (
+    clear_classic_imagery_caches,
+    load_classic_imagery,
+    search_classic_imagery,
+)
 from liuyao.domain.hexagram import Hexagram
 from liuyao.interfaces.cli.reporting import format_readable_report
 from scripts.extract_classic_imagery import build_records, match_section
@@ -140,6 +144,14 @@ def test_search_classic_imagery_by_liuqin_keywords():
 def test_search_classic_imagery_can_filter_question_type_and_exclude_candidate_records():
     assert search_classic_imagery(["财"], question_type="cai", limit=5)
     assert search_classic_imagery(["财"], limit=5, include_candidate=False) == []
+
+
+def test_clear_classic_imagery_caches_keeps_search_available():
+    assert search_classic_imagery(["财"], question_type="cai", limit=5)
+    clear_classic_imagery_caches()
+    results = search_classic_imagery(["财"], question_type="cai", limit=5)
+    assert results
+    assert len(results) <= 5
 
 
 def test_readable_report_adds_classic_imagery_without_changing_judgement():

@@ -11,7 +11,11 @@ from collections import Counter
 from pathlib import Path
 
 from liuyao.application.use_cases.analysis import run_analysis
-from liuyao.domain.classic_judgements import load_classic_judgements, search_classic_judgements
+from liuyao.domain.classic_judgements import (
+    clear_classic_judgements_caches,
+    load_classic_judgements,
+    search_classic_judgements,
+)
 from liuyao.domain.hexagram import Hexagram
 from liuyao.interfaces.cli.reporting import format_readable_report
 from scripts.extract_classic_judgements import build_records, match_section
@@ -156,6 +160,14 @@ def test_search_classic_judgements_filters_multiple_question_types():
 def test_search_classic_judgements_can_exclude_candidate_records():
     assert search_classic_judgements(["世", "应"], limit=5, include_candidate=True)
     assert search_classic_judgements(["世", "应"], limit=5, include_candidate=False) == []
+
+
+def test_clear_classic_judgements_caches_keeps_search_available():
+    assert search_classic_judgements(["世", "应"], limit=3)
+    clear_classic_judgements_caches()
+    results = search_classic_judgements(["世", "应"], limit=3)
+    assert results
+    assert len(results) <= 3
 
 
 def _investment_gold_report_text():

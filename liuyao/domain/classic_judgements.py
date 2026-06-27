@@ -7,6 +7,7 @@ import json
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
+from heapq import nsmallest
 from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -30,25 +31,30 @@ class ClassicJudgement:
     question_types: tuple[str, ...]
     review_status: str
     notes: str
+    search_text: str
 
     @classmethod
     def from_dict(cls, data: dict) -> "ClassicJudgement":
+        keywords = tuple(data.get("keywords", ()))
+        raw_text = data["raw_text"]
+        section = data.get("section", "")
         return cls(
             id=data["id"],
             source=data["source"],
             source_file=data["source_file"],
             line_start=int(data["line_start"]),
             line_end=int(data["line_end"]),
-            section=data.get("section", ""),
-            raw_text=data["raw_text"],
+            section=section,
+            raw_text=raw_text,
             explanation=data.get("explanation", ""),
-            keywords=tuple(data.get("keywords", ())),
+            keywords=keywords,
             conditions_text=data.get("conditions_text", ""),
             result_text=data.get("result_text", ""),
             polarity=data.get("polarity", "待审"),
             question_types=tuple(data.get("question_types", ("other",))),
             review_status=data.get("review_status", "candidate"),
             notes=data.get("notes", ""),
+            search_text=raw_text + section + "".join(keywords),
         )
 
 
@@ -67,6 +73,28 @@ def get_classic_judgements() -> tuple[ClassicJudgement, ...]:
     return tuple(load_classic_judgements())
 
 
+def clear_classic_judgements_caches() -> None:
+    get_classic_judgements.cache_clear()
+    _classic_judgement_keyword_matches.cache_clear()
+    _search_classic_judgements_cached.cache_clear()
+
+
+@lru_cache(maxsize=256)
+def _classic_judgement_keyword_matches(keyword: str) -> tuple[int, ...]:
+    return tuple(
+        index
+        for index, judgement in enumerate(get_classic_judgements())
+        if keyword in judgement.search_text
+    )
+
+
+def _classic_judgement_candidate_indexes(query_keywords: tuple[str, ...]) -> set[int]:
+    candidate_indexes: set[int] = set()
+    for keyword in query_keywords:
+        candidate_indexes.update(_classic_judgement_keyword_matches(keyword))
+    return candidate_indexes
+
+
 def search_classic_judgements(
     keywords: Iterable[str],
     *,
@@ -75,11 +103,30 @@ def search_classic_judgements(
     include_candidate: bool = True,
 ) -> list[ClassicJudgement]:
     query_keywords = tuple(keyword for keyword in keywords if keyword)
-    if not query_keywords:
-        return []
+    return list(_search_classic_judgements_cached(
+        query_keywords,
+        question_type,
+        limit,
+        include_candidate,
+    ))
+
+
+@lru_cache(maxsize=128)
+def _search_classic_judgements_cached(
+    query_keywords: tuple[str, ...],
+    question_type: str | None,
+    limit: int,
+    include_candidate: bool,
+) -> tuple[ClassicJudgement, ...]:
+    if not query_keywords or limit <= 0:
+        return ()
+
+    judgements = get_classic_judgements()
+    candidate_indexes = _classic_judgement_candidate_indexes(query_keywords)
 
     scored = []
-    for judgement in get_classic_judgements():
+    for index in candidate_indexes:
+        judgement = judgements[index]
         if judgement.review_status == "rejected":
             continue
         if judgement.review_status == "candidate" and not include_candidate:
@@ -87,10 +134,9 @@ def search_classic_judgements(
         if question_type and "other" not in judgement.question_types and question_type not in judgement.question_types:
             continue
 
-        text = judgement.raw_text + judgement.section + "".join(judgement.keywords)
-        score = sum(1 for keyword in query_keywords if keyword in text)
+        score = sum(1 for keyword in query_keywords if keyword in judgement.search_text)
         if score:
-            scored.append((score, judgement.line_start, judgement))
+            scored.append((-score, judgement.line_start, judgement.id, judgement))
 
-    scored.sort(key=lambda item: (-item[0], item[1], item[2].id))
-    return [judgement for _, _, judgement in scored[:limit]]
+    top_matches = nsmallest(limit, scored)
+    return tuple(judgement for _, _, _, judgement in top_matches)

@@ -876,16 +876,33 @@ def _classic_reference_keywords(analysis):
 
     hexagram = getattr(analysis, "hexagram", None)
     if hexagram:
-        moving_lines = [line for line in hexagram.lines if getattr(line, "is_moving", False)]
+        moving_lines = getattr(hexagram, "moving_lines", None)
+        if moving_lines is None:
+            moving_lines = [line for line in hexagram.lines if getattr(line, "is_moving", False)]
         if moving_lines:
             keywords.extend(["动", "变"])
-        if any(getattr(line, "is_xun_kong", False) for line in hexagram.lines):
+
+        has_xun_kong = any(getattr(line, "is_xun_kong", False) for line in hexagram.lines)
+        if has_xun_kong:
             keywords.extend(["空", "旬空"])
-        for line in hexagram.lines:
-            if getattr(line, "is_shi", False):
-                keywords.append(getattr(line, "liu_qin", ""))
-            if getattr(line, "is_ying", False):
-                keywords.append(getattr(line, "liu_qin", ""))
+
+        shi_line = getattr(hexagram, "shi_line", None)
+        ying_line = getattr(hexagram, "ying_line", None)
+        if shi_line is not None:
+            keywords.append(getattr(shi_line, "liu_qin", ""))
+        if ying_line is not None:
+            keywords.append(getattr(ying_line, "liu_qin", ""))
+
+        if shi_line is None or ying_line is None:
+            for line in hexagram.lines:
+                if shi_line is None and getattr(line, "is_shi", False):
+                    keywords.append(getattr(line, "liu_qin", ""))
+                    shi_line = line
+                if ying_line is None and getattr(line, "is_ying", False):
+                    keywords.append(getattr(line, "liu_qin", ""))
+                    ying_line = line
+                if shi_line is not None and ying_line is not None:
+                    break
 
     if hasattr(analysis, "perspectives") and analysis.perspectives:
         for perspective in analysis.perspectives:
