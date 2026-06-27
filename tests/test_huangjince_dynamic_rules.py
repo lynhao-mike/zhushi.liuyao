@@ -20,7 +20,7 @@ from liuyao.domain.rules.dynamic_rules import (
 )
 from liuyao.domain.rules.fact_extractor import extract_classic_rule_facts
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.report import format_readable_report, format_report
+from liuyao.interfaces.cli.reporting import format_readable_report, format_report
 
 
 def _line(

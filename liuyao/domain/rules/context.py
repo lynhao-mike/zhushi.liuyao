@@ -63,6 +63,28 @@ class RuleContext:
     def wangshuai_of(self, line: Any) -> Dict[str, Any]:
         return self.wangshuai_results[line.position - 1]
 
+    @property
+    def primary_yong_moving(self) -> Dict[str, Any]:
+        """用神动变分析结果（常用访问器，减少规则内重复拆包）。"""
+        if not self.primary_yong:
+            return {}
+        return self.moving_analyses.get(self.primary_yong.position, {})
+
+    @property
+    def primary_yong_wangshuai(self) -> Dict[str, Any]:
+        """用神旺衰分析结果（常用访问器，减少规则内重复拆包）。"""
+        if not self.primary_yong:
+            return {}
+        return self.wangshuai_of(self.primary_yong)
+
+    def yong_interaction(self) -> Dict[str, List[str]]:
+        """用神受动爻生克情况（常用访问器，减少规则内重复拆包）。"""
+        if not self.primary_yong:
+            return {"受生": [], "受克": []}
+        return self.dongbian_results.get("interactions", {}).get(
+            self.primary_yong.position, {"受生": [], "受克": []}
+        )
+
     def moving_decline_reasons(self, line: Any) -> List[str]:
         """返回动爻失势原因, 兼容动变自身衰败与变爻被日月冲破。"""
         moving = self.moving_analyses.get(line.position, {})

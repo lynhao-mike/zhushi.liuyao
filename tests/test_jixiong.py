@@ -3,7 +3,7 @@
 """
 
 import pytest
-from liuyao.jixiong import (
+from liuyao.domain.jixiong import (
     determine_yong_shen,
     find_yong_shen_lines,
     find_shi_line,
@@ -13,9 +13,9 @@ from liuyao.jixiong import (
     judge_jixiong,
     YONG_SHEN_TABLE,
 )
-from liuyao.hexagram import Hexagram
-from liuyao.wangshuai import analyze_hexagram_wangshuai
-from liuyao.dongbian import analyze_dongbian
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
+from liuyao.domain.dongbian import analyze_dongbian
 
 
 class TestDetermineYongShen:

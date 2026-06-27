@@ -10,9 +10,9 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from liuyao.analyzer import run_analysis
+from liuyao.application.use_cases.analysis import run_analysis
 from liuyao.domain.classic_imagery import load_classic_imagery, search_classic_imagery
-from liuyao.hexagram import Hexagram
+from liuyao.domain.hexagram import Hexagram
 from liuyao.interfaces.cli.reporting import format_readable_report
 from scripts.extract_classic_imagery import build_records, match_section
 
@@ -56,7 +56,7 @@ def _investment_gold_report_text():
 def _classic_imagery_block(text: str) -> str:
     start = text.find("  经典象法参考：")
     assert start != -1
-    end = text.find("▌ 七、", start)
+    end = text.find("▌ 八、", start)
     assert end != -1
     return text[start:end]
 

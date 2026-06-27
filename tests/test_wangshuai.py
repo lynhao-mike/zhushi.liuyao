@@ -3,13 +3,13 @@
 """
 
 import pytest
-from liuyao.wangshuai import (
+from liuyao.domain.wangshuai import (
     yue_jian_wangshuai,
     ri_chen_wangshuai,
     analyze_line_wangshuai,
     analyze_hexagram_wangshuai,
 )
-from liuyao.hexagram import Hexagram
+from liuyao.domain.hexagram import Hexagram
 
 
 class TestYueJianWangshuai:

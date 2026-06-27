@@ -3,7 +3,7 @@
 """
 
 import pytest
-from liuyao.dongbian import (
+from liuyao.domain.dongbian import (
     is_hui_tou_sheng,
     is_hui_tou_ke,
     is_hua_jin_shen,
@@ -14,8 +14,8 @@ from liuyao.dongbian import (
     detect_an_dong,
     analyze_dongbian,
 )
-from liuyao.hexagram import Hexagram
-from liuyao.wangshuai import analyze_hexagram_wangshuai
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
 
 
 class TestIsHuiTouSheng:

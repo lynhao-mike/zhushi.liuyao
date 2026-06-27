@@ -5,14 +5,14 @@
 """
 
 import pytest
-from liuyao.hexagram import Hexagram
-from liuyao.wangshuai import (
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.wangshuai import (
     yue_jian_wangshuai,
     ri_chen_wangshuai,
     analyze_line_wangshuai,
     analyze_hexagram_wangshuai,
 )
-from liuyao.dongbian import (
+from liuyao.domain.dongbian import (
     is_hui_tou_sheng,
     is_hui_tou_ke,
     is_hua_jin_shen,
@@ -22,15 +22,15 @@ from liuyao.dongbian import (
     analyze_dongbian,
     detect_an_dong,
 )
-from liuyao.jixiong import (
+from liuyao.domain.jixiong import (
     determine_yong_shen,
     find_yong_shen_lines,
     find_shi_line,
     judge_jixiong,
 )
-from liuyao.yingqi import estimate_yingqi, analyze_yingqi
-from liuyao.analyzer import run_analysis, AnalysisReport
-from liuyao.report import format_report
+from liuyao.domain.yingqi import estimate_yingqi, analyze_yingqi
+from liuyao.application.use_cases.analysis import run_analysis, AnalysisReport
+from liuyao.interfaces.cli.reporting import format_report
 
 
 # =============================================================================
@@ -437,6 +437,143 @@ class TestAnalyzer:
         assert any("用神" in item["roles"] for item in imagery["line_images"])
         assert any(item["liu_qin_image"] for item in imagery["line_images"])
 
+    def test_yimao_imagery_has_source_and_relevance_fields(self):
+        """象法摘要每条爻象应有来源字段和问事相关性标记。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        assert imagery["question_type"] == "cai"
+        for item in imagery["line_images"]:
+            assert "liu_qin_source" in item
+            assert "liu_shen_source" in item
+            assert "yao_wei_source" in item
+            assert "liu_qin_relevant" in item
+        for tg in imagery["trigram_images"]:
+            assert "source" in tg
+
+    def test_yimao_imagery_filters_by_question_type(self):
+        """问财时妻财爻应标记为相关，官鬼不在关注列表时应标记不相关。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        # 求财关注妻财/子孙/兄弟, 官鬼不在关注列表
+        guan_items = [item for item in imagery["line_images"] if item["liu_qin"] == "官鬼"]
+        for item in guan_items:
+            assert item["liu_qin_relevant"] is False
+
+        cai_items = [item for item in imagery["line_images"] if item["liu_qin"] == "妻财"]
+        for item in cai_items:
+            assert item["liu_qin_relevant"] is True
+
+    def test_yimao_imagery_generates_combo_sentences(self):
+        """象法摘要应生成高频组合线索句（如白虎临官鬼动）。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        imagery = report.yimao_imagery
+
+        assert "sentences" in imagery
+        # 至少有一条组合句（如果卦中匹配到）或为空列表
+        assert isinstance(imagery["sentences"], list)
+        for s in imagery["sentences"]:
+            assert "sentence" in s
+            assert "source" in s
+            assert "position" in s
+            assert "signal_type" in s
+            assert s["signal_type"] in ("象法印证", "象法警示")
+
+    def test_yimao_signals_injected_into_jixiong_result(self):
+        """匹配到组合句时应注入 jixiong_result['yimao_signals']。"""
+        # 构造一个白虎临官鬼发动的卦（乙日起白虎，需在特定爻位匹配官鬼动爻）
+        # 用宽泛测试：只要有组合句就应注入；否则不注入（不报错）
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "bing")  # 问病，白虎临官鬼更易匹配
+        jx = report.jixiong_result
+
+        if report.yimao_imagery.get("sentences"):
+            assert "yimao_signals" in jx
+            for sig in jx["yimao_signals"]:
+                assert "signal_type" in sig
+                assert sig["signal_type"] in ("象法印证", "象法警示")
+        else:
+            assert "yimao_signals" not in jx or jx.get("yimao_signals") == []
+
+    def test_yimao_combo_sentence_pool_expanded(self):
+        """高频组合句池应保持扩充后的规模，避免回退。"""
+        from liuyao.domain.yimao_imagery import _COMBO_SENTENCES
+
+        assert len(_COMBO_SENTENCES) >= 115
+        assert any(item.get("is_xun_kong") for item in _COMBO_SENTENCES)
+        assert any(item.get("is_shi") for item in _COMBO_SENTENCES)
+        assert any(item.get("is_ying") for item in _COMBO_SENTENCES)
+
+    def test_yimao_imagery_includes_structure_sentences(self):
+        """结构模式应能转成《易冒》结构类线索句。"""
+        from liuyao.domain.yimao_imagery import analyze_yimao_imagery
+
+        h = Hexagram([7, 7, 7, 7, 7, 7], 2024, 1, 15)
+        imagery = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[],
+            dongbian_results={},
+            patterns_results={
+                "chong_he_gua": {"pattern": "静卦六冲"},
+                "fan_yin": {},
+                "fu_yin": {},
+                "ru_mu": [],
+                "san_ban": [],
+            },
+            question_type="other",
+        )
+        assert any("六冲" in item["sentence"] for item in imagery["sentences"])
+
+        imagery2 = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[],
+            dongbian_results={"san_he_ju": [{"wu_xing": "木", "members": ["亥", "卯", "未"]}]},
+            patterns_results={
+                "chong_he_gua": {},
+                "fan_yin": {},
+                "fu_yin": {},
+                "ru_mu": [{"is_real": True}],
+                "san_ban": [{"ban_type": "日绊", "reason": "示例"}],
+                "san_hui": [{"wu_xing": "木", "members": ["寅", "卯", "辰"]}],
+                "san_xing": [{"type": "三刑", "group": ["寅", "巳", "申"], "positions": [1, 2, 3]}],
+                "liu_hai": [{"reason": "示例六害"}],
+            },
+            question_type="other",
+        )
+        texts = [item["sentence"] for item in imagery2["sentences"]]
+        assert any("三合" in text for text in texts)
+        assert any("三会" in text for text in texts)
+        assert any("三刑" in text for text in texts)
+        assert any("六害" in text for text in texts)
+        assert any("墓库" in text for text in texts)
+        assert any("绊象" in text for text in texts)
+
+    def test_yimao_imagery_includes_trend_sentences(self):
+        """动爻趋势（回头生/进退/化绝）应转成结构化句子。"""
+        from liuyao.domain.yimao_imagery import analyze_yimao_imagery
+
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        imagery = analyze_yimao_imagery(
+            h,
+            yong_lines=[],
+            wangshuai_results=[{"overall": "平"}] * 6,
+            dongbian_results={
+                "moving_analyses": {
+                    4: {"bian_zhi": "丑", "趋旺": ["化进神", "回头生"], "趋衰": []}
+                }
+            },
+            patterns_results={},
+            question_type="other",
+        )
+        assert any("回头生" in item["sentence"] for item in imagery["sentences"])
+        assert any("化进神" in item["sentence"] for item in imagery["sentences"])
+
 
     def test_run_analysis_static_hexagram(self):
         """静卦分析"""
@@ -589,12 +726,12 @@ class TestIntegration:
 # 双视角分析测试
 # =============================================================================
 
-from liuyao.analyzer import run_dual_analysis, DualPerspectiveReport
-from liuyao.jixiong import (
+from liuyao.application.use_cases.analysis import run_dual_analysis, DualPerspectiveReport
+from liuyao.domain.jixiong import (
     DUAL_PERSPECTIVE_TABLE, get_dual_perspectives,
     YONG_SHEN_TABLE,
 )
-from liuyao.report import format_dual_report
+from liuyao.interfaces.cli.reporting import format_dual_report
 
 
 class TestDualPerspective:

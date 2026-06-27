@@ -3,10 +3,10 @@ Reading Service — orchestrates the full request lifecycle:
 
   1. Resolve dual-perspective flag
   2. Build cache fingerprint
-  3. Check Redis cache  → hit: return cached payload
+  3. ReadingCacheRepo.get()  → hit: return cached payload
   4. Run analysis engine (thread pool)
-  5. Persist to PostgreSQL (ReadingSession + AnalysisCache rows)
-  6. Warm Redis cache
+  5. ReadingRepo.persist()   → INSERT ReadingSession
+  6. ReadingCacheRepo.set()  → UPSERT AnalysisCache + warm Redis
   7. Build and return application payload dictionaries
 """
 from __future__ import annotations
@@ -43,6 +43,152 @@ log = get_logger(__name__)
 settings = get_settings()
 
 
+# ── ReadingCacheRepo ──────────────────────────────────────────────────────────
+
+class ReadingCacheRepo:
+    """Redis + DB 两层 cache-aside，只负责缓存读写。"""
+
+    def __init__(self, db: AsyncSession):
+        self._db = db
+
+    async def get(self, fingerprint: str) -> Optional[Dict[str, Any]]:
+        """Check Redis first, fall back to DB cache."""
+        cache_key = CacheKey.analysis(fingerprint)
+        payload = await get_cache(cache_key)
+        if payload:
+            log.info("reading_cache_hit", fingerprint=fingerprint)
+            _ensure_report_files(payload)
+            return payload
+
+        row = await self._get_db_row(fingerprint)
+        if row:
+            log.info("reading_db_cache_hit", fingerprint=fingerprint)
+            payload = row.payload
+            _ensure_report_files(payload)
+            await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
+            return payload
+
+        return None
+
+    async def set(self, fingerprint: str, question_type: str, is_dual: bool, payload: Dict[str, Any]) -> None:
+        """Upsert DB cache, warm Redis, invalidate collection caches."""
+        await self._upsert_db_row(fingerprint, question_type, is_dual, payload)
+        await set_cache(CacheKey.analysis(fingerprint), payload, settings.CACHE_TTL_ANALYSIS)
+        await _invalidate_reading_collection_caches()
+
+    async def _get_db_row(self, fingerprint: str) -> Optional[AnalysisCache]:
+        stmt = select(AnalysisCache).where(AnalysisCache.fingerprint == fingerprint)
+        return (await self._db.execute(stmt)).scalar_one_or_none()
+
+    async def _upsert_db_row(self, fingerprint: str, question_type: str, is_dual: bool, payload: Dict[str, Any]) -> None:
+        existing = (
+            await self._db.execute(
+                select(AnalysisCache).where(AnalysisCache.fingerprint == fingerprint)
+            )
+        ).scalar_one_or_none()
+
+        if existing:
+            existing.payload = payload
+            existing.hit_count = (existing.hit_count or 0) + 1
+            existing.last_hit_at = datetime.now(timezone.utc)
+        else:
+            self._db.add(AnalysisCache(
+                fingerprint=fingerprint,
+                question_type=question_type,
+                is_dual=is_dual,
+                payload=payload,
+            ))
+
+
+# ── ReadingRepo ───────────────────────────────────────────────────────────────
+
+class ReadingRepo:
+    """ORM CRUD for ReadingSession — no cache logic here."""
+
+    def __init__(self, db: AsyncSession):
+        self._db = db
+
+    async def persist(
+        self,
+        req: ReadingCreateCommand,
+        result: Dict[str, Any],
+        is_dual: bool,
+        fingerprint: str,
+    ) -> uuid.UUID:
+        meta     = result["hexagram_meta"]
+        analysis = result["analysis"]
+
+        session = ReadingSession(
+            question=req.question,
+            question_type=req.question_type,
+            querent_name=req.querent_name,
+            is_dual=is_dual,
+            yao_values=req.yao_values,
+            cast_year=req.year,
+            cast_month=req.month,
+            cast_day=req.day,
+            cast_hour=req.hour,
+            ganzhi_override=req.ganzhi_override,
+            ben_gua_name=meta["ben_gua_name"],
+            bian_gua_name=meta["bian_gua_name"],
+            palace_name=meta["palace_name"],
+            palace_wu_xing=meta["palace_wu_xing"],
+            xun_kong=meta["xun_kong"],
+            gan_zhi=meta["gan_zhi"],
+            lines_json=meta["lines"],
+            wangshuai_json={"results": analysis.get("wangshuai", [])},
+            dongbian_json=analysis.get("dongbian", {}),
+            patterns_json=analysis.get("patterns", {}),
+            jixiong_json=analysis.get("jixiong"),
+            yingqi_json={"results": analysis.get("yingqi", [])},
+            star_spirits_json=analysis.get("star_spirits", {}),
+            report_text=result.get("report_text"),
+            report_readable=result.get("report_readable"),
+            dual_perspectives_json=(
+                analysis.get("perspectives", []) if is_dual else None
+            ),
+            dual_consensus=analysis.get("consensus") if is_dual else None,
+            ji_xiong=result.get("ji_xiong"),
+            gua_ju_pattern=result.get("gua_ju_pattern"),
+        )
+        self._db.add(session)
+        await self._db.flush()
+        return session.id
+
+    async def get(self, reading_id: uuid.UUID) -> ReadingSession:
+        row = await self._db.get(ReadingSession, reading_id)
+        if not row:
+            raise NotFoundError(f"Reading {reading_id} not found")
+        return row
+
+    async def list(
+        self,
+        question_type: Optional[str],
+        ji_xiong: Optional[str],
+        page: int,
+        size: int,
+    ) -> tuple[List[ReadingSession], int]:
+        stmt = select(ReadingSession).order_by(desc(ReadingSession.created_at))
+        count_stmt = select(func.count(ReadingSession.id))
+
+        if question_type:
+            stmt = stmt.where(ReadingSession.question_type == question_type)
+            count_stmt = count_stmt.where(ReadingSession.question_type == question_type)
+        if ji_xiong:
+            stmt = stmt.where(ReadingSession.ji_xiong == ji_xiong)
+            count_stmt = count_stmt.where(ReadingSession.ji_xiong == ji_xiong)
+
+        total = (await self._db.execute(count_stmt)).scalar_one()
+        rows  = (await self._db.execute(stmt.offset((page - 1) * size).limit(size))).scalars().all()
+        return list(rows), total
+
+    async def delete(self, reading_id: uuid.UUID) -> None:
+        row = await self._db.get(ReadingSession, reading_id)
+        if not row:
+            raise NotFoundError(f"Reading {reading_id} not found")
+        await self._db.delete(row)
+
+
 # ── Create Reading ────────────────────────────────────────────────────────────
 
 async def create_reading(
@@ -50,35 +196,16 @@ async def create_reading(
     db: AsyncSession,
 ) -> Dict[str, Any]:
     """Full create-reading flow with cache-aside."""
-
-    # 1. Resolve dual flag
     is_dual = should_use_dual(req.question_type, req.is_dual)
 
-    # 2. Build fingerprint
-    ganzhi_override_dict = req.ganzhi_override
-    ganzhi_key = build_ganzhi_key(req.year, req.month, req.day, req.hour, ganzhi_override_dict)
+    ganzhi_key  = build_ganzhi_key(req.year, req.month, req.day, req.hour, req.ganzhi_override)
     fingerprint = build_fingerprint(req.yao_values, ganzhi_key, req.question_type, is_dual)
 
-    cache_key = CacheKey.analysis(fingerprint)
-
-    # 3. Check Redis
-    cached_payload = await get_cache(cache_key)
+    cache = ReadingCacheRepo(db)
+    cached_payload = await cache.get(fingerprint)
     if cached_payload:
-        log.info("reading_cache_hit", fingerprint=fingerprint)
-        _ensure_report_files(cached_payload)
         return _payload_to_response(cached_payload, from_cache=True)
 
-    # 4. Check persistent analysis cache (DB layer)
-    db_cache = await _get_db_cache(db, fingerprint)
-    if db_cache:
-        log.info("reading_db_cache_hit", fingerprint=fingerprint)
-        payload = db_cache.payload
-        _ensure_report_files(payload)
-        # Warm Redis back up
-        await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
-        return _payload_to_response(payload, from_cache=True)
-
-    # 5. Run analysis engine
     log.info("reading_engine_start", question_type=req.question_type, is_dual=is_dual)
     result = await analyze(
         yao_values=req.yao_values,
@@ -88,26 +215,20 @@ async def create_reading(
         hour=req.hour,
         question_type=req.question_type,
         is_dual=is_dual,
-        ganzhi_override=ganzhi_override_dict,
+        ganzhi_override=req.ganzhi_override,
         querent_name=req.querent_name,
         question=req.question,
     )
     log.info("reading_engine_done", ben_gua=result["hexagram_meta"]["ben_gua_name"])
 
-    # 6. Build full payload
     payload = _build_payload(req, result, is_dual)
 
-    # 7. Persist ReadingSession
-    session_id = await _persist_reading_session(db, req, result, is_dual, fingerprint)
+    repo = ReadingRepo(db)
+    session_id = await repo.persist(req, result, is_dual, fingerprint)
     payload["id"] = str(session_id)
     payload["created_at"] = datetime.now(timezone.utc).isoformat()
 
-    # 8. Persist AnalysisCache (upsert)
-    await _upsert_db_cache(db, fingerprint, req.question_type, is_dual, payload)
-
-    # 9. Warm Redis and invalidate derived collection caches
-    await set_cache(cache_key, payload, settings.CACHE_TTL_ANALYSIS)
-    await _invalidate_reading_collection_caches()
+    await cache.set(fingerprint, req.question_type, is_dual, payload)
 
     return _payload_to_response(payload, from_cache=False)
 
@@ -115,9 +236,7 @@ async def create_reading(
 # ── Get / List ────────────────────────────────────────────────────────────────
 
 async def get_reading(reading_id: uuid.UUID, db: AsyncSession) -> Dict[str, Any]:
-    row = await db.get(ReadingSession, reading_id)
-    if not row:
-        raise NotFoundError(f"Reading {reading_id} not found")
+    row = await ReadingRepo(db).get(reading_id)
     return _orm_to_response(row)
 
 
@@ -133,34 +252,16 @@ async def list_readings(
     if cached:
         return cached
 
-    stmt = select(ReadingSession).order_by(desc(ReadingSession.created_at))
-    count_stmt = select(func.count(ReadingSession.id))
-
-    if question_type:
-        stmt = stmt.where(ReadingSession.question_type == question_type)
-        count_stmt = count_stmt.where(ReadingSession.question_type == question_type)
-    if ji_xiong:
-        stmt = stmt.where(ReadingSession.ji_xiong == ji_xiong)
-        count_stmt = count_stmt.where(ReadingSession.ji_xiong == ji_xiong)
-
-    total = (await db.execute(count_stmt)).scalar_one()
-    rows  = (await db.execute(stmt.offset((page - 1) * size).limit(size))).scalars().all()
-
+    rows, total = await ReadingRepo(db).list(question_type, ji_xiong, page, size)
     items = [_orm_to_summary(r) for r in rows]
     pages = (total + size - 1) // size
-
     result = {"items": items, "total": total, "page": page, "size": size, "pages": pages}
-
-    # Cache listing for a short TTL
     await set_cache(cache_key, result, settings.CACHE_TTL_HEXAGRAM_LIST)
     return result
 
 
 async def delete_reading(reading_id: uuid.UUID, db: AsyncSession) -> None:
-    row = await db.get(ReadingSession, reading_id)
-    if not row:
-        raise NotFoundError(f"Reading {reading_id} not found")
-    await db.delete(row)
+    await ReadingRepo(db).delete(reading_id)
     await _invalidate_reading_collection_caches()
 
 
@@ -319,7 +420,6 @@ def _build_payload(
         "question":            req.question,
         "querent_name":        req.querent_name,
         "is_dual":             is_dual,
-        # Hexagram metadata
         "ben_gua_name":   meta["ben_gua_name"],
         "bian_gua_name":  meta["bian_gua_name"],
         "palace_name":    meta["palace_name"],
@@ -327,12 +427,10 @@ def _build_payload(
         "xun_kong":       meta["xun_kong"],
         "gan_zhi":        meta["gan_zhi"],
         "lines":          meta["lines"],
-        # Analysis
         "wangshuai": analysis.get("wangshuai", []),
         "dongbian":  analysis.get("dongbian", {}),
         "patterns":  analysis.get("patterns", {}),
         "star_spirits": analysis.get("star_spirits", {}),
-        # Reports
         "report_text":     result.get("report_text"),
         "report_readable": result.get("report_readable"),
         "report_files":    result.get("report_files", []),
@@ -360,99 +458,10 @@ def _build_payload(
     return payload
 
 
-async def _persist_reading_session(
-    db: AsyncSession,
-    req: ReadingCreateCommand,
-    result: Dict[str, Any],
-    is_dual: bool,
-    fingerprint: str,
-) -> uuid.UUID:
-    meta     = result["hexagram_meta"]
-    analysis = result["analysis"]
-
-    session = ReadingSession(
-        question=req.question,
-        question_type=req.question_type,
-        querent_name=req.querent_name,
-        is_dual=is_dual,
-        yao_values=req.yao_values,
-        cast_year=req.year,
-        cast_month=req.month,
-        cast_day=req.day,
-        cast_hour=req.hour,
-        ganzhi_override=req.ganzhi_override,
-        # Computed hexagram
-        ben_gua_name=meta["ben_gua_name"],
-        bian_gua_name=meta["bian_gua_name"],
-        palace_name=meta["palace_name"],
-        palace_wu_xing=meta["palace_wu_xing"],
-        xun_kong=meta["xun_kong"],
-        gan_zhi=meta["gan_zhi"],
-        lines_json=meta["lines"],
-        # Analysis blobs
-        wangshuai_json={"results": analysis.get("wangshuai", [])},
-        dongbian_json=analysis.get("dongbian", {}),
-        patterns_json=analysis.get("patterns", {}),
-        jixiong_json=analysis.get("jixiong"),
-        yingqi_json={"results": analysis.get("yingqi", [])},
-        star_spirits_json=analysis.get("star_spirits", {}),
-        # Reports
-        report_text=result.get("report_text"),
-        report_readable=result.get("report_readable"),
-        # Dual
-        dual_perspectives_json=(
-            analysis.get("perspectives", []) if is_dual else None
-        ),
-        dual_consensus=analysis.get("consensus") if is_dual else None,
-        # Summary
-        ji_xiong=result.get("ji_xiong"),
-        gua_ju_pattern=result.get("gua_ju_pattern"),
-    )
-    db.add(session)
-    await db.flush()
-    return session.id
-
-
-async def _get_db_cache(db: AsyncSession, fingerprint: str) -> Optional[AnalysisCache]:
-    stmt = select(AnalysisCache).where(AnalysisCache.fingerprint == fingerprint)
-    row = (await db.execute(stmt)).scalar_one_or_none()
-    # NOTE: hit_count / last_hit_at are updated only on the upsert path (_upsert_db_cache),
-    # not here, to avoid a spurious DB write on every cache read.
-    return row
-
-
-async def _upsert_db_cache(
-    db: AsyncSession,
-    fingerprint: str,
-    question_type: str,
-    is_dual: bool,
-    payload: Dict[str, Any],
-) -> None:
-    existing = (
-        await db.execute(
-            select(AnalysisCache).where(AnalysisCache.fingerprint == fingerprint)
-        )
-    ).scalar_one_or_none()
-
-    if existing:
-        existing.payload = payload
-        existing.hit_count = (existing.hit_count or 0) + 1
-        existing.last_hit_at = datetime.now(timezone.utc)
-    else:
-        row = AnalysisCache(
-            fingerprint=fingerprint,
-            question_type=question_type,
-            is_dual=is_dual,
-            payload=payload,
-        )
-        db.add(row)
-
-
 def _payload_to_response(payload: Dict[str, Any], from_cache: bool) -> Dict[str, Any]:
     data = dict(payload)
     data["from_cache"] = from_cache
 
-    # Ensure created_at is a datetime
     if isinstance(data.get("created_at"), str):
         data["created_at"] = datetime.fromisoformat(data["created_at"])
     elif "created_at" not in data:
@@ -468,35 +477,37 @@ def _orm_to_response(row: ReadingSession) -> Dict[str, Any]:
 
     perspectives = None
     if row.dual_perspectives_json:
-        # Support both old wrapper format {"perspectives": [...]} and flat list
         dpj = row.dual_perspectives_json
         perspectives = dpj if isinstance(dpj, list) else dpj.get("perspectives")
 
-    report_files = archive_reports(
-        report_text=row.report_text,
-        report_readable=row.report_readable,
-        meta={
-            "question": row.question or "",
-            "querent": row.querent_name or "",
-            "hexagram_input": {
+    # ponytail: guard prevents writing files on repeated get_reading calls
+    report_files: List[str] = []
+    if row.report_text or row.report_readable:
+        report_files = archive_reports(
+            report_text=row.report_text,
+            report_readable=row.report_readable,
+            meta={
                 "question": row.question or "",
                 "querent": row.querent_name or "",
-                "question_type": row.question_type,
-                "is_dual": row.is_dual,
-                "date": f"{row.cast_year:04d}-{row.cast_month:02d}-{row.cast_day:02d}" if row.cast_year and row.cast_month and row.cast_day else None,
-                "hour": row.cast_hour,
-                "yao_values": row.yao_values,
-                "ganzhi_override": row.ganzhi_override,
-                "gan_zhi": dict(row.gan_zhi or {}),
-                "xun_kong": list(row.xun_kong or []),
-                "ben_gua_name": row.ben_gua_name or "",
-                "bian_gua_name": row.bian_gua_name or "",
-                "palace_name": row.palace_name or "",
-                "palace_wu_xing": row.palace_wu_xing or "",
-                "lines": lines,
+                "hexagram_input": {
+                    "question": row.question or "",
+                    "querent": row.querent_name or "",
+                    "question_type": row.question_type,
+                    "is_dual": row.is_dual,
+                    "date": f"{row.cast_year:04d}-{row.cast_month:02d}-{row.cast_day:02d}" if row.cast_year and row.cast_month and row.cast_day else None,
+                    "hour": row.cast_hour,
+                    "yao_values": row.yao_values,
+                    "ganzhi_override": row.ganzhi_override,
+                    "gan_zhi": dict(row.gan_zhi or {}),
+                    "xun_kong": list(row.xun_kong or []),
+                    "ben_gua_name": row.ben_gua_name or "",
+                    "bian_gua_name": row.bian_gua_name or "",
+                    "palace_name": row.palace_name or "",
+                    "palace_wu_xing": row.palace_wu_xing or "",
+                    "lines": lines,
+                },
             },
-        },
-    )
+        )
 
     return {
         "id": row.id,

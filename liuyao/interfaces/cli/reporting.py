@@ -816,6 +816,27 @@ def _readable_conclusion(dual_report):
     lines.append("")
     lines.append(f"  {tone}")
 
+    # 象法软信号（印证或警示，不改变裁决）
+    is_dual = hasattr(dual_report, "perspectives") and dual_report.perspectives
+    if is_dual:
+        all_signals = []
+        for p in dual_report.perspectives:
+            all_signals.extend((p.jixiong_result or {}).get("yimao_signals", []))
+    else:
+        all_signals = (dual_report.jixiong_result or {}).get("yimao_signals", [])
+    if all_signals:
+        seen_sents: set = set()
+        yimao_signal_lines = []
+        for sig in all_signals:
+            if sig["sentence"] not in seen_sents:
+                seen_sents.add(sig["sentence"])
+                tag = sig.get("signal_type", "象法印证")
+                yimao_signal_lines.append(f"  · 【{tag}】{sig['sentence']}")
+        if yimao_signal_lines:
+            lines.append("")
+            lines.append("  《易冒》象法软信号（仅供参考，不覆盖以上裁决）：")
+            lines.extend(yimao_signal_lines[:3])
+
     if yingqi_lines:
         lines.append("")
         lines.append("  应期参考（若有线索浮现，多在以下时节）：")
@@ -1003,7 +1024,10 @@ def _readable_classic_imagery_lines(analysis, limit=2):
 
 
 def _readable_yimao_imagery_lines(analysis, limit=4):
-    """生成客户可读的《易冒》象法线索; 只讲细节, 不改吉凶。"""
+    """生成客户可读的《易冒》象法线索; 只讲细节, 不改吉凶。
+
+    按问事类型过滤相关六亲象，只展示用神爻/动爻/世应的关键取象，并附来源。
+    """
     if hasattr(analysis, "perspectives") and analysis.perspectives:
         imagery = getattr(analysis.perspectives[0], "yimao_imagery", {}) or {}
     else:
@@ -1015,22 +1039,43 @@ def _readable_yimao_imagery_lines(analysis, limit=4):
     trigram_images = imagery.get("trigram_images", [])[:2]
     if trigram_images:
         parts = [f"{item['label']}{item['gua']}主{item['image']}" for item in trigram_images]
-        lines.append("  · 卦象方所：" + "；".join(parts) + "。")
+        source = trigram_images[0].get("source", "")
+        suffix = f"（{source}）" if source else ""
+        lines.append("  · 卦象方所：" + "；".join(parts) + "。" + suffix)
 
-    line_images = imagery.get("line_images", [])[:limit]
-    for item in line_images:
+    # 优先展示与问事类型相关的爻，再补充其余（总量限 limit 条）
+    all_line_images = imagery.get("line_images", [])
+    relevant = [item for item in all_line_images if item.get("liu_qin_relevant", True)]
+    others = [item for item in all_line_images if not item.get("liu_qin_relevant", True)]
+    ordered = (relevant + others)[:limit]
+
+    for item in ordered:
         role = "、".join(item.get("roles", [])) or "重点"
         snippets = []
+        source_parts = []
+
         if item.get("liu_qin_image"):
             snippets.append(item["liu_qin_image"])
+            if item.get("liu_qin_source"):
+                source_parts.append(item["liu_qin_source"])
         if item.get("liu_shen_image"):
             snippets.append(item["liu_shen_image"])
+            if item.get("liu_shen_source") and item["liu_shen_source"] not in source_parts:
+                source_parts.append(item["liu_shen_source"])
         if item.get("yao_wei_image"):
             snippets.append(item["yao_wei_image"])
-        if snippets:
-            lines.append(f"  · 第{item['position']}爻（{role}）：" + "；".join(snippets[:3]) + "。")
 
-    if lines:
+        if snippets:
+            source_str = f"（{source_parts[0]}）" if source_parts else ""
+            lines.append(f"  · 第{item['position']}爻（{role}）：" + "；".join(snippets[:3]) + "。" + source_str)
+
+    # 高频组合线索句（优先展示）
+    sentences = imagery.get("sentences", [])
+    if sentences:
+        sentence_lines = [f"  · {s['sentence']}（{s['source']}）" for s in sentences[:3]]
+        lines = sentence_lines + lines
+        lines.insert(0, "  《易冒》象法提示：以下只作人物、方位、物象、情状线索，不覆盖上面的吉凶判断。")
+    elif lines:
         lines.insert(0, "  《易冒》象法提示：以下只作人物、方位、物象、情状线索，不覆盖上面的吉凶判断。")
     return lines
 

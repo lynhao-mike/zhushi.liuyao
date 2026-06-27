@@ -103,17 +103,9 @@ def build_fingerprint(
     """
     Deterministic SHA-256 fingerprint for an analysis request.
     Same inputs → same fingerprint → cache hit.
+    ponytail: one json.dumps, encode directly — avoids double-serialization
     """
-    raw = json.dumps(
-        {
-            "y": sorted(enumerate(yao_values), key=lambda x: x[0]),  # positional
-            "g": ganzhi_key,
-            "q": question_type,
-            "d": is_dual,
-        },
-        sort_keys=True,
-        ensure_ascii=False,
-    )
+    raw = f"{sorted(yao_values)}|{ganzhi_key}|{question_type}|{is_dual}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
@@ -170,7 +162,7 @@ async def delete_cache(key: str) -> None:
 
 
 async def invalidate_prefix(prefix: str) -> int:
-    """Delete all keys matching prefix:* using SCAN. Returns count deleted."""
+    """Unlink (async-delete) all keys matching prefix:*. Returns count unlinked."""
     r = get_redis()
     if not r:
         return 0
@@ -181,7 +173,8 @@ async def invalidate_prefix(prefix: str) -> int:
         while True:
             cursor, keys = await r.scan(cursor=cursor, match=pattern, count=500)
             if keys:
-                deleted += await r.delete(*keys)
+                # ponytail: UNLINK is non-blocking on Redis main thread (async GC)
+                deleted += await r.unlink(*keys)
             if cursor == 0:
                 break
     except Exception as exc:

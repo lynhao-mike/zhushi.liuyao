@@ -115,9 +115,19 @@ THEORY_RULE_CASE_MAP = {
     "元神独发变废定凶": {
         "rules": [],
         "cases": ["例108"],
-        "status": "pending_fixture_fix",
+        "status": "pending_rule_detail",
         "notes": (
-            "例108 fixture_error(亥日不可能以亥为旬空), 当前无法构卦; "
+            "fixture 已按原书核实(辰月乙卯日家人之贲, 旬空子丑); "
+            "引擎判平因元神独发变废定凶规则未实现, 属规则缺口"
+        ),
+    },
+    "子鬼互化": {
+        "rules": ["P1_YONG_JI_MUTUAL_TRANSFORM"],
+        "cases": ["例17"],
+        "status": "pending_rule_detail",
+        "notes": (
+            "fixture 已按原书修正(戊子日剥之观, 旬空午未); "
+            "引擎判吉因 P1 优先级低于月令时效卦, 需调整优先级或增加例外"
             "理论: 元神独发却动化回头克/化绝等变废, 养命之源断绝则凶"
         ),
     },

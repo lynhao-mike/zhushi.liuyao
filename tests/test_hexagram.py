@@ -3,13 +3,13 @@
 """
 
 import pytest
-from liuyao.data import (
+from liuyao.domain.data import (
     NA_JIA, DI_ZHI_WU_XING, HEXAGRAM_BY_TRIGRAMS, HEXAGRAM_BY_NAME,
     PALACE_SHI_YING, get_liu_qin, get_liu_shen, get_xun_kong,
     WU_XING_SHENG, WU_XING_KE,
 )
-from liuyao.calendar_utils import get_gan_zhi
-from liuyao.hexagram import Hexagram
+from liuyao.domain.calendar_utils import get_gan_zhi
+from liuyao.domain.hexagram import Hexagram
 
 
 class TestNaJia:
@@ -338,7 +338,7 @@ class TestGanZhiInjection:
 
     def test_derive_day_gan_basic(self):
         """由日支 + 旬空唯一反推日干。"""
-        from liuyao.calendar_utils import derive_day_gan
+        from liuyao.domain.calendar_utils import derive_day_gan
         # 甲辰旬(空寅卯): 戊申
         assert derive_day_gan("申", ["寅", "卯"]) == "戊"
         # 甲子旬(空戌亥): 甲子
@@ -350,8 +350,8 @@ class TestGanZhiInjection:
 
     def test_derive_day_gan_invalid(self):
         """矛盾/非法的日支旬空组合应报错。"""
-        from liuyao.calendar_utils import derive_day_gan
-        from liuyao.exceptions import CalendarError
+        from liuyao.domain.calendar_utils import derive_day_gan
+        from liuyao.domain.exceptions import CalendarError
         # 日支不可能落在自身旬空内
         with pytest.raises(CalendarError):
             derive_day_gan("亥", ["戌", "亥"])
@@ -384,13 +384,13 @@ class TestGanZhiInjection:
 
     def test_from_ganzhi_requires_day_gan_or_xunkong(self):
         """既无 day_gan 又无 xun_kong 应报错。"""
-        from liuyao.exceptions import ArrangementError
+        from liuyao.domain.exceptions import ArrangementError
         with pytest.raises(ArrangementError):
             Hexagram.from_ganzhi([7, 7, 7, 7, 7, 7], month_zhi="子", day_zhi="午")
 
     def test_from_ganzhi_matches_gregorian(self):
         """注入干支与等价公历日期构卦, 旺衰相关字段应一致。"""
-        from liuyao.calendar_utils import get_gan_zhi
+        from liuyao.domain.calendar_utils import get_gan_zhi
         # 取一个真实公历日期的干支, 再用其月支/日支/日干注入, 结果应等价
         gz = get_gan_zhi(2024, 1, 15)
         h_greg = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)

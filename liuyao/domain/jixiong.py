@@ -34,6 +34,12 @@ YONG_SHEN_TABLE = {
     "shengyi": "妻财",    # 生意/经营
     "shengchan": "子孙",  # 生产/子息
     "shouming": "父母",   # 寿元/长辈寿命
+    "zhongshen_gongming": "官鬼",  # 终身功名
+    "zhongshen_caifu": "妻财",     # 终身财福
+    "zhongshen_yunshi": "官鬼",    # 终身运势(默认看功名/压力轴)
+    "xingren": "官鬼",      # 占行人出行(看行人身份)
+    "xingren_gui": "父母",  # 占行人回归(默认取父母为用神)
+    "zaizhan": "官鬼",      # 再占卦(粗放分析, 跳过细化细节)
     "other": "官鬼",      # 其他(默认)
 }
 
