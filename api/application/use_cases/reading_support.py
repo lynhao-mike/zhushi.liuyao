@@ -8,8 +8,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from liuyao.domain.data import QUESTION_TYPE_LABELS
-from liuyao.report_archive import archive_reports
+from liuyao import QUESTION_TYPE_LABELS, archive_reports
 
 
 def ensure_report_files(payload: Dict[str, Any]) -> bool:

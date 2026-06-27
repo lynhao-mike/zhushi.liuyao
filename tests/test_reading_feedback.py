@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import pytest
 
 from api.application.use_cases.dto import ReadingFeedbackCreateCommand
-from api.application.use_cases.readings import create_reading_feedback
+from api.application.use_cases.feedback import create_reading_feedback
 from api.infrastructure.database.models import ReadingSession
 
 

@@ -52,8 +52,10 @@ from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysi
 from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
 from liuyao.application.use_cases.verdict import build_verdict, GUA_JU_BAIHUA
 from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
+from liuyao.report_archive import archive_reports
 from liuyao.domain.exceptions import LiuyaoError, ArrangementError, AnalysisError, CalendarError
 from liuyao.domain.data import JiXiong, QUESTION_TYPE_LABELS
+from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
 
 __all__ = [
     "Hexagram",
@@ -71,6 +73,8 @@ __all__ = [
     "CalendarError",
     "JiXiong",
     "QUESTION_TYPE_LABELS",
+    "DUAL_PERSPECTIVE_TABLE",
+    "archive_reports",
     "build_verdict",
     "GUA_JU_BAIHUA",
 ]

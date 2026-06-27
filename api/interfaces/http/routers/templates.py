@@ -11,7 +11,7 @@ from typing import List
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.infrastructure.database.session import get_db
+from api.interfaces.http.dependencies import get_db
 from api.interfaces.http.schemas.reading import TemplateCreateRequest, TemplateResponse
 from api.interfaces.http.schemas.mappers import template_create_command_from_request
 from api.application.use_cases import templates as template_svc

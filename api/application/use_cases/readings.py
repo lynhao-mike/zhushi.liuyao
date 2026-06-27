@@ -14,19 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.application.use_cases.dto import ReadingCreateCommand
 from api.application.use_cases.engine import analyze, should_use_dual
-from api.application.use_cases.feedback import create_reading_feedback
 from api.application.use_cases.reading_support import (
     build_payload,
     ensure_report_files,
     orm_to_response,
     orm_to_summary,
     payload_to_response,
-)
-from api.application.use_cases.templates import (
-    create_template,
-    delete_template,
-    get_template,
-    list_templates,
 )
 from api.core.config import get_settings
 from api.core.exceptions import NotFoundError

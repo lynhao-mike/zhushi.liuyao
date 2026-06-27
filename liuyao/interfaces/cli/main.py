@@ -2,9 +2,9 @@
 六爻排卦CLI入口 - Liu Yao Hexagram CLI Entry Point
 
 使用方式:
-    python3 -m liuyao.main --date 2024-01-15 --yao 8 7 7 9 7 8
-    python3 -m liuyao.main --date 2024-01-15 --yao 8 7 7 9 7 8 --question-type cai
-    python3 -m liuyao.main --date 2024-01-15 --name 泽风大过 --moving 4
+    python3 -m liuyao --date 2024-01-15 --yao 8 7 7 9 7 8
+    python3 -m liuyao --date 2024-01-15 --yao 8 7 7 9 7 8 --question-type cai
+    python3 -m liuyao --date 2024-01-15 --name 泽风大过 --moving 4
 """
 
 import argparse

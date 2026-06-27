@@ -11,9 +11,8 @@ from __future__ import annotations
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from api.infrastructure.cache.redis_client import get_redis
 from api.core.config import get_settings
-from api.infrastructure.database.session import check_database_health
+from api.interfaces.http.dependencies import check_database_health, get_redis
 
 router = APIRouter(prefix="/health", tags=["health"])
 settings = get_settings()

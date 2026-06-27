@@ -29,9 +29,9 @@ from liuyao import (
     format_report,
     format_dual_report,
     format_readable_report,
+    archive_reports,
+    DUAL_PERSPECTIVE_TABLE,
 )
-from liuyao.report_archive import archive_reports
-from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
 
 log = get_logger(__name__)
 

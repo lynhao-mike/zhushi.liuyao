@@ -47,7 +47,7 @@ zhushi.liuyao/
 │   ├── core/                        # 配置、日志、异常
 │   ├── application/use_cases/       # readings / feedback / templates / engine / support
 │   ├── infrastructure/              # Redis 与 SQLAlchemy 实现
-│   └── interfaces/http/             # FastAPI routers 与 Pydantic schemas
+│   └── interfaces/http/             # FastAPI dependencies、routers 与 Pydantic schemas
 ├── data/                            # 经典规则与象法数据
 ├── docs/                            # 架构文档与理论资料
 ├── examples/                        # 示例与报告归档
@@ -55,6 +55,8 @@ zhushi.liuyao/
 ├── scripts/                         # 数据抽取、规则构建、覆盖率脚本
 └── tests/                           # 领域、API、规则与回归测试
 ```
+
+架构边界与重建蓝图见 [`docs/clean-architecture.md`](docs/clean-architecture.md)。边界守护测试见 [`tests/test_architecture_boundaries.py`](tests/test_architecture_boundaries.py)，用于防止内核反向依赖交付层、API 绕过 `liuyao/__init__.py` 公开门面直连内核内部、HTTP router 直连数据库 session 实现、旧平行目录复活、以及新增 `shared/common/utils` 大杂烩目录。
 
 ---
 
@@ -70,7 +72,7 @@ pip install sxtwl
 
 ```bash
 # 输入六次摇卦值（6=老阴 7=少阳 8=少阴 9=老阳），从初爻到上爻
-python3 -m liuyao.main --date 2026-05-25 --yao 9 8 7 9 6 6 --hour 14 --question-type shiwu
+python3 -m liuyao --date 2026-05-25 --yao 9 8 7 9 6 6 --hour 14 --question-type shiwu
 ```
 
 ### Python 代码调用
@@ -101,7 +103,7 @@ print(format_dual_report(dual))
 ## CLI 使用说明
 
 ```
-python3 -m liuyao.main --date YYYY-MM-DD [选项]
+python3 -m liuyao --date YYYY-MM-DD [选项]
 ```
 
 | 参数 | 说明 | 示例 |

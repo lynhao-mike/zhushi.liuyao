@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.infrastructure.database.session import get_db
+from api.interfaces.http.dependencies import get_db
 from api.interfaces.http.schemas.reading import (
     PaginatedReadings,
     ReadingCreateRequest,

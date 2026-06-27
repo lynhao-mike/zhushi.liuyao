@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from liuyao.domain.data import QUESTION_TYPE_LABELS
+from liuyao import QUESTION_TYPE_LABELS
 
 
 # ── Shared validators ────────────────────────────────────────────────────────

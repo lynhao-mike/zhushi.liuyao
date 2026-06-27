@@ -15,7 +15,7 @@
   上爻 6（老阴·动）  → 官鬼戌土
 
 运行方式（命令行）：
-  python3 -m liuyao.main \\
+  python3 -m liuyao \\
       --date 2026-05-25 --yao 9 8 7 9 6 6 --hour 14 \\
       --question-type shiwu
 
