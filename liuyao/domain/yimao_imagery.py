@@ -477,6 +477,48 @@ _COMBO_SENTENCES: List[Dict[str, Any]] = [
         "source": "易冒·功名章第六十二",
         "signal_type": "象法警示",
     },
+    {
+        "liu_qin": "父母", "is_shi": True, "is_moving": True,
+        "sentence": "世爻父母发动，应试文路已起，考试成败多看临场发挥与文书表现。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "is_shi": True, "is_moving": True,
+        "sentence": "世爻官鬼发动，求名之心已切，若配旺相则利升迁，若配衰象则劳多。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "父母", "is_ying": True, "is_moving": True,
+        "sentence": "应爻父母发动，主考题文书环节有变，应试宜随机应对、紧跟规矩。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_ying": True, "is_moving": True,
+        "sentence": "应爻官鬼发动，外部名位门槛已动，升迁考核标准可能临时转严。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "朱雀", "liu_qin": "父母", "is_moving": True,
+        "sentence": "朱雀临父母发动，应试重文辞与应答，利笔试面试陈述，不利失言。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_shen": "青龙", "liu_qin": "官鬼", "wangshuai": "旺",
+        "sentence": "青龙临官鬼旺相，名位中有喜庆提携之机，利得贵人赏识。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "父母", "is_xun_kong": True,
+        "sentence": "父母旬空，文书题路虚浮，功名考试宜防准备落空或答题失准。",
+        "source": "易冒·功名章第六十二",
+        "signal_type": "象法警示",
+    },
     # 疾病专项（来源：易冒·疾病章第五十五）
     {
         "liu_qin": "官鬼", "is_shi": True, "is_moving": True,
@@ -525,6 +567,159 @@ _COMBO_SENTENCES: List[Dict[str, Any]] = [
         "sentence": "青龙临子孙发动，药力与恢复之机启动，病势有转和之望。",
         "source": "易冒·疾病章第五十五",
         "signal_type": "象法印证",
+    },
+    # 家宅专项（来源：易冒·家宅章第五十）
+    {
+        "liu_qin": "官鬼", "is_moving": True, "is_shi": False,
+        "sentence": "家宅见官鬼发动，主祸殃有作，宜防火盗病非之扰。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "玄武", "liu_qin": "官鬼", "is_moving": True,
+        "sentence": "玄武临官鬼动，家中宜防失盗、暗耗与隐情不宁。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "朱雀", "liu_qin": "官鬼", "is_moving": True,
+        "sentence": "朱雀临官鬼动，家宅多口舌讼非，宜慎言避争。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "勾陈", "liu_qin": "妻财", "is_moving": True,
+        "sentence": "勾陈临财发动，家宅多见田产地土之事，亦防财务牵连。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "子孙", "is_shi": True, "wangshuai": "旺",
+        "sentence": "子孙持世而旺，家宅中子息福气较足，遇事多有缓解之机。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "父母", "is_moving": True, "is_ying": True,
+        "sentence": "父母发动应位，屋宇门户有动，宜查修缮与文书契据。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "父母", "is_moving": True,
+        "sentence": "父母发动，屋宇梁栋、契据文书有动，宜查房屋与手续。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "官鬼", "is_moving": True, "position": 1,
+        "sentence": "初爻官鬼发动，家基不宁，井路地基处宜防隐患。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_moving": True, "position": 2,
+        "sentence": "二爻官鬼发动，灶床受扰，宜防内室、灶位、饮食起病。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_moving": True, "position": 4,
+        "sentence": "四爻官鬼发动，门户邻里多扰，宜防门路口舌与出入不宁。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "position": 6, "wangshuai": "旺",
+        "sentence": "上爻父母旺相，屋宇上层尚稳，屋顶墙梁可守。",
+        "source": "易冒·家宅章第五十",
+        "signal_type": "象法印证",
+    },
+    # 出行/行人专项（来源：易冒·出行章第七十六、行人章第七十七）
+    {
+        "liu_qin": "官鬼", "is_moving": True, "is_ying": True,
+        "sentence": "出行见应爻官鬼发动，外路多阻，宜防途中病忧与意外。",
+        "source": "易冒·出行章第七十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "白虎", "liu_qin": "官鬼", "is_moving": True, "is_ying": True,
+        "sentence": "白虎临应鬼发动，行旅途中宜防车伤惊险与硬碰硬之事。",
+        "source": "易冒·出行章第七十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "玄武", "liu_qin": "官鬼", "is_moving": True, "is_ying": True,
+        "sentence": "玄武临应鬼发动，出行宜防盗失、暗路与水湿寒险。",
+        "source": "易冒·出行章第七十六",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "is_shi": True, "wangshuai": "旺",
+        "sentence": "父母持世而旺，舟车行具有依，出行准备较稳妥。",
+        "source": "易冒·出行章第七十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "子孙", "is_shi": True, "wangshuai": "旺",
+        "sentence": "子孙持世而旺，行旅路上多逢缓解之机，凶象可减。",
+        "source": "易冒·出行章第七十六",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "兄弟", "is_ying": True, "is_moving": True,
+        "sentence": "行人见应爻兄弟发动，多主同伴牵缠、同行阻隔或朋友变数。",
+        "source": "易冒·行人章第七十七",
+        "signal_type": "象法警示",
+    },
+    # 官讼/争斗专项（来源：易冒·词讼章第八十二、斗胜章第八十一）
+    {
+        "liu_qin": "官鬼", "is_shi": True, "is_moving": True,
+        "sentence": "世爻官鬼发动，诉讼忧心贴身，事态多由己方急切而起。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "官鬼", "is_ying": True, "is_moving": True,
+        "sentence": "应爻官鬼发动，对方讼势先起，宜防来势逼迫。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "朱雀", "liu_qin": "官鬼", "wangshuai": "旺",
+        "sentence": "朱雀临官鬼旺相，口舌词状之力强，争端多因言语文书放大。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_shen": "白虎", "liu_qin": "官鬼", "is_ying": True,
+        "sentence": "白虎临应鬼，对方态度强硬，争斗之中易生伤损与逼压。",
+        "source": "易冒·斗胜章第八十一",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "子孙", "is_shi": True, "wangshuai": "旺",
+        "sentence": "子孙持世而旺，讼中有解厄之机，宜求和缓与化解。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "兄弟", "is_ying": True, "wangshuai": "旺",
+        "sentence": "应爻兄弟旺相，争端背后多见党证同伙或朋类相助。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法警示",
+    },
+    {
+        "liu_qin": "父母", "is_shi": True, "wangshuai": "旺",
+        "sentence": "世爻父母旺相，词状证据较实，利于据理申辩。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法印证",
+    },
+    {
+        "liu_qin": "父母", "is_ying": True, "wangshuai": "旺",
+        "sentence": "应爻父母旺相，对方文书凭据不弱，争讼不可轻敌。",
+        "source": "易冒·词讼章第八十二",
+        "signal_type": "象法警示",
     },
     # 失物专项（来源：易冒·失物章第八十三）
     {
@@ -634,6 +829,8 @@ def _match_combo_sentences(line: Any, wangshuai: str) -> List[Dict[str, Any]]:
         if combo.get("liu_shen") and combo["liu_shen"] != line.liu_shen:
             continue
         if combo.get("liu_qin") and combo["liu_qin"] != line.liu_qin:
+            continue
+        if "position" in combo and combo["position"] != line.position:
             continue
         if "is_moving" in combo and combo["is_moving"] != line.is_moving:
             continue
