@@ -1,7 +1,7 @@
 {
   "by_compilability": {
-    "auto_compilable": 54,
-    "not_compilable": 169
+    "auto_compilable": 66,
+    "not_compilable": 157
   },
   "by_polarity": {
     "中性": 64,
@@ -18,9 +18,9 @@
     "other": 97,
     "shiwu": 17
   },
-  "compiled_drafts": 54,
-  "manual_compile_drafts": 169,
-  "queue_size": 169,
+  "compiled_drafts": 66,
+  "manual_compile_drafts": 157,
+  "queue_size": 157,
   "runtime_isolation": {
     "audit_outputs": [
       "data/huangjince_dynamic_rule_draft_audit.json",
@@ -31,21 +31,6 @@
   },
   "source": "huangjince_dynamic_rule_drafts",
   "top_queue_candidates": [
-    {
-      "compile_priority_score": 37,
-      "draft_id": "draft_classic_huangjince_774d6b5442e0",
-      "line_start": 644,
-      "queue_id": "compile_queue_classic_huangjince_774d6b5442e0",
-      "reasons": [
-        "含 6 个现有事实抽取器可支持关键词",
-        "高价值章节：婚姻",
-        "吉凶倾向较明确：中性",
-        "可绑定问事类型：hun_male",
-        "断语可按分句拆解"
-      ],
-      "section": "婚姻",
-      "source_text": "鬼克飞爻，果信绿窗之难嫁；官合财位，方知绮席之易婚。"
-    },
     {
       "compile_priority_score": 34,
       "draft_id": "draft_classic_huangjince_842294dae5a5",
@@ -159,17 +144,30 @@
       "source_text": "子孙藏伏蹙眉追陪。财化福爻，家出从良之妓；官居刑地，门招恶病之人。忌动衰空，闲是闲非闲挠括；财兴克世，有财有利有惊疑。"
     },
     {
-      "compile_priority_score": 29,
-      "draft_id": "draft_classic_huangjince_89b7ac9834eb",
-      "line_start": 875,
-      "queue_id": "compile_queue_classic_huangjince_89b7ac9834eb",
+      "compile_priority_score": 28,
+      "draft_id": "draft_classic_huangjince_e170f46e6246",
+      "line_start": 329,
+      "queue_id": "compile_queue_classic_huangjince_e170f46e6246",
+      "reasons": [
+        "含 6 个现有事实抽取器可支持关键词",
+        "吉凶倾向较明确：吉",
+        "断语可按分句拆解"
+      ],
+      "section": "年时",
+      "source_text": "巽连兄弟，风红风黑及风旋。日生黑子，宋恭帝惊离象之反常；沼起白龙，唐玄宗遭兑金之变异。发动空亡，乃验天书之诈；居临内卦，定成黑眚之妖。"
+    },
+    {
+      "compile_priority_score": 28,
+      "draft_id": "draft_classic_huangjince_dba981b3812d",
+      "line_start": 281,
+      "queue_id": "compile_queue_classic_huangjince_dba981b3812d",
       "reasons": [
         "含 7 个现有事实抽取器可支持关键词",
-        "吉凶倾向较明确：中性",
-        "可绑定问事类型：hun_male"
+        "吉凶倾向较明确：吉",
+        "断语可按分句拆解"
       ],
-      "section": "进人口独夫处世",
-      "source_text": "用爻生合世爻，必得其力，主象克冲身象，难服其心。"
+      "section": "鬼神徼福鬼神",
+      "source_text": "变成父母遇螣蛇，则厌魅之精。太岁鬼临，乃祖传之旧例；日辰官并，是口许之初心。持世则未酬旧愿，伏为有口无心；变财乃不了心斋，空则有头无尾。"
     }
   ],
   "top_sections": {

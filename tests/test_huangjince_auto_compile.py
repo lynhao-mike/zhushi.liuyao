@@ -71,6 +71,20 @@ AUTO_COMPILED_RULE_IDS = {
     "classic_huangjince_dynamic_xingren_feng_chong",
     "classic_huangjince_dynamic_fumu_chi_shi",
     "classic_huangjince_dynamic_cai_kong_shi",
+    # 第十批
+    "classic_huangjince_dynamic_hun_gui_ke_fei_yao",
+    "classic_huangjince_dynamic_cisong_fu_dong_guan_hua_fu",
+    "classic_huangjince_dynamic_cai_ju_he_fu_shen",
+    "classic_huangjince_dynamic_cai_xiong_lian_gui_ke",
+    "classic_huangjince_dynamic_cai_dong_shen_xing",
+    "classic_huangjince_dynamic_qiushi_jing_he_fu_yao",
+    # 第十一批
+    "classic_huangjince_dynamic_hun_yong_sheng_he_shi",
+    "classic_huangjince_dynamic_liuxu_cai_kong_fu_dong",
+    "classic_huangjince_dynamic_shiwu_cai_dong_bu_yi",
+    "classic_huangjince_dynamic_cai_cai_an_gui_jing",
+    "classic_huangjince_dynamic_zhongzuo_fu_de_kong_wang",
+    "classic_huangjince_dynamic_kaoshi_shen_xing_bian_gui",
 }
 
 
@@ -84,7 +98,7 @@ def test_auto_compile_builds_known_conservative_templates():
 
     generated = build_auto_compiled_rules(judgements)
 
-    assert len(generated) == 51
+    assert len(generated) == 63
     assert {rule["id"] for rule in generated} == AUTO_COMPILED_RULE_IDS
     assert validate_classic_rules(generated) == []
     assert all(rule["execution_tier"] == "candidate_only" for rule in generated)
@@ -102,7 +116,7 @@ def test_auto_compile_merge_is_deterministic_and_idempotent():
     merged_twice = merge_candidate_rules(merged_once, generated)
 
     assert merged_once == merged_twice
-    assert len(merged_once) == 54
+    assert len(merged_once) == 66
     assert validate_classic_rules(merged_once) == []
     assert {rule["id"] for rule in generated}.issubset({rule["id"] for rule in merged_once})
     assert [rule["id"] for rule in merged_once[:3]] == [rule["id"] for rule in candidate_rules[:3]]
