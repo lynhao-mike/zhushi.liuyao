@@ -196,6 +196,136 @@ def check_dong_yao_interaction(target_line, moving_lines, moving_analyses):
     return interactions
 
 
+def _determine_compound_final_target(hexagram, primary_yong_position=None, question_type=None):
+    """最终目标爻判定: 先处理世用合一，再区分自占/代占。"""
+    shi_line = getattr(hexagram, "shi_line", None)
+    if shi_line is None:
+        return {
+            "kind": "unknown",
+            "position": None,
+            "reason": "未找到世爻, 无法判定最终目标爻",
+        }
+
+    if primary_yong_position is not None and primary_yong_position == shi_line.position:
+        return {
+            "kind": "shi_yong",
+            "position": shi_line.position,
+            "reason": "世用合一, 复合动以世用一体为最终目标",
+        }
+
+    if question_type in {"fumu", "xiongdi", "zinv", "hun_male", "hun_female", "guan", "cai", "kaoshi", "bing", "other"}:
+        return {
+            "kind": "shi",
+            "position": shi_line.position,
+            "reason": "当前按自占/常规事占处理, 世爻作为复合动最终承受点",
+        }
+
+    if primary_yong_position is not None:
+        return {
+            "kind": "yong",
+            "position": primary_yong_position,
+            "reason": "代占/非自占场景暂以用神为最终目标",
+        }
+
+    return {
+        "kind": "shi",
+        "position": shi_line.position,
+        "reason": "未提供主用神位置, 回退为世爻终点",
+    }
+
+
+def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_ju=None,
+                              primary_yong_position=None, question_type=None):
+    """复合之动: 输出可供规则层消费的最终目标爻裁判输入。"""
+    final_target = _determine_compound_final_target(
+        hexagram, primary_yong_position=primary_yong_position, question_type=question_type
+    )
+    if san_he_ju:
+        return [{
+            "mode": "san_he",
+            "final_target_kind": final_target["kind"],
+            "final_target_position": final_target["position"],
+            "path": [],
+            "aggregated_to_position": None,
+            "acts_on_target": "none",
+            "valid": True,
+            "reason": "三合局优先于单爻连动",
+            "source_positions": [],
+            "ju": ju,
+        } for ju in san_he_ju]
+
+    useful = [line for line in _get_moving_lines(hexagram) if line.position in useful_moving]
+    if len(useful) < 2:
+        return []
+
+    results = []
+    target_pos = final_target["position"]
+    for source in useful:
+        for middle in useful:
+            if source.position == middle.position:
+                continue
+            if WU_XING_SHENG[source.wu_xing] == middle.wu_xing:
+                # 一跳：A -> target
+                acts = "none"
+                valid = False
+                path = [source.position, middle.position]
+                if target_pos is not None and middle.position == target_pos:
+                    acts = "sheng"
+                    valid = True
+                else:
+                    # 二跳：A -> B -> target
+                    for target in useful:
+                        if target.position in (source.position, middle.position):
+                            continue
+                        if target_pos is not None and target.position == target_pos and WU_XING_SHENG[middle.wu_xing] == target.wu_xing:
+                            acts = "sheng"
+                            valid = True
+                            path = [source.position, middle.position, target.position]
+                            break
+                results.append({
+                    "mode": "chain_sheng",
+                    "final_target_kind": final_target["kind"],
+                    "final_target_position": target_pos,
+                    "path": path,
+                    "aggregated_to_position": middle.position,
+                    "acts_on_target": acts,
+                    "valid": valid,
+                    "reason": f"第{source.position}爻生第{middle.position}爻, {'并接续生到最终目标爻' if valid else '但未打到最终目标爻'}",
+                    "source_positions": path,
+                })
+            elif WU_XING_KE[source.wu_xing] == middle.wu_xing:
+                acts = "none"
+                valid = False
+                path = [source.position, middle.position]
+                if target_pos is not None and middle.position == target_pos:
+                    acts = "ke"
+                    valid = True
+                else:
+                    # 二跳阻断：A 克 B，且 B 原可生目标
+                    if target_pos is not None:
+                        for target in useful:
+                            if target.position in (source.position, middle.position):
+                                continue
+                            if target.position == target_pos and WU_XING_SHENG[middle.wu_xing] == target.wu_xing:
+                                acts = "block"
+                                valid = True
+                                path = [source.position, middle.position, target.position]
+                                break
+                results.append({
+                    "mode": "chain_ke_cancel",
+                    "final_target_kind": final_target["kind"],
+                    "final_target_position": target_pos,
+                    "path": path,
+                    "aggregated_to_position": middle.position,
+                    "acts_on_target": acts,
+                    "valid": valid,
+                    "reason": f"第{source.position}爻克第{middle.position}爻, {'并阻断其后续到目标爻' if valid and acts == 'block' else ('最终克到目标爻' if valid else '但未打到最终目标爻')}",
+                    "source_positions": path,
+                })
+
+    return results
+
+
 def detect_an_dong(hexagram, wangshuai_results, moving_lines=None):
     """
     检测暗动(An-Dong)。
@@ -335,6 +465,11 @@ def analyze_dongbian(hexagram, wangshuai_results):
     # 检查三合局
     san_he_ju = find_san_he_ju(hexagram, moving_lines)
 
+    # 检查复合之动: 三合局优先, 否则看有用动爻间的连动相生/相克
+    compound_movement = analyze_compound_movement(
+        hexagram, moving_analyses, useful_moving, san_he_ju
+    )
+
     # 检查动爻间的交互作用
     interactions = {}
     if moving_lines:
@@ -349,6 +484,7 @@ def analyze_dongbian(hexagram, wangshuai_results):
     return {
         "moving_analyses": moving_analyses,
         "san_he_ju": san_he_ju,
+        "compound_movement": compound_movement,
         "an_dong": an_dong,
         "useful_moving": useful_moving,
         "useless_moving": useless_moving,

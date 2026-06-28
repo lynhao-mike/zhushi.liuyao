@@ -3,6 +3,8 @@
 """
 
 import pytest
+from types import SimpleNamespace
+
 from liuyao.domain.dongbian import (
     is_hui_tou_sheng,
     is_hui_tou_ke,
@@ -12,6 +14,7 @@ from liuyao.domain.dongbian import (
     is_hua_po,
     analyze_moving_line,
     detect_an_dong,
+    analyze_compound_movement,
     analyze_dongbian,
 )
 from liuyao.domain.hexagram import Hexagram
@@ -136,3 +139,45 @@ class TestAnalyzeDongbian:
         result = analyze_dongbian(h, ws)
         total = len(result["useful_moving"]) + len(result["useless_moving"])
         assert total == len(result["moving_analyses"])
+
+    def test_compound_movement_chain_generates(self):
+        h = SimpleNamespace(
+            shi_line=SimpleNamespace(position=2, di_zhi="巳", wu_xing="火"),
+            moving_lines=[
+                SimpleNamespace(position=1, di_zhi="寅", wu_xing="木"),
+                SimpleNamespace(position=2, di_zhi="巳", wu_xing="火"),
+            ],
+        )
+        result = analyze_compound_movement(h, {}, [1, 2])
+        assert result[0]["mode"] == "chain_sheng"
+        assert result[0]["path"] == [1, 2]
+
+    def test_compound_movement_chain_overcomes(self):
+        h = SimpleNamespace(
+            shi_line=SimpleNamespace(position=2, di_zhi="寅", wu_xing="木"),
+            moving_lines=[
+                SimpleNamespace(position=1, di_zhi="申", wu_xing="金"),
+                SimpleNamespace(position=2, di_zhi="寅", wu_xing="木"),
+            ],
+        )
+        result = analyze_compound_movement(h, {}, [1, 2])
+        assert result[0]["mode"] == "chain_ke_cancel"
+        assert result[0]["path"] == [1, 2]
+
+    def test_compound_movement_san_he_has_priority(self):
+        h = SimpleNamespace(moving_lines=[])
+        result = analyze_compound_movement(
+            h, {}, [], san_he_ju=[{"wu_xing": "水", "members": ["申", "子", "辰"]}]
+        )
+        assert result == [{
+            "mode": "san_he",
+            "final_target_kind": "unknown",
+            "final_target_position": None,
+            "path": [],
+            "aggregated_to_position": None,
+            "acts_on_target": "none",
+            "valid": True,
+            "reason": "三合局优先于单爻连动",
+            "source_positions": [],
+            "ju": {"wu_xing": "水", "members": ["申", "子", "辰"]},
+        }]

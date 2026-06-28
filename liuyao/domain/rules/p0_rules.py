@@ -47,8 +47,9 @@ class FeiYaoRiyueRule(BaseRule):
         line = ctx.primary_yong
         if not line:
             return None
-        ws = ctx.wangshuai_of(line)
-        if "月破" in ws.get("month_shuai", []) and "日令克" in ws.get("day_shuai", []):
+        combo = ctx.special_day_month_combo(line)
+        if combo["is_feiyao"]:
+            ws = combo["wangshuai"]
             return self.result(
                 "废爻型(月破日克)",
                 "凶",
@@ -69,24 +70,46 @@ class YueLingShixiaoRule(BaseRule):
         line = ctx.primary_yong
         if not line or not line.is_moving:
             return None
-        moving = ctx.moving_analyses.get(line.position, {})
-        bian_zhi = getattr(line, "bian_di_zhi", None)
-        he_month = LIU_HE.get(ctx.month_zhi, (None, None))[0]
-        line_hits_month = line.di_zhi == ctx.month_zhi
-        bian_hits_month = bian_zhi == ctx.month_zhi or bian_zhi == he_month
-        # P0 阶段只落地《增删》例9这类“世用合一且用神自发动”的月令时效卦。
-        # 若放宽到所有临月动爻, 会误伤例11等“忌神/月建入动克用”的既有基线。
+        shixiao = ctx.shixiao_context(line)
+        # P0 阶段仍保守: 只落地“世用合一且用神自发动”的月令时效卦。
         is_shi_yong_self_moving = bool(getattr(line, "is_shi", False))
-        if is_shi_yong_self_moving and (
-            line_hits_month or bian_hits_month or "化出临日月" in moving.get("趋旺", [])
-        ):
+        if is_shi_yong_self_moving and shixiao["is_month_shixiao"]:
             return self.result(
                 "月令时效卦",
                 "吉",
                 f"世用{line.di_zhi}发动并临月/化出月令气, 属月令时效卦; 短期事不按普通受克衰败断, 以得令为吉",
-                evidence=[{"position": line.position, "ben_zhi": line.di_zhi, "bian_zhi": bian_zhi, "month_zhi": ctx.month_zhi}],
+                evidence=[{"position": line.position, "ben_zhi": line.di_zhi, "bian_zhi": getattr(line, 'bian_di_zhi', None), "month_zhi": ctx.month_zhi, "shixiao": shixiao}],
             )
         return None
+
+
+class RiLingShixiaoRule(BaseRule):
+    """日令时效卦: 当日/短期内完结之事, 用神临日或化出日令时, 不按普通受克直断。"""
+
+    rule_id = "P0_RI_LING_SHIXIAO"
+    theory_id = "时效卦_日令时效"
+    priority = 945
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line:
+            return None
+        shixiao = ctx.shixiao_context(line)
+        if not shixiao["is_day_shixiao"]:
+            return None
+        return self.result(
+            "日令时效卦",
+            "吉",
+            f"用神{line.di_zhi}临日令或化出日令, 属日令时效卦; 当日/短期内以日为司令, 不按普通受克衰败直断",
+            evidence=[{
+                "position": line.position,
+                "ben_zhi": line.di_zhi,
+                "bian_zhi": getattr(line, "bian_di_zhi", None),
+                "day_zhi": ctx.day_zhi,
+                "question_type": ctx.question_type,
+                "shixiao": shixiao,
+            }],
+        )
 
 
 class SanHeJuPriorityRule(BaseRule):
@@ -159,6 +182,55 @@ class SanHeJuPriorityRule(BaseRule):
         return candidates
 
 
+class CompoundMovementFinalTargetRule(BaseRule):
+    """复合之动最终目标爻规则: 只消费统一结构，不在规则层重复拼链。"""
+
+    rule_id = "P0_COMPOUND_MOVEMENT_FINAL_TARGET"
+    theory_id = "复合之动_最终目标爻"
+    priority = 890
+
+    def evaluate(self, ctx):
+        item = ctx.final_compound_movement()
+        if not item:
+            return None
+        if item.get("mode") == "san_he":
+            return None
+
+        acts = ctx.compound_acts_on_target()
+        target_kind = ctx.compound_final_target_kind()
+        if acts == "sheng":
+            if target_kind == "shi":
+                return self.result(
+                    "复合动生世",
+                    "吉",
+                    f"复合动路径{item.get('path')}聚力后生世爻, 按复合之动整体论吉",
+                    evidence=[item],
+                )
+            if target_kind == "yong":
+                return self.result(
+                    "复合动生用",
+                    "吉",
+                    f"复合动路径{item.get('path')}聚力后生用神, 按复合之动整体论吉",
+                    evidence=[item],
+                )
+        if acts in {"ke", "block"}:
+            if target_kind == "shi":
+                return self.result(
+                    "复合动克世",
+                    "凶",
+                    f"复合动路径{item.get('path')}整体作用世爻为{acts}, 按复合之动整体论凶",
+                    evidence=[item],
+                )
+            if target_kind == "yong":
+                return self.result(
+                    "复合动阻断用神",
+                    "凶",
+                    f"复合动路径{item.get('path')}整体作用用神为{acts}, 按复合之动整体论凶",
+                    evidence=[item],
+                )
+        return None
+
+
 class KeShiChongBreaksGangjingRule(BaseRule):
     """克中带冲突破金刚型: 特殊日月组合不忌外克, 但冲克合一可突破。"""
 
@@ -207,12 +279,8 @@ class JingangMovingKeShiRule(BaseRule):
             return None
         shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
         for line in getattr(ctx.hexagram, "moving_lines", ()):
-            # ponytail: 内联 _has_riyue_support，只此一处使用
-            line_wx = DI_ZHI_WU_XING[line.di_zhi]
-            def supports(zhi):
-                wx = DI_ZHI_WU_XING[zhi]
-                return wx == line_wx or WU_XING_SHENG.get(wx) == line_wx or LIU_HE.get(zhi, (None, None))[0] == line.di_zhi
-            if not (supports(ctx.month_zhi) and supports(ctx.day_zhi)):
+            combo = ctx.special_day_month_combo(line)
+            if not combo["is_jingang"]:
                 continue
             if WU_XING_KE.get(line.wu_xing) != shi_wx:
                 continue
@@ -228,6 +296,7 @@ class JingangMovingKeShiRule(BaseRule):
                     "shi_zhi": ctx.shi_line.di_zhi,
                     "month_zhi": ctx.month_zhi,
                     "day_zhi": ctx.day_zhi,
+                    "combo": combo,
                 }],
             )
         return None
@@ -363,7 +432,8 @@ class LifetimeShixiaoRule(BaseRule):
     priority = 755  # 低于P0硬规则，高于普通P1卦意规则
 
     def evaluate(self, ctx):
-        if ctx.question_type not in ("zhongshen_gongming", "zhongshen_caifu", "zhongshen_yunshi"):
+        shixiao = ctx.shixiao_context()
+        if not shixiao["is_lifetime_shixiao"]:
             return None
         if not ctx.shi_line:
             return None
@@ -491,6 +561,8 @@ class YuanShenDuFaBianFeiRule(BaseRule):
     def evaluate(self, ctx):
         if not ctx.primary_yong or not ctx.shi_line:
             return None
+        if ctx.shixiao_context().get("is_day_shixiao"):
+            return None  # ponytail: 日令时效卦由日令司令, 不让元神独发变废覆盖当日成败
         movings = list(getattr(ctx.hexagram, "moving_lines", ()))
         if len(movings) != 1:
             return None
@@ -616,7 +688,7 @@ class CompetitiveSelectionOpponentFailsRule(BaseRule):
             f"第{candidate['position']}爻{candidate['ben_zhi']}{candidate['ben_wu_xing']}"
             f"位居世应之间, 可作竞争者/阻隔之象; "
             f"其发动化{candidate.get('bian_zhi') or ''}, 见{decline}, 竞争者自败; "
-            f"世爻{candidate['shi_zhi']}虽受压力, 但因对手失势而有脱颖而出之机, 吉"
+            f"世爻{candidate['shi_zhi']}虽受压力, 但因对手失势而有脱颖而出的机会, 吉"
         )
         evidence = [{
             **candidate,
@@ -631,6 +703,52 @@ class CompetitiveSelectionOpponentFailsRule(BaseRule):
             "吉",
             explanation,
             evidence=evidence,
+        )
+
+
+class DualCoreDesignatedTargetRule(BaseRule):
+    """双核卦象最小规则: 用神可成, 但应爻/指定对象不承接该成局时, 不得直断该特指定向成立。"""
+
+    rule_id = "P1_DUAL_CORE_DESIGNATED_TARGET"
+    theory_id = "双核卦象_特指定向最小干预"
+    priority = 820
+
+    def evaluate(self, ctx):
+        if not ctx.is_designated_target_case or not ctx.shi_line:
+            return None
+        ying = getattr(ctx.hexagram, "ying_line", None)
+        if not ying:
+            return None
+        if not getattr(ying, "is_moving", False):
+            return None
+        if not ctx.primary_yong:
+            return None
+
+        # ponytail: 只做最小双核保护——当应爻自发动且不承接世/用的生合时，不允许把普通成局直接等同于“指定对象成”。
+        ying_wx = ying.wu_xing
+        shi_wx = ctx.shi_line.wu_xing
+        yong_wx = ctx.primary_yong.wu_xing
+        links_shi = WU_XING_SHENG.get(ying_wx) == shi_wx or WU_XING_SHENG.get(shi_wx) == ying_wx
+        links_yong = WU_XING_SHENG.get(ying_wx) == yong_wx or WU_XING_SHENG.get(yong_wx) == ying_wx
+        if links_shi or links_yong:
+            return None
+
+        return self.result(
+            "双核卦象(指定对象未承局)",
+            "平",
+            f"应爻第{ying.position}爻{ying.di_zhi}{ying_wx}自发动, 但未与世爻{ctx.shi_line.di_zhi}{shi_wx}或用神{ctx.primary_yong.di_zhi}{yong_wx}形成生合承接; 普通成局不可直接等同于指定对象成立, 需保留分歧",
+            evidence=[{
+                "ying_position": ying.position,
+                "ying_zhi": ying.di_zhi,
+                "ying_wu_xing": ying_wx,
+                "shi_position": ctx.shi_line.position,
+                "shi_zhi": ctx.shi_line.di_zhi,
+                "yong_position": ctx.primary_yong.position,
+                "yong_zhi": ctx.primary_yong.di_zhi,
+                "decision_path": "dual_core_designated_target_minimal_guard",
+                "counter_signals": ["普通用旺/用神生世只说明事情可成, 不等于指定对象可成"],
+            }],
+            stop=False,
         )
 
 
@@ -704,6 +822,61 @@ class MovingKeYongRule(BaseRule):
         return None
 
 
+class ZhenBanRule(BaseRule):
+    """真绊: 全卦/半卦化绊, 或明确时段出行遇绊, 吉凶层面按有动如无。"""
+
+    rule_id = "P0_ZHEN_BAN"
+    theory_id = "真绊假绊"
+    priority = 905
+
+    def evaluate(self, ctx):
+        san_ban = list(ctx.san_ban or [])
+        if not san_ban:
+            return None
+
+        moving_lines = list(getattr(ctx.hexagram, "moving_lines", ()))
+        moving_positions = [line.position for line in moving_lines]
+        moving_count = len(moving_positions)
+        if moving_count < 2:
+            return None
+
+        inner_positions = {pos for pos in moving_positions if pos <= 3}
+        outer_positions = {pos for pos in moving_positions if pos >= 4}
+        hua_ban_positions = {ban["positions"][0] for ban in san_ban if ban.get("ban_type") == "化绊" and ban.get("positions")}
+        inner_all = len(inner_positions) == 3 and inner_positions.issubset(hua_ban_positions)
+        outer_all = len(outer_positions) == 3 and outer_positions.issubset(hua_ban_positions)
+        all_all = moving_count == 6 and len(hua_ban_positions) == 6
+        structure_zhen_ban = inner_all or outer_all or all_all
+        timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri") and any(ban.get("ban_type") == "化绊" for ban in san_ban)
+
+        if not (structure_zhen_ban or timed_travel_zhen_ban):
+            return None
+
+        reasons = []
+        if structure_zhen_ban:
+            if inner_all:
+                reasons.append("内卦三爻全动化绊")
+            if outer_all:
+                reasons.append("外卦三爻全动化绊")
+            if all_all:
+                reasons.append("六爻全动化绊")
+        if timed_travel_zhen_ban:
+            reasons.append("明确时段出行/行人占遇绊")
+
+        return self.result(
+            "真绊",
+            "凶",
+            f"卦中出现真绊({'; '.join(reasons)}), 动爻有动如无, 计划期限内难以如愿, 凶",
+            evidence=[{
+                "san_ban": san_ban,
+                "moving_positions": moving_positions,
+                "reasons": reasons,
+                "question_type": ctx.question_type,
+            }],
+            stop=False,
+        )
+
+
 class TransformedYongMediatorRule(BaseRule):
     """变爻为用神, 通过动爻为媒间接生世。"""
 
@@ -761,7 +934,9 @@ class TransformedYongMediatorRule(BaseRule):
 P0_RULES = [
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
+    RiLingShixiaoRule(),
     SanHeJuPriorityRule(),
+    ZhenBanRule(),
     KeShiChongBreaksGangjingRule(),
     JingangMovingKeShiRule(),
     SelfChangeTerminalRule(),
@@ -769,6 +944,7 @@ P0_RULES = [
     InvestmentWealthTurnsGhostRiskRule(),
     ExternalOmenBrokenObjectRule(),
     CompetitiveSelectionOpponentFailsRule(),
+    DualCoreDesignatedTargetRule(),
     DayMonthKeMovingRescueRule(),
     HuiTouShengRescueRule(),
     MovingKeYongRule(),

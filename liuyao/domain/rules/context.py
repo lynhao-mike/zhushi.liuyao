@@ -36,6 +36,14 @@ class RuleContext:
         return self.question_type == "kaoshi"
 
     @property
+    def is_designated_target_case(self) -> bool:
+        """是否属于双核卦象最小落地范围: 特指/嫁接/指定对象成败。"""
+        return self.question_type in {
+            "kaoshi", "guan", "shengyi", "cai", "hun_male", "hun_female",
+            "xingren", "xingren_gui", "other"
+        }
+
+    @property
     def moving_analyses(self) -> Dict[int, Dict[str, Any]]:
         return self.dongbian_results.get("moving_analyses", {})
 
@@ -46,6 +54,31 @@ class RuleContext:
     @property
     def san_he_ju(self) -> List[Dict[str, Any]]:
         return self.dongbian_results.get("san_he_ju", [])
+
+    @property
+    def compound_movement(self) -> List[Dict[str, Any]]:
+        return self.dongbian_results.get("compound_movement", [])
+
+    def final_compound_movement(self) -> Dict[str, Any]:
+        for item in self.compound_movement:
+            if item.get("mode") == "san_he" and item.get("valid"):
+                return item
+        for item in self.compound_movement:
+            if item.get("valid"):
+                return item
+        return {}
+
+    def compound_final_target_position(self) -> int | None:
+        item = self.final_compound_movement()
+        return item.get("final_target_position") if item else None
+
+    def compound_final_target_kind(self) -> str:
+        item = self.final_compound_movement()
+        return item.get("final_target_kind", "unknown") if item else "unknown"
+
+    def compound_acts_on_target(self) -> str:
+        item = self.final_compound_movement()
+        return item.get("acts_on_target", "none") if item else "none"
 
     @property
     def san_ban(self) -> List[Dict[str, Any]]:
@@ -96,6 +129,54 @@ class RuleContext:
             if LIU_CHONG.get(self.month_zhi) == bian_zhi:
                 reasons.append("变爻逢月冲破")
         return list(dict.fromkeys(reasons))
+
+    def special_day_month_combo(self, line: Any) -> Dict[str, Any]:
+        """返回最小特殊日月组合分类，供 P0/P1 规则统一消费。"""
+        ws = self.wangshuai_of(line)
+        month_wang = ws.get("month_wang", [])
+        month_shuai = ws.get("month_shuai", [])
+        day_wang = ws.get("day_wang", [])
+        day_shuai = ws.get("day_shuai", [])
+
+        is_feiyao = "月破" in month_shuai and "日令克" in day_shuai
+        is_jingang = bool(month_wang) and bool(day_wang) and (
+            any(x in month_wang for x in ("临月令", "月令合"))
+            and any(x in day_wang for x in ("临日建", "日令合", "日令生", "日令扶", "临日令长生", "临日令帝旺"))
+        )
+        excludes_month_chong_day_chong = "月破" in month_shuai and "日令克" not in day_shuai
+        return {
+            "is_feiyao": is_feiyao,
+            "is_jingang": is_jingang,
+            "excludes_month_chong_day_chong": excludes_month_chong_day_chong,
+            "wangshuai": ws,
+        }
+
+    def shixiao_context(self, line: Any | None = None) -> Dict[str, Any]:
+        """统一时效卦分类：月令时效 / 日令时效 / 终身时效。"""
+        target = line or self.primary_yong
+        moving = self.primary_yong_moving if target is self.primary_yong else self.moving_analyses.get(getattr(target, "position", 0), {})
+        bian_zhi = getattr(target, "bian_di_zhi", None) if target else None
+        he_month = LIU_CHONG.get(self.month_zhi)
+        line_hits_month = bool(target and getattr(target, "di_zhi", None) == self.month_zhi)
+        line_hits_day = bool(target and getattr(target, "di_zhi", None) == self.day_zhi)
+        bian_hits_month = bian_zhi == self.month_zhi
+        bian_hits_day = bian_zhi == self.day_zhi
+
+        is_month_window = self.question_type in {"guan", "kaoshi", "cai", "shengyi", "bing", "other"}
+        is_day_window = self.question_type in {"dangri", "mashang", "jinshi", "chuxing", "xingren", "xingren_gui"}
+        is_lifetime = self.question_type in {"zhongshen_gongming", "zhongshen_caifu", "zhongshen_yunshi"}
+
+        return {
+            "is_month_shixiao": bool(target and getattr(target, "is_moving", False) and is_month_window and (line_hits_month or bian_hits_month or "化出临日月" in moving.get("趋旺", []))),
+            "is_day_shixiao": bool(target and is_day_window and (line_hits_day or bian_hits_day)),
+            "is_lifetime_shixiao": is_lifetime,
+            "line_hits_month": line_hits_month,
+            "line_hits_day": line_hits_day,
+            "bian_hits_month": bian_hits_month,
+            "bian_hits_day": bian_hits_day,
+            "moving": moving,
+            "wangshuai": self.wangshuai_of(target) if target else {},
+        }
 
     def competitive_opponent_candidates(self) -> List[Dict[str, Any]]:
         """识别短期竞争卦中可能代表竞争者且发动失势的间爻。"""
