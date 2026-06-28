@@ -424,13 +424,15 @@ def detect_an_dong(hexagram, wangshuai_results, moving_lines=None):
     return an_dong_list
 
 
-def analyze_dongbian(hexagram, wangshuai_results):
+def analyze_dongbian(hexagram, wangshuai_results, primary_yong_position=None, question_type=None):
     """
     完整动变分析。
 
     Args:
         hexagram: Hexagram对象
         wangshuai_results: 各爻旺衰分析结果
+        primary_yong_position: 主用神爻位(可选, 供复合之动判定最终目标爻)
+        question_type: 问事类型(可选, 供自占/代占分流)
 
     Returns:
         dict: {
@@ -467,7 +469,9 @@ def analyze_dongbian(hexagram, wangshuai_results):
 
     # 检查复合之动: 三合局优先, 否则看有用动爻间的连动相生/相克
     compound_movement = analyze_compound_movement(
-        hexagram, moving_analyses, useful_moving, san_he_ju
+        hexagram, moving_analyses, useful_moving, san_he_ju,
+        primary_yong_position=primary_yong_position,
+        question_type=question_type,
     )
 
     # 检查动爻间的交互作用

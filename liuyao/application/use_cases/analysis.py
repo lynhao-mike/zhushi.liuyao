@@ -96,8 +96,14 @@ def run_analysis(hexagram, question_type="other",
     report.wangshuai_results = analyze_hexagram_wangshuai(hexagram)
 
     # 3. 动变分析
+    primary_yong_position = report.yong_shen_lines[0].position if report.yong_shen_lines else None
     try:
-        report.dongbian_results = analyze_dongbian(hexagram, report.wangshuai_results)
+        report.dongbian_results = analyze_dongbian(
+            hexagram,
+            report.wangshuai_results,
+            primary_yong_position=primary_yong_position,
+            question_type=question_type,
+        )
     except Exception as e:
         log.error("dongbian_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
