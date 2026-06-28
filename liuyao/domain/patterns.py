@@ -545,7 +545,7 @@ def detect_shi_hua_yong_ji(hexagram, yong_shen_liu_qin, ji_shen_liu_qin):
     Returns:
         dict or None
     """
-    shi_line = next((l for l in hexagram.lines if l.is_shi), None)
+    shi_line = getattr(hexagram, "shi_line", None)
     if not shi_line or not shi_line.is_moving or not shi_line.bian_liu_qin:
         return None
 
@@ -575,7 +575,7 @@ def detect_shi_dong_hua_gui(hexagram, yong_shen_liu_qin):
     Returns:
         dict or None
     """
-    shi_line = next((l for l in hexagram.lines if l.is_shi), None)
+    shi_line = getattr(hexagram, "shi_line", None)
     if not shi_line or not shi_line.is_moving:
         return None
 
@@ -653,8 +653,8 @@ def detect_jian_yao_zu_ge(hexagram, yong_shen_lines):
     """
     间爻阻隔法: 世应间爻发动作梗 (无明确指向用神或世爻的卦理).
     """
-    shi_line = next((l for l in hexagram.lines if l.is_shi), None)
-    ying_line = next((l for l in hexagram.lines if l.is_ying), None)
+    shi_line = getattr(hexagram, "shi_line", None)
+    ying_line = getattr(hexagram, "ying_line", None)
     if not shi_line or not ying_line:
         return None
 
@@ -665,9 +665,7 @@ def detect_jian_yao_zu_ge(hexagram, yong_shen_lines):
     yong_positions = {l.position for l in yong_shen_lines}
 
     blocking = []
-    for line in hexagram.lines:
-        if not line.is_moving:
-            continue
+    for line in getattr(hexagram, "moving_lines", hexagram.lines):
         if not (pos_low < line.position < pos_high):
             continue
         # 间爻动 + 既非世应又非用神
@@ -701,7 +699,7 @@ def detect_qian_lian_ju_he(hexagram, yong_shen_lines, dongbian_results):
     """
     牵连聚合法: 世动变用神, 或世用同在三合局, 或动爻聚合三合局.
     """
-    shi_line = next((l for l in hexagram.lines if l.is_shi), None)
+    shi_line = getattr(hexagram, "shi_line", None)
     if not shi_line:
         return None
 
@@ -723,8 +721,8 @@ def detect_qian_lian_ju_he(hexagram, yong_shen_lines, dongbian_results):
         # 检查 sh 中是否含世爻和用神爻
         sh_zhis = sh["members"]
         positions_in_he = []
-        for line in hexagram.lines:
-            if line.is_moving and line.di_zhi in sh_zhis:
+        for line in getattr(hexagram, "moving_lines", hexagram.lines):
+            if line.di_zhi in sh_zhis:
                 positions_in_he.append(line.position)
         if shi_line.position in positions_in_he:
             yong_in = [p for p in yong_positions if p in positions_in_he]
@@ -742,17 +740,17 @@ def detect_dai_ru(hexagram, yong_shen_lines):
     """
     代入确认法: 与世用同属性或相冲、相合的爻 → 同类竞争对手 / 朋友 / 情敌.
     """
-    shi_line = next((l for l in hexagram.lines if l.is_shi), None)
+    shi_line = getattr(hexagram, "shi_line", None)
     if not shi_line or not yong_shen_lines:
         return None
 
     yong = yong_shen_lines[0]
     # 同属性者代表同类 → 求财时用神所同属者代表竞争对手
     same_wx_lines = []
-    for line in hexagram.lines:
+    for line in getattr(hexagram, "moving_lines", hexagram.lines):
         if line.position == yong.position:
             continue
-        if line.wu_xing == yong.wu_xing and line.is_moving:
+        if line.wu_xing == yong.wu_xing:
             same_wx_lines.append(line.position)
 
     if same_wx_lines:
@@ -769,7 +767,9 @@ def detect_dong_dong_xiang_lian(hexagram, yong_shen_lines, dongbian_results):
     """
     动动相连法: 多个动爻彼此先连动后聚力, 而非僵化指向世用.
     """
-    moving_lines = [l for l in hexagram.lines if l.is_moving]
+    moving_lines = list(getattr(hexagram, "moving_lines", []))
+    if not moving_lines:
+        moving_lines = [l for l in hexagram.lines if l.is_moving]
     if len(moving_lines) < 2:
         return None
 

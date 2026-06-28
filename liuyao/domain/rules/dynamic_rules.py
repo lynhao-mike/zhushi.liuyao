@@ -25,8 +25,9 @@ class DynamicClassicRule:
         self.rule_id = record["id"]
         self.theory_id = f"classic:{record['source']}:{record['section']}"
         self.priority = int(record.get("priority", 1))
+        self.question_types = _extract_required_question_types(record["conditions"])
 
-    def evaluate(self, context: Any) -> RuleResult | None:
+    def evaluate(self, context: Any, facts: ClassicRuleFacts | None = None) -> RuleResult | None:
         """Evaluate a candidate classic rule without overriding core judgement."""
         if self.record.get("draft_status") == "draft_only":
             return None
@@ -35,7 +36,8 @@ class DynamicClassicRule:
         if self.record.get("compilability") == "not_compilable":
             return None
 
-        facts = extract_classic_rule_facts(context)
+        if facts is None:
+            facts = extract_classic_rule_facts(context)
         if not evaluate_condition(self.record["conditions"], facts):
             return None
 
@@ -109,12 +111,39 @@ def get_huangjince_candidate_rules() -> tuple[DynamicClassicRule, ...]:
     return tuple(DynamicClassicRule(record) for record in load_dynamic_classic_rule_records())
 
 
+@lru_cache(maxsize=1)
+def get_sorted_huangjince_candidate_rules() -> tuple[DynamicClassicRule, ...]:
+    """Return default dynamic rules sorted by priority once per process."""
+    return tuple(sorted(
+        get_huangjince_candidate_rules(),
+        key=lambda item: item.priority,
+        reverse=True,
+    ))
+
+
+@lru_cache(maxsize=32)
+def get_huangjince_candidate_rules_for_question(question_type: str | None) -> tuple[DynamicClassicRule, ...]:
+    """Return sorted dynamic rules that can apply to the given question type."""
+    rules = get_sorted_huangjince_candidate_rules()
+    if not question_type:
+        return rules
+    return tuple(
+        rule for rule in rules
+        if not rule.question_types or question_type in rule.question_types
+    )
+
+
 def evaluate_dynamic_classic_rules(context: Any, rules: Iterable[DynamicClassicRule] | None = None) -> list[RuleResult]:
     """Evaluate dynamic classic rules and return all non-terminal matches."""
-    rule_set = tuple(rules) if rules is not None else get_huangjince_candidate_rules()
+    rule_set = (
+        tuple(sorted(rules, key=lambda item: item.priority, reverse=True))
+        if rules is not None
+        else get_huangjince_candidate_rules_for_question(getattr(context, "question_type", None))
+    )
+    facts = extract_classic_rule_facts(context)
     results = []
-    for rule in sorted(rule_set, key=lambda item: item.priority, reverse=True):
-        result = rule.evaluate(context)
+    for rule in rule_set:
+        result = rule.evaluate(context, facts)
         if result and result.matched:
             results.append(result)
     return results
@@ -146,6 +175,36 @@ def _compare(actual: Any, relation: str, expected: Any) -> bool:
     if relation == "is_false":
         return actual is False
     return False
+
+
+def _extract_required_question_types(node: dict[str, Any]) -> frozenset[str]:
+    if node.get("op") != "AND":
+        return frozenset()
+
+    for child in node.get("children", []):
+        direct = _question_type_values(child)
+        if direct:
+            return frozenset(direct)
+    return frozenset()
+
+
+def _question_type_values(node: dict[str, Any]) -> set[str]:
+    if node.get("op") == "OR":
+        values: set[str] = set()
+        for child in node.get("children", []):
+            child_values = _question_type_values(child)
+            if not child_values:
+                return set()
+            values.update(child_values)
+        return values
+
+    if (
+        node.get("fact_type") == "question.type"
+        and node.get("relation") == "eq"
+        and isinstance(node.get("value"), str)
+    ):
+        return {node["value"]}
+    return set()
 
 
 def _collect_condition_subjects(node: dict[str, Any]) -> list[str | int | None]:

@@ -449,7 +449,7 @@ def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
     if question_type == "bing":
         # 疾病时子孙代表药, 用神是官鬼(代表病)
         # 但如果子孙动克世, 是药到病除
-        zi_sun_lines = [l for l in hexagram.lines if l.liu_qin == "子孙"]
+        zi_sun_lines = list(getattr(hexagram, "lines_by_liu_qin", {}).get("子孙", ()))
         for zs in zi_sun_lines:
             zs_wx = DI_ZHI_WU_XING[zs.di_zhi]
             if zs.is_moving and WU_XING_KE[zs_wx] == shi_wx:
@@ -469,7 +469,7 @@ def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
 
     # 忧患: 子孙克世 -> 吉
     if question_type == "youHuan":
-        zi_sun_lines = [l for l in hexagram.lines if l.liu_qin == "子孙"]
+        zi_sun_lines = list(getattr(hexagram, "lines_by_liu_qin", {}).get("子孙", ()))
         for zs in zi_sun_lines:
             zs_wx = DI_ZHI_WU_XING[zs.di_zhi]
             if zs.is_moving and WU_XING_KE[zs_wx] == shi_wx:
@@ -634,7 +634,7 @@ def judge_jixiong(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resul
         dict: {"pattern": 卦局名, "ji_xiong": "吉"/"凶"/"平", "explanation": 说明}
     """
     # 判断是否有动爻
-    has_moving = any(line.is_moving for line in hexagram.lines)
+    has_moving = bool(getattr(hexagram, "moving_lines", None))
 
     if has_moving:
         return judge_dong_gua(

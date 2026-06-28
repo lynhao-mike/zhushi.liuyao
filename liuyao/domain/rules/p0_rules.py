@@ -129,7 +129,7 @@ class SanHeJuPriorityRule(BaseRule):
         candidates = list(ctx.san_he_ju or [])
         seen = {(ju.get("wu_xing"), tuple(sorted(ju.get("members", [])))) for ju in candidates}
 
-        moving_lines = [line for line in ctx.hexagram.lines if line.is_moving]
+        moving_lines = list(getattr(ctx.hexagram, "moving_lines", []))
         if len(moving_lines) < 2:
             return candidates
 
@@ -170,9 +170,7 @@ class KeShiChongBreaksGangjingRule(BaseRule):
         if not ctx.shi_line or ctx.question_type == "shouming":
             return None
         shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
-        for line in ctx.hexagram.lines:
-            if not line.is_moving:
-                continue
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
             # 条件: 动爻五行克世爻 且 地支冲世爻 = 克中带冲
             if WU_XING_KE.get(line.wu_xing) != shi_wx:
                 continue
@@ -208,9 +206,7 @@ class JingangMovingKeShiRule(BaseRule):
         if not ctx.shi_line or ctx.question_type == "shouming":
             return None
         shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
-        for line in ctx.hexagram.lines:
-            if not line.is_moving:
-                continue
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
             # ponytail: 内联 _has_riyue_support，只此一处使用
             line_wx = DI_ZHI_WU_XING[line.di_zhi]
             def supports(zhi):
@@ -323,9 +319,7 @@ class ZaizhanSimplifiedRule(BaseRule):
             return None
         if not ctx.primary_yong or not ctx.shi_line:
             return None
-        for line in ctx.hexagram.lines:
-            if not line.is_moving:
-                continue
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
             moving = ctx.moving_analyses.get(line.position, {})
             if moving.get("is_useless"):
                 return self.result(
@@ -350,9 +344,7 @@ class ShortTermNoJinTuiRule(BaseRule):
         # 仅对短占触发(数日内见分晓的事)
         if ctx.question_type not in ("jinshi","dangri","mashang"):
             return None
-        for line in ctx.hexagram.lines:
-            if not line.is_moving:
-                continue
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
             ma = ctx.moving_analyses.get(line.position, {})
             if "化退神" in ma.get("趋衰", []):
                 return self.result(
@@ -465,8 +457,8 @@ class YongJiMutualTransformRule(BaseRule):
     )
 
     def evaluate(self, ctx):
-        for line in ctx.hexagram.lines:
-            if not line.is_moving or not getattr(line, "bian_liu_qin", None):
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
+            if not getattr(line, "bian_liu_qin", None):
                 continue
             for qtypes, a, b, pattern, explanation in self.SCENARIOS:
                 if ctx.question_type not in qtypes:
@@ -499,7 +491,7 @@ class YuanShenDuFaBianFeiRule(BaseRule):
     def evaluate(self, ctx):
         if not ctx.primary_yong or not ctx.shi_line:
             return None
-        movings = [l for l in ctx.hexagram.lines if l.is_moving]
+        movings = list(getattr(ctx.hexagram, "moving_lines", ()))
         if len(movings) != 1:
             return None
         line = movings[0]
@@ -544,8 +536,8 @@ class ExternalOmenBrokenObjectRule(BaseRule):
             return None
 
         parent_baihu = None
-        for line in ctx.hexagram.lines:
-            if line.liu_qin != "父母" or line.liu_shen != "白虎":
+        for line in getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("父母", ()):
+            if line.liu_shen != "白虎":
                 continue
             ws = ctx.wangshuai_of(line)
             if ws.get("overall") == "旺" or line.di_zhi == ctx.month_zhi:
@@ -555,7 +547,7 @@ class ExternalOmenBrokenObjectRule(BaseRule):
             return None
 
         line, ws = parent_baihu
-        wealth_lines = [item for item in ctx.hexagram.lines if item.liu_qin == "妻财"]
+        wealth_lines = list(getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("妻财", ()))
         wealth_signals = []
         for wealth in wealth_lines:
             if wealth.is_xun_kong:
@@ -723,8 +715,8 @@ class TransformedYongMediatorRule(BaseRule):
         if not ctx.shi_line:
             return None
         shi_wx = DI_ZHI_WU_XING[ctx.shi_line.di_zhi]
-        for line in ctx.hexagram.lines:
-            if not line.is_moving or not getattr(line, "bian_liu_qin", None):
+        for line in getattr(ctx.hexagram, "moving_lines", ()):
+            if not getattr(line, "bian_liu_qin", None):
                 continue
             if line.bian_liu_qin != ctx.yong_shen_liu_qin:
                 continue
