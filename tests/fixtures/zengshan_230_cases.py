@@ -644,7 +644,7 @@ CASE_23 = {
     # 坎宫纳甲（明夷）：FIXME
     # 三爻(白虎)官鬼丑土 世 ×→ 妻财午火（老阴6，丑化午绊）
     # 初爻(朱雀)子孙卯木 应○→ 官鬼辰土（老阳9，卯化辰绊）
-    "yao_types": [9, 8, 6, 8, 8, 8],  # FIXME 明夷：初爻卯木老阳动，三爻丑土老阴动
+    "yao_types": [9, 8, 7, 6, 8, 8],  # 明夷：初爻卯木老阳动，四爻世丑土老阴动
     "ben_gua": "地火明夷",
     "bian_gua": "雷山小过",
     "question_type": "chuxing",
@@ -859,14 +859,14 @@ CASE_101 = {
     "id": "例101",
     "description": "外卦三爻全部动而化合（化绊），构成真绊定式。"
                    "真绊下动爻被绊住=有动等于没动，事情不了了之或无善果。",
-    "month_zhi": "申",
-    "day_zhi": "辰",
-    "xun_kong": ["午", "未"],
-    # FIXME: 原文卦图待精确核实
-    "yao_types": [7, 8, 7, 6, 9, 6],  # FIXME 外卦三爻全动（四五六爻）
-    "ben_gua": "FIXME",
-    "bian_gua": "FIXME",
-    "question_type": "guan",
+    "month_zhi": "午",
+    "day_zhi": "子",
+    "xun_kong": ["申", "酉"],
+    # 原书《增删卜易》卦图：雷天大壮 → 巽为风；外卦三爻全动化绊
+    "yao_types": [9, 7, 7, 9, 6, 6],
+    "ben_gua": "雷天大壮",
+    "bian_gua": "巽为风",
+    "question_type": "shengyi",
     "yong_shen": "官鬼",
     "expected_ji_xiong": "凶",
     "expected_pattern_keywords": ["真绊", "外三爻全动化绊", "有动等于没动", "不了了之"],

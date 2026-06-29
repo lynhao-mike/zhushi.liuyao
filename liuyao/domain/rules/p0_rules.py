@@ -844,29 +844,31 @@ class ZhenBanRule(BaseRule):
         moving_lines = list(getattr(ctx.hexagram, "moving_lines", ()))
         moving_positions = [line.position for line in moving_lines]
         moving_count = len(moving_positions)
-        if moving_count < 2:
-            return None
-
         hua_ban_positions = {ban["positions"][0] for ban in san_ban if ban.get("ban_type") == "化绊" and ban.get("positions")}
+        moving_position_set = set(moving_positions)
         structure_zhen_ban = False
         if moving_count >= 3:
-            inner_count = len([p for p in moving_positions if p <= 3])
-            outer_count = len([p for p in moving_positions if p >= 4])
-            structure_zhen_ban = inner_count == 3 or outer_count == 3 or moving_count == 6
+            inner_positions = {1, 2, 3}
+            outer_positions = {4, 5, 6}
+            structure_zhen_ban = (
+                (inner_positions <= moving_position_set and inner_positions <= hua_ban_positions) or
+                (outer_positions <= moving_position_set and outer_positions <= hua_ban_positions) or
+                (len(moving_position_set) == 6 and moving_position_set <= hua_ban_positions)
+            )
 
-        timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri") and len(hua_ban_positions) >= 1
+        timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri")
 
         if not (structure_zhen_ban or timed_travel_zhen_ban):
             return None
 
         reasons = []
         if structure_zhen_ban:
-            if len([p for p in moving_positions if p <= 3]) == 3:
-                reasons.append("内卦三爻全动")
-            if len([p for p in moving_positions if p >= 4]) == 3:
-                reasons.append("外卦三爻全动")
-            if moving_count == 6:
-                reasons.append("六爻全动")
+            if {1, 2, 3} <= moving_position_set and {1, 2, 3} <= hua_ban_positions:
+                reasons.append("内卦三爻全动化绊")
+            if {4, 5, 6} <= moving_position_set and {4, 5, 6} <= hua_ban_positions:
+                reasons.append("外卦三爻全动化绊")
+            if len(moving_position_set) == 6 and moving_position_set <= hua_ban_positions:
+                reasons.append("六爻全动化绊")
         if timed_travel_zhen_ban:
             reasons.append("明确时段出行/行人占遇绊")
 

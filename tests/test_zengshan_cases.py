@@ -27,7 +27,7 @@ from tests.fixtures.zengshan_230_cases import (
     ZENGSHAN_CASES,
     CASE_01, CASE_03, CASE_04, CASE_09,
     CASE_10, CASE_14, CASE_15, CASE_17,
-    CASE_18, CASE_22, CASE_23,
+    CASE_18, CASE_22, CASE_23, CASE_101,
 )
 from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 
@@ -367,10 +367,28 @@ class TestZengshanTheoryPoints:
         assert len([l for l in h.lines if l.is_moving]) == 0, "例22为静卦, 无动爻"
 
     def test_zhen_ban_multiple_moving(self):
-        """例23: 申月子日明夷之小过, 占出行。真绊, 应有至少两动爻化绊。"""
+        """例23: 申月子日明夷之小过, 占出行。明确时段出行遇绊即真绊。"""
         h = _build_hexagram(CASE_23)
-        assert len([l for l in h.lines if l.is_moving]) >= 2, "例23应有至少两动爻构成化绊"
-        assert "真绊" in CASE_23["expected_pattern_keywords"]
+        assert h.ben_gua_name == "地火明夷"
+        assert h.bian_gua_name == "雷山小过"
+        assert len([l for l in h.lines if l.is_moving]) >= 2, "例23应有至少两处动兆"
+        report = run_analysis(h, question_type=CASE_23["question_type"])
+        assert report.jixiong_result.get("rule_id") == "P0_ZHEN_BAN"
+        assert any(ban.get("ban_type") == "日绊" and 4 in ban.get("positions", []) for ban in report.patterns_results.get("san_ban", []))
+
+    def test_zhen_ban_outer_three_hua_ban(self):
+        """例101: 雷天大壮之巽为风, 外三爻全动化绊即真绊。"""
+        h = _build_hexagram(CASE_101)
+        assert h.ben_gua_name == "雷天大壮"
+        assert h.bian_gua_name == "巽为风"
+        report = run_analysis(h, question_type=CASE_101["question_type"])
+        assert report.jixiong_result.get("rule_id") == "P0_ZHEN_BAN"
+        hua_ban_positions = {
+            ban["positions"][0]
+            for ban in report.patterns_results.get("san_ban", [])
+            if ban.get("ban_type") == "化绊" and ban.get("positions")
+        }
+        assert {4, 5, 6} <= hua_ban_positions
 
 
 # ============================================================================ #
