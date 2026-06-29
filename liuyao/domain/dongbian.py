@@ -260,12 +260,22 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
 
     results = []
     target_pos = final_target["position"]
+    position_map = {line.position: line for line in useful}
+    if target_pos is not None and target_pos not in position_map:
+        target_line = getattr(hexagram, "lines_by_position", {}).get(target_pos)
+        if target_line is None:
+            for line in getattr(hexagram, "lines", []):
+                if getattr(line, "position", None) == target_pos:
+                    target_line = line
+                    break
+        if target_line is not None:
+            position_map[target_pos] = target_line
+
     for source in useful:
         for middle in useful:
             if source.position == middle.position:
                 continue
             if WU_XING_SHENG[source.wu_xing] == middle.wu_xing:
-                # 一跳：A -> target
                 acts = "none"
                 valid = False
                 path = [source.position, middle.position]
@@ -273,15 +283,11 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
                     acts = "sheng"
                     valid = True
                 else:
-                    # 二跳：A -> B -> target
-                    for target in useful:
-                        if target.position in (source.position, middle.position):
-                            continue
-                        if target_pos is not None and target.position == target_pos and WU_XING_SHENG[middle.wu_xing] == target.wu_xing:
-                            acts = "sheng"
-                            valid = True
-                            path = [source.position, middle.position, target.position]
-                            break
+                    target_line = position_map.get(target_pos)
+                    if target_line is not None and WU_XING_SHENG.get(middle.wu_xing) == target_line.wu_xing:
+                        acts = "sheng"
+                        valid = True
+                        path = [source.position, middle.position, target_pos]
                 results.append({
                     "mode": "chain_sheng",
                     "final_target_kind": final_target["kind"],
@@ -301,16 +307,11 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
                     acts = "ke"
                     valid = True
                 else:
-                    # 二跳阻断：A 克 B，且 B 原可生目标
-                    if target_pos is not None:
-                        for target in useful:
-                            if target.position in (source.position, middle.position):
-                                continue
-                            if target.position == target_pos and WU_XING_SHENG[middle.wu_xing] == target.wu_xing:
-                                acts = "block"
-                                valid = True
-                                path = [source.position, middle.position, target.position]
-                                break
+                    target_line = position_map.get(target_pos)
+                    if target_line is not None and WU_XING_SHENG.get(middle.wu_xing) == target_line.wu_xing:
+                        acts = "block"
+                        valid = True
+                        path = [source.position, middle.position, target_pos]
                 results.append({
                     "mode": "chain_ke_cancel",
                     "final_target_kind": final_target["kind"],
