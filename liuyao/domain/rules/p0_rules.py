@@ -195,11 +195,20 @@ class CompoundMovementFinalTargetRule(BaseRule):
             return None
         if item.get("mode") == "san_he":
             return None
+        if len(item.get("path", [])) < 3:
+            return None  # ponytail: 只吃真正二跳复合动，避免误伤普通单爻/回头生案例
+        if ctx.shixiao_context().get("is_day_shixiao") or ctx.shixiao_context().get("is_month_shixiao"):
+            return None
+        if ctx.primary_yong_moving.get("趋衰"):
+            return None
+        combo = ctx.special_day_month_combo(ctx.primary_yong) if ctx.primary_yong else {}
+        if combo.get("is_feiyao") or combo.get("is_jingang"):
+            return None
 
         acts = ctx.compound_acts_on_target()
         target_kind = ctx.compound_final_target_kind()
         if acts == "sheng":
-            if target_kind == "shi":
+            if target_kind in {"shi", "shi_yong"}:
                 return self.result(
                     "复合动生世",
                     "吉",
@@ -213,19 +222,12 @@ class CompoundMovementFinalTargetRule(BaseRule):
                     f"复合动路径{item.get('path')}聚力后生用神, 按复合之动整体论吉",
                     evidence=[item],
                 )
-        if acts in {"ke", "block"}:
-            if target_kind == "shi":
-                return self.result(
-                    "复合动克世",
-                    "凶",
-                    f"复合动路径{item.get('path')}整体作用世爻为{acts}, 按复合之动整体论凶",
-                    evidence=[item],
-                )
+        if acts == "block":
             if target_kind == "yong":
                 return self.result(
                     "复合动阻断用神",
                     "凶",
-                    f"复合动路径{item.get('path')}整体作用用神为{acts}, 按复合之动整体论凶",
+                    f"复合动路径{item.get('path')}整体阻断用神, 按复合之动整体论凶",
                     evidence=[item],
                 )
         return None
@@ -714,6 +716,8 @@ class DualCoreDesignatedTargetRule(BaseRule):
     priority = 820
 
     def evaluate(self, ctx):
+        if ctx.question_type not in {"hun_male", "hun_female", "xingren", "xingren_gui"}:
+            return None
         if not ctx.is_designated_target_case or not ctx.shi_line:
             return None
         ying = getattr(ctx.hexagram, "ying_line", None)
@@ -811,6 +815,9 @@ class MovingKeYongRule(BaseRule):
         line = ctx.primary_yong
         if not line:
             return None
+        compound = ctx.final_compound_movement()
+        if compound and compound.get("valid") and ctx.compound_acts_on_target() == "sheng":
+            return None  # ponytail: 复合动已形成有效生世/生用时，让路给复合动规则
         interaction = ctx.yong_interaction()  # ponytail: 使用新访问器
         if interaction.get("受克"):
             return self.result(
@@ -840,26 +847,26 @@ class ZhenBanRule(BaseRule):
         if moving_count < 2:
             return None
 
-        inner_positions = {pos for pos in moving_positions if pos <= 3}
-        outer_positions = {pos for pos in moving_positions if pos >= 4}
         hua_ban_positions = {ban["positions"][0] for ban in san_ban if ban.get("ban_type") == "化绊" and ban.get("positions")}
-        inner_all = len(inner_positions) == 3 and inner_positions.issubset(hua_ban_positions)
-        outer_all = len(outer_positions) == 3 and outer_positions.issubset(hua_ban_positions)
-        all_all = moving_count == 6 and len(hua_ban_positions) == 6
-        structure_zhen_ban = inner_all or outer_all or all_all
-        timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri") and any(ban.get("ban_type") == "化绊" for ban in san_ban)
+        structure_zhen_ban = False
+        if moving_count >= 3:
+            inner_count = len([p for p in moving_positions if p <= 3])
+            outer_count = len([p for p in moving_positions if p >= 4])
+            structure_zhen_ban = inner_count == 3 or outer_count == 3 or moving_count == 6
+
+        timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri") and len(hua_ban_positions) >= 1
 
         if not (structure_zhen_ban or timed_travel_zhen_ban):
             return None
 
         reasons = []
         if structure_zhen_ban:
-            if inner_all:
-                reasons.append("内卦三爻全动化绊")
-            if outer_all:
-                reasons.append("外卦三爻全动化绊")
-            if all_all:
-                reasons.append("六爻全动化绊")
+            if len([p for p in moving_positions if p <= 3]) == 3:
+                reasons.append("内卦三爻全动")
+            if len([p for p in moving_positions if p >= 4]) == 3:
+                reasons.append("外卦三爻全动")
+            if moving_count == 6:
+                reasons.append("六爻全动")
         if timed_travel_zhen_ban:
             reasons.append("明确时段出行/行人占遇绊")
 
@@ -870,10 +877,11 @@ class ZhenBanRule(BaseRule):
             evidence=[{
                 "san_ban": san_ban,
                 "moving_positions": moving_positions,
+                "hua_ban_positions": sorted(hua_ban_positions),
                 "reasons": reasons,
                 "question_type": ctx.question_type,
             }],
-            stop=False,
+            stop=True,
         )
 
 
@@ -936,6 +944,7 @@ P0_RULES = [
     YueLingShixiaoRule(),
     RiLingShixiaoRule(),
     SanHeJuPriorityRule(),
+    CompoundMovementFinalTargetRule(),
     ZhenBanRule(),
     KeShiChongBreaksGangjingRule(),
     JingangMovingKeShiRule(),
