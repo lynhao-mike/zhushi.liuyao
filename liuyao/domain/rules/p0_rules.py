@@ -590,7 +590,7 @@ class YuanShenDuFaBianFeiRule(BaseRule):
 
     rule_id = "P1_YUANSHEN_DUFA_BIANFEI"
     theory_id = "反馈迭代_元神独发变废定凶"
-    priority = 830
+    priority = 910
 
     def evaluate(self, ctx):
         if not ctx.primary_yong or not ctx.shi_line:

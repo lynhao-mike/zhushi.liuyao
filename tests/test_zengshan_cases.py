@@ -84,7 +84,7 @@ BASELINE_RULE_HITS = {
     "例60":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
     "例61":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例101": {"rule_id": "P0_ZHEN_BAN",              "pattern": "真绊"},
-    "例108": {"rule_id": "P1_YUANSHEN_DUFA_BIANFEI",  "pattern": "元神独发变废(回头克)"},
+    "例108": {"rule_id": "P1_YUANSHEN_DUFA_BIANFEI", "pattern": "元神独发变废(回头克)"},
     "例144": {"rule_id": "legacy",                  "pattern": "占寿元动则有期"},
     "例218": {"rule_id": "P0_HUI_TOU_SHENG_RESCUE",  "pattern": "用神动化回头生"},
 }
