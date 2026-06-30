@@ -196,7 +196,7 @@ class CompoundMovementFinalTargetRule(BaseRule):
         if item.get("mode") == "san_he":
             return None
         if len(item.get("path", [])) < 3:
-            return None  # ponytail: 只吃真正二跳复合动，避免误伤普通单爻/回头生案例
+            return None  # ponytail: 只吃真正二跳复合动，避免误伤普通单爻/回头生案例; 升级: 当反馈样本中出现三跳复合动误杀案例时放宽至 >=2
         if ctx.shixiao_context().get("is_day_shixiao") or ctx.shixiao_context().get("is_month_shixiao"):
             return None
         if ctx.primary_yong_moving.get("趋衰"):
@@ -332,7 +332,7 @@ class InvestmentWealthTurnsGhostRiskRule(BaseRule):
 
     rule_id = "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK"
     theory_id = "反馈迭代_投资风控_财动化鬼"
-    priority = 745  # ponytail: P1规则统一低于所有P0规则(最低775)，修复命名与数值不自洽
+    priority = 745  # ponytail: P1规则统一低于所有P0规则(最低775)，修复命名与数值不自洽; 升级: P0/P1 优先级体系整体重构时归一化为连续区间
 
     def evaluate(self, ctx):
         if ctx.question_type not in ("cai", "shengyi"):
@@ -477,7 +477,7 @@ class TravelerReturnRule(BaseRule):
 
     rule_id = "P1_TRAVELER_RETURN"
     theory_id = "行人占_化进化退定归来"
-    priority = 730  # ponytail: P1 规则, 低于终身时效卦(755), 避免覆盖P0终局逻辑
+    priority = 730  # ponytail: P1 规则, 低于终身时效卦(755), 避免覆盖P0终局逻辑; 升级: 优先级体系重构时合并为统一的跨域优先级分配表
 
     def evaluate(self, ctx):
         if ctx.question_type not in ("xingren", "xingren_gui"):
@@ -521,7 +521,7 @@ class YongJiMutualTransformRule(BaseRule):
     theory_id = "卦意分析法_用忌互化"
     priority = 735  # 低于投资财化鬼专用规则，避免覆盖反馈样本
 
-    # ponytail: 只覆盖问事语境明确的三类互化，不泛化到所有动化。
+    # ponytail: 只覆盖问事语境明确的三类互化，不泛化到所有动化; 升级: 新增问事类型且出现对应互化模式未命中时扩展 SCENARIOS 元组
     SCENARIOS = (
         (("shengchan", "zinv"), "子孙", "官鬼", "子鬼互化", "问孕育/子女遇子孙与官鬼互化, 主子息受鬼气牵缠, 凶"),
         (("kaoshi", "fumu", "zinv"), "父母", "子孙", "父子互化", "问孩子/文书遇父母与子孙互化, 主子孙有麻烦或文书反复废弃, 凶"),
@@ -564,7 +564,7 @@ class YuanShenDuFaBianFeiRule(BaseRule):
         if not ctx.primary_yong or not ctx.shi_line:
             return None
         if ctx.shixiao_context().get("is_day_shixiao"):
-            return None  # ponytail: 日令时效卦由日令司令, 不让元神独发变废覆盖当日成败
+            return None  # ponytail: 日令时效卦由日令司令, 不让元神独发变废覆盖当日成败; 升级: 月令时效卦确认需同样保护时合并 check 条件
         movings = list(getattr(ctx.hexagram, "moving_lines", ()))
         if len(movings) != 1:
             return None
@@ -728,7 +728,7 @@ class DualCoreDesignatedTargetRule(BaseRule):
         if not ctx.primary_yong:
             return None
 
-        # ponytail: 只做最小双核保护——当应爻自发动且不承接世/用的生合时，不允许把普通成局直接等同于“指定对象成”。
+        # ponytail: 只做最小双核保护——当应爻自发动且不承接世/用的生合时，不允许把普通成局直接等同于"指定对象成"; 升级: 指定对象占类新增反馈样本且出现误判时放宽生合检测范围至六合
         ying_wx = ying.wu_xing
         shi_wx = ctx.shi_line.wu_xing
         yong_wx = ctx.primary_yong.wu_xing
@@ -767,7 +767,7 @@ class HuiTouShengRescueRule(BaseRule):
         line = ctx.primary_yong
         if not line or not line.is_moving:
             return None
-        moving = ctx.primary_yong_moving  # ponytail: 使用新访问器
+        moving = ctx.primary_yong_moving  # ponytail: 使用新访问器; 升级: 访问器接口稳定后删除注释
         if "回头生" in moving.get("趋旺", []):
             return self.result(
                 "用神动化回头生",
@@ -817,8 +817,8 @@ class MovingKeYongRule(BaseRule):
             return None
         compound = ctx.final_compound_movement()
         if compound and compound.get("valid") and ctx.compound_acts_on_target() == "sheng":
-            return None  # ponytail: 复合动已形成有效生世/生用时，让路给复合动规则
-        interaction = ctx.yong_interaction()  # ponytail: 使用新访问器
+            return None  # ponytail: 复合动已形成有效生世/生用时，让路给复合动规则; 升级: 复合动规则新增判断维度时同步更新此处的让路条件
+        interaction = ctx.yong_interaction()  # ponytail: 使用新访问器; 升级: 访问器接口稳定后删除注释
         if interaction.get("受克"):
             return self.result(
                 "忌神动克用神",

@@ -183,7 +183,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
 
     # 1-2. 共享计算: 旺衰 + 动变 (只算一次)
     shared_ws = analyze_hexagram_wangshuai(hexagram)
-    # ponytail: 双视角共享阶段暂不绑定某个主用神，保留默认复合动摘要
+    # ponytail: 双视角共享阶段暂不绑定某个主用神，保留默认复合动摘要; 升级: 各视角需独立计算复合动路径时改为 per-perspective dongbian
     shared_db = analyze_dongbian(hexagram, shared_ws, question_type=question_type)
     shi_line = find_shi_line(hexagram)
     ying_line = find_ying_line(hexagram)

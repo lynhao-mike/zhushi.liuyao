@@ -10,7 +10,7 @@ theory_id / class名 / docstring / 函数注释做模糊匹配，
 用法：
     python scripts/theory_coverage.py
 
-ponytail: 关键词匹配，不做语义理解，误报自行判断。
+ponytail: 关键词匹配，不做语义理解，误报自行判断。; upgrade: 误报率>30% 时引入 NLP 辅助匹配
 """
 
 import re
@@ -154,7 +154,7 @@ def main():
                 if miss:
                     print(f"    未覆盖: {', '.join(miss)}  | 已覆盖: {', '.join(hit)}")
 
-    # ponytail: 不做 sys.exit(1) 卡CI，结果由人工判断
+    # ponytail: 不做 sys.exit(1) 卡CI，结果由人工判断; upgrade: 理论覆盖率基线建立后新增 --fail-under 参数
     return 0
 
 

@@ -246,7 +246,7 @@ def estimate_yingqi_gen(hexagram, primary_yong, wangshuai_results, dongbian_resu
     moving_analyses = dongbian_results.get("moving_analyses", {})
     has_dong = any(l.is_moving for l in hexagram.lines)
     if has_dong:
-        return candidates  # ponytail: 有动即排除应期意外, 无需标记
+        return candidates  # ponytail: 有动即排除应期意外, 无需标记; upgrade: 出现有动爻但仍有应期意外的反馈样本时重新评估排除逻辑
     # 静卦: 检查是否有日月生扶
     has_month_support = bool(
         ws.get("month_wang") and any(r in ("临月令", "月令生", "月令扶") for r in ws["month_wang"])

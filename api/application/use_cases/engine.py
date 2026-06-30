@@ -60,7 +60,7 @@ def shutdown_executor() -> None:
 # ── Serialisation helpers ─────────────────────────────────────────────────────
 
 def _yao_line_to_dict(line) -> Dict[str, Any]:
-    # ponytail: dataclasses.asdict tracks YaoLine fields automatically
+    # ponytail: dataclasses.asdict tracks YaoLine fields automatically; upgrade: YaoLine 字段变更协议不兼容 dataclasses 时替换为手动序列化
     return dataclasses.asdict(line)
 
 

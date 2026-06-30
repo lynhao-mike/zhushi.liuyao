@@ -9,7 +9,7 @@
 用法：
     python scripts/check_rule_coverage.py
 
-ponytail: 不做持续 CI 集成，手工触发。需要时加 --fail-under 参数。
+ponytail: 不做持续 CI 集成，手工触发。需要时加 --fail-under 参数。; upgrade: 规则数量>200 或新增 P0 规则时引入 CI 集成
 """
 
 import sys
@@ -26,7 +26,7 @@ from tests.fixtures.zengshan_230_cases import ZENGSHAN_CASES
 from tests.fixtures.feedback_cases import FEEDBACK_CASES
 
 
-# ponytail: 规则覆盖率需要覆盖非古籍fixture的最小合成样本，避免为了触发规则硬造古籍案例。
+# ponytail: 规则覆盖率需要覆盖非古籍fixture的最小合成样本，避免为了触发规则硬造古籍案例; upgrade: 合成样本出现误覆盖时补充 per-rule 精细化测试样本
 SYNTHETIC_RULE_CASES = [
     {
         "id": "synthetic_zi_gui_hu_hua",
@@ -168,7 +168,7 @@ def main():
     else:
         print("[OK] 所有规则均有 fixture 覆盖，无需补例。")
 
-    # ponytail: 加 --fail-under N 支持 CI 卡门槛，当前不做
+    # ponytail: 加 --fail-under N 支持 CI 卡门槛，当前不做; upgrade: 规则覆盖率基线稳定（波动<5%）后实现
     return len(missed)
 
 

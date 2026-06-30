@@ -182,7 +182,7 @@ async def invalidate_prefix(prefix: str) -> int:
         while True:
             cursor, keys = await r.scan(cursor=cursor, match=pattern, count=500)
             if keys:
-                # ponytail: UNLINK is non-blocking on Redis main thread (async GC)
+                # ponytail: UNLINK is non-blocking on Redis main thread (async GC); upgrade: Redis 版本<4 需要回退到 DEL 时替换
                 deleted += await r.unlink(*keys)
             if cursor == 0:
                 break

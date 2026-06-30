@@ -1,7 +1,7 @@
 """
 Readings main use cases.
 
-ponytail: this is the real entry module for reading workflows; `reading.py` stays only as a compatibility facade.
+ponytail: this is the real entry module for reading workflows; `reading.py` stays only as a compatibility facade; upgrade: `reading.py` 再无外部引用时删除外观层
 """
 from __future__ import annotations
 
