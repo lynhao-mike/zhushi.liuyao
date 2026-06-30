@@ -40,7 +40,7 @@ from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 BASELINE_HIT_IDS = {
     "例1", "例2", "例3", "例4", "例5",
     "例6", "例7", "例8", "例9", "例10", "例11", "例12", "例14", "例15", "例18", "例20", "例22", "例23",
-    "例38", "例41", "例44", "例54", "例60", "例61", "例101", "例144", "例218",
+    "例38", "例41", "例44", "例54", "例60", "例61", "例101", "例108", "例144", "例218",
 }
 
 # 基线案例当前实际命中的规则快照 (rule_id, pattern)。
@@ -84,6 +84,7 @@ BASELINE_RULE_HITS = {
     "例60":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
     "例61":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例101": {"rule_id": "P0_ZHEN_BAN",              "pattern": "真绊"},
+    "例108": {"rule_id": "P1_YUANSHEN_DUFA_BIANFEI",  "pattern": "元神独发变废(回头克)"},
     "例144": {"rule_id": "legacy",                  "pattern": "占寿元动则有期"},
     "例218": {"rule_id": "P0_HUI_TOU_SHENG_RESCUE",  "pattern": "用神动化回头生"},
 }
@@ -100,9 +101,6 @@ KNOWN_MISMATCH = {
     "例17": "(B) 规则缺口: 子鬼互化已被 P1_YONG_JI_MUTUAL_TRANSFORM 覆盖, "
             "但优先级低于月令时效卦 P0_YUE_LING_SHIXIAO, 引擎先命中后者判吉; "
             "需调整 P1 用忌互化优先级或让月令时效不覆盖子鬼互化场景",
-    "例108": "(B) 规则缺口: 元神独发变废快速定凶规则未实现, "
-             "引擎因用神妻财衰败判平(特殊日月组合未触发); "
-             "需实现 P1_YUANSHEN_DUFA_BIANFEI 规则",
 }
 
 

@@ -94,6 +94,8 @@ class RiLingShixiaoRule(BaseRule):
         line = ctx.primary_yong
         if not line:
             return None
+        if self._has_traveler_direction_signal(ctx):
+            return None
         shixiao = ctx.shixiao_context(line)
         if shixiao["is_day_shixiao"]:
             return self._result(ctx, line, shixiao, "用神")
@@ -106,6 +108,19 @@ class RiLingShixiaoRule(BaseRule):
             if moving_shixiao["is_day_shixiao"]:
                 return self._result(ctx, moving_line, moving_shixiao, "元神")
         return None
+
+    def _has_traveler_direction_signal(self, ctx):
+        return (
+            ctx.question_type == "xingren"
+            and ctx.primary_yong
+            and getattr(ctx.primary_yong, "is_moving", False)
+            and "化进神" in ctx.primary_yong_moving.get("趋旺", [])
+        ) or (
+            ctx.question_type == "xingren_gui"
+            and ctx.primary_yong
+            and getattr(ctx.primary_yong, "is_moving", False)
+            and "化退神" in ctx.primary_yong_moving.get("趋衰", [])
+        )
 
     def _result(self, ctx, line, shixiao, subject):
         return self.result(
@@ -207,13 +222,18 @@ class CompoundMovementFinalTargetRule(BaseRule):
             return None
         if item.get("mode") == "san_he":
             return None
-        if len(item.get("path", [])) < 2:
-            return None  # ponytail: 至少需要两个节点形成复合路径，避免误伤普通单爻/回头生案例; 升级: 当反馈样本中出现普通两节点误杀案例时收紧为 >=3
-        if ctx.shixiao_context().get("is_day_shixiao") or ctx.shixiao_context().get("is_month_shixiao"):
+        path_len = len(item.get("path", []))
+        if path_len < 2:
+            return None
+        if path_len == 2 and len(getattr(ctx.hexagram, "moving_lines", ())) > 2:
+            return None  # ponytail: 两节点复合动只覆盖最小链路，避免多动卦中误抢回头生/三合等既有终局; 升级: 多动反馈样本明确需要两节点复合终局时再放宽
+        shixiao = ctx.shixiao_context() if ctx.primary_yong and ctx.primary_yong.position <= len(ctx.wangshuai_results) else {}
+        if shixiao.get("is_day_shixiao") or shixiao.get("is_month_shixiao"):
             return None
         if ctx.primary_yong_moving.get("趋衰"):
             return None
-        combo = ctx.special_day_month_combo(ctx.primary_yong) if ctx.primary_yong else {}
+        has_primary_yong_wangshuai = bool(ctx.primary_yong and ctx.primary_yong.position <= len(ctx.wangshuai_results))
+        combo = ctx.special_day_month_combo(ctx.primary_yong) if has_primary_yong_wangshuai else {}
         if combo.get("is_feiyao") or combo.get("is_jingang"):
             return None
 

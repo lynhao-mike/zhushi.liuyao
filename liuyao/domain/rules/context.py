@@ -140,7 +140,7 @@ class RuleContext:
 
         is_feiyao = "月破" in month_shuai and "日令克" in day_shuai
         is_jingang = bool(month_wang) and bool(day_wang) and (
-            any(x in month_wang for x in ("临月令", "月令合"))
+            any(x in month_wang for x in ("临月令", "月令合", "月令生", "月令扶"))
             and any(x in day_wang for x in ("临日建", "日令合", "日令生", "日令扶", "临日令长生", "临日令帝旺"))
         )
         excludes_month_chong_day_chong = "月破" in month_shuai and "日令克" not in day_shuai
