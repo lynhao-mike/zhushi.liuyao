@@ -124,12 +124,6 @@ def analyze_moving_line(line, month_zhi, day_zhi):
     return result
 
 
-def _get_moving_lines(hexagram):
-    """优先使用 Hexagram 预构建动爻索引, 兼容旧对象回退扫描。"""
-    indexed = getattr(hexagram, "moving_lines", None)
-    if indexed is not None:
-        return indexed
-    return [line for line in hexagram.lines if line.is_moving]
 
 
 def find_san_he_ju(hexagram, moving_lines=None):
@@ -140,7 +134,7 @@ def find_san_he_ju(hexagram, moving_lines=None):
         list: 每个三合局 {"wu_xing": 五行, "members": [地支]}
     """
     if moving_lines is None:
-        moving_lines = _get_moving_lines(hexagram)
+        moving_lines = hexagram.moving_lines
     if len(moving_lines) < 3:
         return []
     moving_zhis = {line.di_zhi for line in moving_lines}
@@ -254,7 +248,7 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
             "ju": ju,
         } for ju in san_he_ju]
 
-    useful = [line for line in _get_moving_lines(hexagram) if line.position in useful_moving]
+    useful = [line for line in hexagram.moving_lines if line.position in useful_moving]
     if len(useful) < 2:
         return []
 
@@ -346,7 +340,7 @@ def detect_an_dong(hexagram, wangshuai_results, moving_lines=None):
     day_zhi = hexagram.gan_zhi["day_zhi"]
     an_dong_list = []
     if moving_lines is None:
-        moving_lines = _get_moving_lines(hexagram)
+        moving_lines = hexagram.moving_lines
 
     for i, line in enumerate(hexagram.lines):
         # 条件6: 动爻被日冲 (动不为散, 不算暗动但记录)
@@ -448,8 +442,8 @@ def analyze_dongbian(hexagram, wangshuai_results, primary_yong_position=None, qu
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
 
-    # 分析每个动爻。优先复用 Hexagram 内置索引, 避免重复扫描六爻。
-    moving_lines = _get_moving_lines(hexagram)
+    # 分析每个动爻。复用 Hexagram 内置索引, 避免重复扫描六爻。
+    moving_lines = hexagram.moving_lines
     moving_analyses = {}
     for line in moving_lines:
         analysis = analyze_moving_line(line, month_zhi, day_zhi)

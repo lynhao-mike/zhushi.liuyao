@@ -27,12 +27,6 @@ from .data import (
 )
 
 
-def _get_moving_lines(hexagram):
-    """优先使用 Hexagram 预构建动爻索引, 兼容旧对象回退扫描。"""
-    indexed = getattr(hexagram, "moving_lines", None)
-    if indexed is not None:
-        return indexed
-    return [line for line in hexagram.lines if line.is_moving]
 
 
 # =============================================================================
@@ -151,7 +145,7 @@ def detect_san_ban(hexagram, day_zhi, moving_lines=None):
     """
     results = []
     if moving_lines is None:
-        moving_lines = _get_moving_lines(hexagram)
+        moving_lines = hexagram.moving_lines
 
     # 1. 日绊: 动爻/变爻被日支六合
     he_of_day = LIU_HE.get(day_zhi, (None, None))[0]
@@ -234,7 +228,7 @@ def detect_fan_yin(hexagram, moving_lines=None):
     }
 
     if moving_lines is None:
-        moving_lines = _get_moving_lines(hexagram)
+        moving_lines = hexagram.moving_lines
 
     # 1. 卦象反吟: 主卦与变卦六冲, 通过六冲卦变出对冲卦判断
     if hexagram.ben_gua_name in LIU_CHONG_GUA and hexagram.bian_gua_name in LIU_CHONG_GUA:
@@ -305,7 +299,7 @@ def detect_fu_yin(hexagram, moving_lines=None):
     inner_fu = False
     outer_fu = False
     if moving_lines is None:
-        moving_lines = _get_moving_lines(hexagram)
+        moving_lines = hexagram.moving_lines
 
     for line in moving_lines:
         if line.bian_di_zhi:
@@ -837,7 +831,7 @@ def analyze_structural_patterns(hexagram, wangshuai_results, dongbian_results):
     """计算与具体用神视角无关的结构模式, 供多视角流程复用。"""
     month_zhi = hexagram.gan_zhi["month_zhi"]
     day_zhi = hexagram.gan_zhi["day_zhi"]
-    moving_lines = _get_moving_lines(hexagram)
+    moving_lines = hexagram.moving_lines
     has_moving = bool(moving_lines)
 
     return {

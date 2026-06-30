@@ -95,18 +95,30 @@ class RiLingShixiaoRule(BaseRule):
         if not line:
             return None
         shixiao = ctx.shixiao_context(line)
-        if not shixiao["is_day_shixiao"]:
-            return None
+        if shixiao["is_day_shixiao"]:
+            return self._result(ctx, line, shixiao, "用神")
+
+        yong_wx = DI_ZHI_WU_XING.get(line.di_zhi)
+        for moving_line in getattr(ctx.hexagram, "moving_lines", ()):  # 当日元神临日发动生用，同属日令时效卦
+            if WU_XING_SHENG.get(moving_line.wu_xing) != yong_wx:
+                continue
+            moving_shixiao = ctx.shixiao_context(moving_line)
+            if moving_shixiao["is_day_shixiao"]:
+                return self._result(ctx, moving_line, moving_shixiao, "元神")
+        return None
+
+    def _result(self, ctx, line, shixiao, subject):
         return self.result(
             "日令时效卦",
             "吉",
-            f"用神{line.di_zhi}临日令或化出日令, 属日令时效卦; 当日/短期内以日为司令, 不按普通受克衰败直断",
+            f"{subject}{line.di_zhi}临日令或化出日令, 属日令时效卦; 当日/短期内以日为司令, 不按普通受克衰败直断",
             evidence=[{
                 "position": line.position,
                 "ben_zhi": line.di_zhi,
                 "bian_zhi": getattr(line, "bian_di_zhi", None),
                 "day_zhi": ctx.day_zhi,
                 "question_type": ctx.question_type,
+                "subject": subject,
                 "shixiao": shixiao,
             }],
         )
@@ -195,8 +207,8 @@ class CompoundMovementFinalTargetRule(BaseRule):
             return None
         if item.get("mode") == "san_he":
             return None
-        if len(item.get("path", [])) < 3:
-            return None  # ponytail: 只吃真正二跳复合动，避免误伤普通单爻/回头生案例; 升级: 当反馈样本中出现三跳复合动误杀案例时放宽至 >=2
+        if len(item.get("path", [])) < 2:
+            return None  # ponytail: 至少需要两个节点形成复合路径，避免误伤普通单爻/回头生案例; 升级: 当反馈样本中出现普通两节点误杀案例时收紧为 >=3
         if ctx.shixiao_context().get("is_day_shixiao") or ctx.shixiao_context().get("is_month_shixiao"):
             return None
         if ctx.primary_yong_moving.get("趋衰"):
@@ -855,6 +867,20 @@ class ZhenBanRule(BaseRule):
                 (outer_positions <= moving_position_set and outer_positions <= hua_ban_positions) or
                 (len(moving_position_set) == 6 and moving_position_set <= hua_ban_positions)
             )
+
+        traveler_direction_signal = (
+            ctx.question_type == "xingren"
+            and ctx.primary_yong
+            and getattr(ctx.primary_yong, "is_moving", False)
+            and "化进神" in ctx.primary_yong_moving.get("趋旺", [])
+        ) or (
+            ctx.question_type == "xingren_gui"
+            and ctx.primary_yong
+            and getattr(ctx.primary_yong, "is_moving", False)
+            and "化退神" in ctx.primary_yong_moving.get("趋衰", [])
+        )
+        if traveler_direction_signal:
+            return None
 
         timed_travel_zhen_ban = ctx.question_type in ("xingren", "xingren_gui", "chuxing", "dangri")
 

@@ -544,7 +544,7 @@ ZHEN_JIA_CONDITIONS = {
 # 从各章节子模块导入所有理论知识，统一暴露在 theory 命名空间下
 
 # ── 第8-12章：断卦基础 ──
-from liuyao.domain.theory_chapters08_12 import (
+from liuyao.domain.theory_chapters import (
     DUANGUA_STEPS,          # 断卦七步流程
     LIANGGE_CENGMIAN,       # 两个理论层面（吉凶层面 vs 细节层面）
     JICHU_ZHI_SHI,          # 基础知识（六神/六亲/纳甲/星煞/相刑相害）
@@ -554,7 +554,7 @@ from liuyao.domain.theory_chapters08_12 import (
 )
 
 # ── 第13-16章：旺衰与动变 ──
-from liuyao.domain.theory_chapters13_16 import (
+from liuyao.domain.theory_chapters import (
     WANGSHUAI_FACTORS,      # 影响旺衰的四个因素（月建/日建/动爻/变爻）
     SPECIAL_RIYUE_COMBO,    # 特殊日月组合（废爻型/金刚型/月令时效卦）
     DONGYAO_WANGSHUAI,      # 动变旺衰显示规则（趋旺/趋衰/左右摇摆）
@@ -565,7 +565,7 @@ from liuyao.domain.theory_chapters13_16 import (
 )
 
 # ── 第17-20章：复合动变与代占 ──
-from liuyao.domain.theory_chapters17_20 import (
+from liuyao.domain.theory_chapters import (
     FUHE_DONG_RULES,        # 复合之动的定义与三种整合模式
     FUHE_DONG_YUNZHUAN_RULES, # 复合动变五条运转规则
     SHIYONG_ZUOYONG,        # 世用关系与吉凶判断
@@ -578,14 +578,14 @@ from liuyao.domain.theory_chapters17_20 import (
 )
 
 # ── 第21-23章：动卦吉凶/暗动/静卦 ──
-from liuyao.domain.theory_chapters21_23 import (
+from liuyao.domain.theory_chapters import (
     JIXIONG_GUJU,           # 动卦吉凶卦局（5吉/5凶/特例）
     ANDONG_THEORY,          # 系统性暗动理论（冲起六种/特征/应期）
     JINGGUA_STEPS,          # 静卦判断三步骤（详细版含特例）
 )
 
 # ── 第26-28章：月令/日令/旬空 ──
-from liuyao.domain.theory_chapters26_28 import (
+from liuyao.domain.theory_chapters import (
     YUELING_FUNCTIONS,      # 月令功能详解（月破/月建/月合/时效卦）
     RILING_FUNCTIONS,       # 日令功能详解（日建/日绊/日破/暗动/应期）
     XUNKONG_THEORY,         # 旬空理论（真假空/5种特殊应用/出空三式）
@@ -594,7 +594,7 @@ from liuyao.domain.theory_chapters26_28 import (
 )
 
 # ── 第29-31章：六冲/六合/互化 ──
-from liuyao.domain.theory_chapters29_31 import (
+from liuyao.domain.theory_chapters import (
     LIUCHONG_THEORY,        # 六冲理论详解（四种位置/冲起冲散/六冲卦）
     LIUHE_THEORY,           # 六合理论详解（四种位置/三绊/日绊真假/六合卦）
     CHONGHE_HUHUA,          # 六冲六合互化（四种模式/就事论事直判法）
@@ -603,7 +603,7 @@ from liuyao.domain.theory_chapters29_31 import (
 )
 
 # ── 第32-40章：三合/十二宫/进退/三墓/三绊/反吟/伏吟/藏伏/应期 ──
-from liuyao.domain.theory_chapters32_40 import (
+from liuyao.domain.theory_chapters import (
     SANHEJV_THEORY,         # 三合局理论（吉/凶/假三合局/应期）
     CHANGSHENG_THEORY,      # 长生十二宫（吉凶层面/应期细节）
     HUAJIN_HUATUI,          # 化进化退理论（识别/应用/应期/细节）
