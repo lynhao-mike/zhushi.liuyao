@@ -21,6 +21,9 @@ class BaseRule:
     rule_id = "base"
     theory_id = ""
     priority = 0
+    calibration_scope = ""
+    decision_path = ""
+    promoted_from_feedback = False
 
     def result(self, pattern, ji_xiong, explanation, evidence=None, stop=True):
         return RuleResult(
@@ -33,7 +36,19 @@ class BaseRule:
             rule_id=self.rule_id,
             theory_id=self.theory_id,
             evidence=evidence or [],
+            calibration=self._calibration_meta(),
         )
+
+    def _calibration_meta(self):
+        if not self.promoted_from_feedback:
+            return {}
+        return {
+            "scope": self.calibration_scope,
+            "decision_path": self.decision_path,
+            "rule_id": self.rule_id,
+            "theory_id": self.theory_id,
+            "promotion": "feedback_to_core",
+        }
 
 
 class FeiYaoRiyueRule(BaseRule):
@@ -365,6 +380,9 @@ class InvestmentWealthTurnsGhostRiskRule(BaseRule):
     rule_id = "P1_INVESTMENT_WEALTH_TURNS_GHOST_RISK"
     theory_id = "反馈迭代_投资风控_财动化鬼"
     priority = 745  # ponytail: P1规则统一低于所有P0规则(最低775)，修复命名与数值不自洽; 升级: P0/P1 优先级体系整体重构时归一化为连续区间
+    promoted_from_feedback = True
+    calibration_scope = "investment_risk_control"
+    decision_path = "investment_risk_control"
 
     def evaluate(self, ctx):
         if ctx.question_type not in ("cai", "shengyi"):
@@ -636,6 +654,9 @@ class ExternalOmenBrokenObjectRule(BaseRule):
     rule_id = "PARENT_BAIHU_WANG_INJURY_AND_FUCAI_XUNKONG_LOSS"
     theory_id = "反馈迭代_破损外应_父母白虎财伏空"
     priority = 842
+    promoted_from_feedback = True
+    calibration_scope = "external_omen_broken_object"
+    decision_path = "external_omen_broken_object_review"
 
     def evaluate(self, ctx):
         if ctx.question_type != "external_omen":
@@ -706,6 +727,9 @@ class CompetitiveSelectionOpponentFailsRule(BaseRule):
     rule_id = "P1_COMPETITIVE_SELECTION_OPPONENT_FAILS"
     theory_id = "反馈迭代_竞争选拔_竞争者自败"
     priority = 840
+    promoted_from_feedback = True
+    calibration_scope = "competitive_selection"
+    decision_path = "competitive_selection_review"
 
     def evaluate(self, ctx):
         if not ctx.is_competitive_selection or not ctx.shi_line:
@@ -987,7 +1011,24 @@ class TransformedYongMediatorRule(BaseRule):
         return None
 
 
-P0_RULES = [
+def _assert_unique_feedback_calibrations(rules):
+    seen = {}
+    for rule in rules:
+        if not getattr(rule, "promoted_from_feedback", False):
+            continue
+        key = (rule.calibration_scope, rule.decision_path)
+        if not all(key):
+            raise ValueError(f"feedback calibration rule {rule.rule_id} must declare scope and decision_path")
+        previous = seen.get(key)
+        if previous:
+            raise ValueError(
+                f"feedback calibration conflict: {previous.rule_id} and {rule.rule_id} share {key}"
+            )
+        seen[key] = rule
+    return rules
+
+
+P0_RULES = _assert_unique_feedback_calibrations([
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
     RiLingShixiaoRule(),
@@ -1011,4 +1052,4 @@ P0_RULES = [
     TravelerReturnRule(),
     YuanShenDuFaBianFeiRule(),
     YongJiMutualTransformRule(),
-]
+])

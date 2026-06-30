@@ -7,6 +7,7 @@ import pytest
 
 from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
 from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.rules import P0_RULES
 from liuyao.interfaces.cli.reporting import format_readable_report
 from tests.fixtures.candidate_feedback_cases import (
     CANDIDATE_FEEDBACK_ALLOWED_INTENTS,
@@ -75,6 +76,8 @@ def test_candidate_feedback_cases_do_not_override_core_rules(case):
     """候选反馈样本不得直接污染核心吉凶规则。"""
     assert case["should_affect_core_judgement"] is False
     assert "expected_rule_id" not in case
+    promoted_rule_ids = {rule.rule_id for rule in P0_RULES if getattr(rule, "promoted_from_feedback", False)}
+    assert case["case_id"] not in promoted_rule_ids
     assert "expected_pattern" not in case
 
 

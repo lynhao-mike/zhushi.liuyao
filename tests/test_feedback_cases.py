@@ -11,6 +11,7 @@ import pytest
 
 from liuyao.application.use_cases.analysis import run_analysis
 from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.rules import P0_RULES
 from tests.fixtures.feedback_cases import FEEDBACK_CASES
 
 BASELINE_FEEDBACK_RULE_HITS = {
@@ -84,6 +85,10 @@ def test_feedback_case_rule_hit_snapshot(case):
     assert ji.get("ji_xiong") == case["expected_ji_xiong"]
     assert ji.get("rule_id") == expected["rule_id"]
     assert ji.get("pattern") == expected["pattern"]
+
+    calibration = ji.get("calibration") or {}
+    assert calibration["promotion"] == "feedback_to_core"
+    assert calibration["rule_id"] == expected["rule_id"]
 
     evidence = ji.get("evidence") or []
     assert evidence, "反馈规则应输出 evidence, 用于解释角色映射与成败路径"
@@ -174,3 +179,16 @@ def test_feedback_case_fixture_records_learning_loop(case):
     assert case.get("feedback")
     assert case.get("corrected_method")
     assert len(case.get("theory_points", [])) >= 3
+
+
+def test_promoted_feedback_rules_have_unique_calibration_contracts():
+    """晋升为主判的反馈规则必须声明唯一场景仲裁身份, 防止大量反馈互相抢判。"""
+    promoted = [rule for rule in P0_RULES if getattr(rule, "promoted_from_feedback", False)]
+    contracts = [(rule.calibration_scope, rule.decision_path) for rule in promoted]
+
+    assert promoted, "至少应有反馈晋升规则承接黄金反馈样本"
+    assert len(contracts) == len(set(contracts))
+    for rule in promoted:
+        assert rule.calibration_scope
+        assert rule.decision_path
+        assert rule.priority < 900 or rule.rule_id == "P1_YUANSHEN_DUFA_BIANFEI"

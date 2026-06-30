@@ -19,6 +19,7 @@ class RuleResult:
     rule_id: str = field(compare=False, default="")
     theory_id: str = field(compare=False, default="")
     evidence: list[dict[str, Any]] = field(compare=False, default_factory=list)
+    calibration: dict[str, Any] = field(compare=False, default_factory=dict)
 
     def to_jixiong(self) -> dict[str, Any]:
         """转换为既有 jixiong_result 字典格式。"""
@@ -33,4 +34,6 @@ class RuleResult:
             result["theory_id"] = self.theory_id
         if self.evidence:
             result["evidence"] = self.evidence
+        if self.calibration:
+            result["calibration"] = self.calibration
         return result
