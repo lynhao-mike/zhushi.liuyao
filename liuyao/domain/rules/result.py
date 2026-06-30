@@ -3,7 +3,7 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any
 
 
 @dataclass(order=True)
@@ -18,9 +18,9 @@ class RuleResult:
     stop: bool = field(compare=False, default=True)
     rule_id: str = field(compare=False, default="")
     theory_id: str = field(compare=False, default="")
-    evidence: List[Dict[str, Any]] = field(compare=False, default_factory=list)
+    evidence: list[dict[str, Any]] = field(compare=False, default_factory=list)
 
-    def to_jixiong(self) -> Dict[str, Any]:
+    def to_jixiong(self) -> dict[str, Any]:
         """转换为既有 jixiong_result 字典格式。"""
         result = {
             "pattern": self.pattern,

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Auto-compile conservative 《黄金策》 dynamic candidate rules.
 
 本脚本解决“人工编译门槛太高”的问题：只把已经能被现有
@@ -13,8 +12,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Any, Callable, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:

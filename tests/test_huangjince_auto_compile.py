@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """《黄金策》候选规则自动保守编译测试。"""
 
 from __future__ import annotations
@@ -7,7 +6,10 @@ import json
 from pathlib import Path
 
 from liuyao.domain.rules.classic_rule_schema import validate_classic_rules
-from scripts.auto_compile_huangjince_candidate_rules import build_auto_compiled_rules, merge_candidate_rules
+from scripts.auto_compile_huangjince_candidate_rules import (
+    build_auto_compiled_rules,
+    merge_candidate_rules,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 CLASSIC_JUDGEMENTS_PATH = ROOT / "data" / "classic_judgements.jsonl"

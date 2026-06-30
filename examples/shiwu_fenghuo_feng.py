@@ -23,17 +23,17 @@
   python3 examples/shiwu_fenghuo_feng.py
 """
 
-import sys
 import os
+import sys
 
 # 确保在仓库根目录下可直接运行
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from liuyao import (
     Hexagram,
-    run_dual_analysis,
     format_dual_report,
     format_readable_report,
+    run_dual_analysis,
 )
 
 REPORTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "reports")

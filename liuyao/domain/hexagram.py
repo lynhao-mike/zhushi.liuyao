@@ -7,16 +7,21 @@
 
 import calendar
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Optional
 
+from .calendar_utils import derive_day_gan, get_gan_zhi
 from .data import (
-    TIAN_GAN, DI_ZHI, DI_ZHI_WU_XING,
-    BA_GUA, BINARY_TO_GUA, NA_JIA,
-    HEXAGRAM_BY_TRIGRAMS, HEXAGRAM_BY_NAME,
-    PALACE_SHI_YING, PALACE_WU_XING,
-    get_liu_qin, get_liu_shen, get_xun_kong,
+    BINARY_TO_GUA,
+    DI_ZHI,
+    DI_ZHI_WU_XING,
+    HEXAGRAM_BY_TRIGRAMS,
+    NA_JIA,
+    PALACE_SHI_YING,
+    PALACE_WU_XING,
+    TIAN_GAN,
+    get_liu_qin,
+    get_liu_shen,
+    get_xun_kong,
 )
-from .calendar_utils import get_gan_zhi, derive_day_gan
 from .exceptions import ArrangementError
 
 
@@ -37,10 +42,10 @@ class YaoLine:
     is_xun_kong: bool = False  # 是否旬空
 
     # 变爻信息 (仅动爻有)
-    bian_tian_gan: Optional[str] = None
-    bian_di_zhi: Optional[str] = None
-    bian_wu_xing: Optional[str] = None
-    bian_liu_qin: Optional[str] = None
+    bian_tian_gan: str | None = None
+    bian_di_zhi: str | None = None
+    bian_wu_xing: str | None = None
+    bian_liu_qin: str | None = None
 
 
 @dataclass
@@ -52,7 +57,7 @@ class Hexagram:
         h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
         h.display()
     """
-    yao_values: List[int]   # 6个摇卦值 [初爻, ..., 上爻]
+    yao_values: list[int]   # 6个摇卦值 [初爻, ..., 上爻]
     year: int
     month: int
     day: int
@@ -62,7 +67,7 @@ class Hexagram:
     # 用于古籍卦例复盘(只知"X月Y日"干支)或脱离 sxtwl 的确定性测试。
     # 期望键: month_zhi, day_zhi, day_gan (必需);
     #         year_gan, year_zhi, month_gan, xun_kong (可选)。
-    gan_zhi_override: Optional[dict] = None
+    gan_zhi_override: dict | None = None
 
     # 排卦结果
     ben_gua_name: str = ""       # 本卦名称
@@ -71,19 +76,19 @@ class Hexagram:
     palace_wu_xing: str = ""     # 宫五行
     palace_order: int = 0        # 宫内序号
 
-    lines: List[YaoLine] = field(default_factory=list)
+    lines: list[YaoLine] = field(default_factory=list)
     gan_zhi: dict = field(default_factory=dict)
-    xun_kong: Tuple[str, str] = ("", "")
+    xun_kong: tuple[str, str] = ("", "")
     shi_pos: int = 0
     ying_pos: int = 0
 
     # 高频分析索引: 排卦后构建一次, 后续旺衰/动变/吉凶/应期复用。
-    lines_by_position: Dict[int, YaoLine] = field(default_factory=dict, init=False)
-    lines_by_liu_qin: Dict[str, List[YaoLine]] = field(default_factory=dict, init=False)
-    moving_lines: List[YaoLine] = field(default_factory=list, init=False)
-    static_lines: List[YaoLine] = field(default_factory=list, init=False)
-    shi_line: Optional[YaoLine] = field(default=None, init=False)
-    ying_line: Optional[YaoLine] = field(default=None, init=False)
+    lines_by_position: dict[int, YaoLine] = field(default_factory=dict, init=False)
+    lines_by_liu_qin: dict[str, list[YaoLine]] = field(default_factory=dict, init=False)
+    moving_lines: list[YaoLine] = field(default_factory=list, init=False)
+    static_lines: list[YaoLine] = field(default_factory=list, init=False)
+    shi_line: YaoLine | None = field(default=None, init=False)
+    ying_line: YaoLine | None = field(default=None, init=False)
 
     def __post_init__(self):
         """初始化后自动排卦"""
@@ -386,7 +391,7 @@ class Hexagram:
         # 标注说明
         moving_lines = [l for l in self.lines if l.is_moving]
         if moving_lines:
-            print(f"  动爻: ", end="")
+            print("  动爻: ", end="")
             for l in moving_lines:
                 print(f"第{l.position}爻({l.di_zhi})", end=" ")
             print()

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """复合之动真实古籍案例回归。"""
 
 from liuyao.application.use_cases.analysis import run_analysis

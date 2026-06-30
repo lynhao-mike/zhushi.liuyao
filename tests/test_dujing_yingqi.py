@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """独静卦应期最小回归测试。"""
 
 from liuyao.domain.hexagram import Hexagram

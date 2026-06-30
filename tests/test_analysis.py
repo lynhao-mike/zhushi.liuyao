@@ -4,34 +4,32 @@
 测试旺衰分析、动变分析、吉凶判断、应期推断等模块。
 """
 
-import pytest
-from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.wangshuai import (
-    yue_jian_wangshuai,
-    ri_chen_wangshuai,
-    analyze_line_wangshuai,
-    analyze_hexagram_wangshuai,
-)
+from liuyao.application.use_cases.analysis import AnalysisReport, run_analysis
 from liuyao.domain.dongbian import (
-    is_hui_tou_sheng,
-    is_hui_tou_ke,
-    is_hua_jin_shen,
-    is_hua_tui_shen,
-    is_hua_jue,
-    is_hua_po,
     analyze_dongbian,
     detect_an_dong,
+    is_hua_jin_shen,
+    is_hua_jue,
+    is_hua_po,
+    is_hua_tui_shen,
+    is_hui_tou_ke,
+    is_hui_tou_sheng,
 )
+from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.jixiong import (
     determine_yong_shen,
-    find_yong_shen_lines,
     find_shi_line,
+    find_yong_shen_lines,
     judge_jixiong,
 )
-from liuyao.domain.yingqi import estimate_yingqi, analyze_yingqi
-from liuyao.application.use_cases.analysis import run_analysis, AnalysisReport
+from liuyao.domain.wangshuai import (
+    analyze_hexagram_wangshuai,
+    analyze_line_wangshuai,
+    ri_chen_wangshuai,
+    yue_jian_wangshuai,
+)
+from liuyao.domain.yingqi import analyze_yingqi, estimate_yingqi
 from liuyao.interfaces.cli.reporting import format_report
-
 
 # =============================================================================
 # 旺衰分析测试
@@ -726,10 +724,11 @@ class TestIntegration:
 # 双视角分析测试
 # =============================================================================
 
-from liuyao.application.use_cases.analysis import run_dual_analysis, DualPerspectiveReport
+from liuyao.application.use_cases.analysis import DualPerspectiveReport, run_dual_analysis
 from liuyao.domain.jixiong import (
-    DUAL_PERSPECTIVE_TABLE, get_dual_perspectives,
+    DUAL_PERSPECTIVE_TABLE,
     YONG_SHEN_TABLE,
+    get_dual_perspectives,
 )
 from liuyao.interfaces.cli.reporting import format_dual_report
 

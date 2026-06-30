@@ -1,12 +1,12 @@
-# -*- coding: utf-8 -*-
 """Dynamic adapter for structured classic Liuyao candidate rules."""
 
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from functools import lru_cache
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from .classic_rule_schema import assert_valid_classic_rule
 from .fact_extractor import ClassicRuleFacts, extract_classic_rule_facts
@@ -163,9 +163,9 @@ def _compare(actual: Any, relation: str, expected: Any) -> bool:
     if relation == "neq":
         return actual != expected
     if relation == "in":
-        return actual in expected if isinstance(expected, (list, tuple, set)) else False
+        return actual in expected if isinstance(expected, list | tuple | set) else False
     if relation == "contains":
-        if isinstance(actual, (list, tuple, set)):
+        if isinstance(actual, list | tuple | set):
             return expected in actual
         if isinstance(actual, str):
             return str(expected) in actual

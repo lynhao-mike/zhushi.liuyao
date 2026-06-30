@@ -2,14 +2,13 @@
 旺衰模块专项测试 - Dedicated unit tests for liuyao/wangshuai.py
 """
 
-import pytest
-from liuyao.domain.wangshuai import (
-    yue_jian_wangshuai,
-    ri_chen_wangshuai,
-    analyze_line_wangshuai,
-    analyze_hexagram_wangshuai,
-)
 from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.wangshuai import (
+    analyze_hexagram_wangshuai,
+    analyze_line_wangshuai,
+    ri_chen_wangshuai,
+    yue_jian_wangshuai,
+)
 
 
 class TestYueJianWangshuai:

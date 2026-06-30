@@ -12,7 +12,7 @@ P0 吉凶规则
 引擎已经构造出的卦象事实进行保守判定, 不用案例编号硬编码结论。
 """
 
-from liuyao.domain.data import DI_ZHI_WU_XING, LIU_CHONG, LIU_HE, SAN_HE, WU_XING_KE, WU_XING_SHENG
+from liuyao.domain.data import DI_ZHI_WU_XING, LIU_CHONG, SAN_HE, WU_XING_KE, WU_XING_SHENG
 
 from .result import RuleResult
 

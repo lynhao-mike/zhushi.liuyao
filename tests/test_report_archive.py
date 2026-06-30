@@ -4,7 +4,6 @@ from liuyao.domain.hexagram import Hexagram
 from liuyao.report_archive import HEXAGRAM_INPUT_LABELS, build_hexagram_input_snapshot
 
 
-
 def test_build_hexagram_input_snapshot_keeps_archive_metadata_stable():
     yao_values = [9, 8, 7, 9, 6, 6]
     hexagram = Hexagram(yao_values, 2026, 5, 25, hour=14)

@@ -14,29 +14,30 @@ import asyncio
 import concurrent.futures
 import dataclasses
 from time import perf_counter
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from api.core.config import get_settings
 from api.core.exceptions import EngineError
 from api.core.logging import get_logger
+
 # Import the existing liuyao library (synchronous)
 from liuyao import (
-    Hexagram,
+    DUAL_PERSPECTIVE_TABLE,
     AnalysisReport,
     DualPerspectiveReport,
-    run_analysis,
-    run_dual_analysis,
-    format_report,
+    Hexagram,
+    archive_reports,
     format_dual_report,
     format_readable_report,
-    archive_reports,
-    DUAL_PERSPECTIVE_TABLE,
+    format_report,
+    run_analysis,
+    run_dual_analysis,
 )
 
 log = get_logger(__name__)
 
 # ponytail: lazy init so tests/CLI never create the pool; created on first analyze() call
-_executor: Optional[concurrent.futures.ThreadPoolExecutor] = None
+_executor: concurrent.futures.ThreadPoolExecutor | None = None
 
 
 def _get_executor() -> concurrent.futures.ThreadPoolExecutor:
@@ -59,25 +60,25 @@ def shutdown_executor() -> None:
 
 # ── Serialisation helpers ─────────────────────────────────────────────────────
 
-def _yao_line_to_dict(line) -> Dict[str, Any]:
+def _yao_line_to_dict(line) -> dict[str, Any]:
     # ponytail: dataclasses.asdict tracks YaoLine fields automatically; upgrade: YaoLine 字段变更协议不兼容 dataclasses 时替换为手动序列化
     return dataclasses.asdict(line)
 
 
 def _hexagram_input_snapshot(
     *,
-    yao_values: List[int],
-    year: Optional[int],
-    month: Optional[int],
-    day: Optional[int],
+    yao_values: list[int],
+    year: int | None,
+    month: int | None,
+    day: int | None,
     hour: int,
     question_type: str,
     is_dual: bool,
-    ganzhi_override: Optional[Dict[str, Any]],
-    querent_name: Optional[str],
-    question: Optional[str],
-    meta: Dict[str, Any],
-) -> Dict[str, Any]:
+    ganzhi_override: dict[str, Any] | None,
+    querent_name: str | None,
+    question: str | None,
+    meta: dict[str, Any],
+) -> dict[str, Any]:
     date = f"{year:04d}-{month:02d}-{day:02d}" if year and month and day else None
     return {
         "question": question or "",
@@ -100,7 +101,7 @@ def _hexagram_input_snapshot(
     }
 
 
-def _hexagram_meta(h: Hexagram) -> Dict[str, Any]:
+def _hexagram_meta(h: Hexagram) -> dict[str, Any]:
     return {
         "ben_gua_name":   h.ben_gua_name,
         "bian_gua_name":  h.bian_gua_name,
@@ -115,7 +116,7 @@ def _hexagram_meta(h: Hexagram) -> Dict[str, Any]:
     }
 
 
-def _report_to_dict(report: AnalysisReport) -> Dict[str, Any]:
+def _report_to_dict(report: AnalysisReport) -> dict[str, Any]:
     return {
         "yong_shen_liu_qin": report.yong_shen_liu_qin,
         "ji_shen_liu_qin":   report.ji_shen_liu_qin,
@@ -129,7 +130,7 @@ def _report_to_dict(report: AnalysisReport) -> Dict[str, Any]:
     }
 
 
-def _dual_report_to_dict(dual: DualPerspectiveReport) -> Dict[str, Any]:
+def _dual_report_to_dict(dual: DualPerspectiveReport) -> dict[str, Any]:
     return {
         "consensus":    dual.consensus,
         "perspectives": [_report_to_dict(p) for p in dual.perspectives],
@@ -142,12 +143,12 @@ def _dual_report_to_dict(dual: DualPerspectiveReport) -> Dict[str, Any]:
 # ── Core synchronous worker (runs inside the thread pool) ────────────────────
 
 def _build_hexagram(
-    yao_values: List[int],
-    year: Optional[int],
-    month: Optional[int],
-    day: Optional[int],
+    yao_values: list[int],
+    year: int | None,
+    month: int | None,
+    day: int | None,
     hour: int,
-    ganzhi_override: Optional[Dict[str, Any]],
+    ganzhi_override: dict[str, Any] | None,
 ) -> Hexagram:
     if ganzhi_override:
         return Hexagram.from_ganzhi(
@@ -165,17 +166,17 @@ def _build_hexagram(
 
 
 def _run_analysis_sync(
-    yao_values: List[int],
-    year: Optional[int],
-    month: Optional[int],
-    day: Optional[int],
+    yao_values: list[int],
+    year: int | None,
+    month: int | None,
+    day: int | None,
     hour: int,
     question_type: str,
     is_dual: bool,
-    ganzhi_override: Optional[Dict[str, Any]],
-    querent_name: Optional[str],
-    question: Optional[str],
-) -> Dict[str, Any]:
+    ganzhi_override: dict[str, Any] | None,
+    querent_name: str | None,
+    question: str | None,
+) -> dict[str, Any]:
     """Full synchronous analysis — runs in thread pool."""
     try:
         h = _build_hexagram(yao_values, year, month, day, hour, ganzhi_override)
@@ -183,108 +184,57 @@ def _run_analysis_sync(
         raise EngineError(f"Hexagram construction failed: {exc}") from exc
 
     meta = _hexagram_meta(h)
+    report_meta = {
+        "question": question or "",
+        "querent":  querent_name or "",
+        "hexagram_input": _hexagram_input_snapshot(
+            yao_values=yao_values,
+            year=year,
+            month=month,
+            day=day,
+            hour=hour,
+            question_type=question_type,
+            is_dual=is_dual,
+            ganzhi_override=ganzhi_override,
+            querent_name=querent_name,
+            question=question,
+            meta=meta,
+        ),
+    }
 
     try:
         analysis_started = perf_counter()
-        if is_dual:
-            dual = run_dual_analysis(h, question_type)
-            analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
+        report = run_dual_analysis(h, question_type) if is_dual else run_analysis(h, question_type)
+        analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
 
-            report_started = perf_counter()
-            report_meta = {
-                "question": question or "",
-                "querent":  querent_name or "",
-                "hexagram_input": _hexagram_input_snapshot(
-                    yao_values=yao_values,
-                    year=year,
-                    month=month,
-                    day=day,
-                    hour=hour,
-                    question_type=question_type,
-                    is_dual=is_dual,
-                    ganzhi_override=ganzhi_override,
-                    querent_name=querent_name,
-                    question=question,
-                    meta=meta,
-                ),
-            }
-            report_text     = format_dual_report(dual)
-            report_readable = format_readable_report(dual, meta=report_meta)
-            report_files = archive_reports(
-                report_text=report_text,
-                report_readable=report_readable,
-                meta=report_meta,
-            )
-            report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
-            analysis_data   = _dual_report_to_dict(dual)
-            log.info(
-                "engine_analysis_sync_done",
-                is_dual=True,
-                question_type=question_type,
-                analysis_elapsed_ms=analysis_elapsed_ms,
-                report_elapsed_ms=report_elapsed_ms,
-            )
+        report_started = perf_counter()
+        report_text = format_dual_report(report) if is_dual else format_report(report)
+        report_readable = format_readable_report(report, meta=report_meta)
+        report_files = archive_reports(
+            report_text=report_text,
+            report_readable=report_readable,
+            meta=report_meta,
+        )
+        report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
 
-            return {
-                "hexagram_meta":  meta,
-                "is_dual":        True,
-                "analysis":       analysis_data,
-                "report_text":    report_text,
-                "report_readable": report_readable,
-                "report_files":   report_files,
-                # Summary fields (for DB denormalisation)
-                "ji_xiong":       _extract_ji_xiong_dual(dual),
-                "gua_ju_pattern": _extract_pattern_dual(dual),
-            }
-        else:
-            report      = run_analysis(h, question_type)
-            analysis_elapsed_ms = round((perf_counter() - analysis_started) * 1000, 3)
+        log.info(
+            "engine_analysis_sync_done",
+            is_dual=is_dual,
+            question_type=question_type,
+            analysis_elapsed_ms=analysis_elapsed_ms,
+            report_elapsed_ms=report_elapsed_ms,
+        )
 
-            report_started = perf_counter()
-            report_meta = {
-                "question": question or "",
-                "querent":  querent_name or "",
-                "hexagram_input": _hexagram_input_snapshot(
-                    yao_values=yao_values,
-                    year=year,
-                    month=month,
-                    day=day,
-                    hour=hour,
-                    question_type=question_type,
-                    is_dual=is_dual,
-                    ganzhi_override=ganzhi_override,
-                    querent_name=querent_name,
-                    question=question,
-                    meta=meta,
-                ),
-            }
-            report_text = format_report(report)
-            report_readable = format_readable_report(report, meta=report_meta)
-            report_files = archive_reports(
-                report_text=report_text,
-                report_readable=report_readable,
-                meta=report_meta,
-            )
-            report_elapsed_ms = round((perf_counter() - report_started) * 1000, 3)
-            analysis_data = _report_to_dict(report)
-            log.info(
-                "engine_analysis_sync_done",
-                is_dual=False,
-                question_type=question_type,
-                analysis_elapsed_ms=analysis_elapsed_ms,
-                report_elapsed_ms=report_elapsed_ms,
-            )
-
-            return {
-                "hexagram_meta":  meta,
-                "is_dual":        False,
-                "analysis":       analysis_data,
-                "report_text":    report_text,
-                "report_readable": report_readable,
-                "report_files":   report_files,
-                "ji_xiong":       report.jixiong_result.get("ji_xiong", "平"),
-                "gua_ju_pattern": report.jixiong_result.get("pattern", ""),
-            }
+        return {
+            "hexagram_meta": meta,
+            "is_dual": is_dual,
+            "analysis": _dual_report_to_dict(report) if is_dual else _report_to_dict(report),
+            "report_text": report_text,
+            "report_readable": report_readable,
+            "report_files": report_files,
+            "ji_xiong": _extract_ji_xiong_dual(report) if is_dual else report.jixiong_result.get("ji_xiong", "平"),
+            "gua_ju_pattern": _extract_pattern_dual(report) if is_dual else report.jixiong_result.get("pattern", ""),
+        }
     except Exception as exc:
         raise EngineError(f"Analysis pipeline failed: {exc}") from exc
 
@@ -305,17 +255,17 @@ def _extract_pattern_dual(dual: DualPerspectiveReport) -> str:
 # ── Public async interface ────────────────────────────────────────────────────
 
 async def analyze(
-    yao_values: List[int],
-    year: Optional[int],
-    month: Optional[int],
-    day: Optional[int],
+    yao_values: list[int],
+    year: int | None,
+    month: int | None,
+    day: int | None,
     hour: int,
     question_type: str,
     is_dual: bool,
-    ganzhi_override: Optional[Dict[str, Any]],
-    querent_name: Optional[str],
-    question: Optional[str],
-) -> Dict[str, Any]:
+    ganzhi_override: dict[str, Any] | None,
+    querent_name: str | None,
+    question: str | None,
+) -> dict[str, Any]:
     """
     Async entry point. Offloads the CPU-bound analysis to the thread pool.
     """
@@ -345,7 +295,7 @@ async def analyze(
     return result
 
 
-def should_use_dual(question_type: str, is_dual_override: Optional[bool]) -> bool:
+def should_use_dual(question_type: str, is_dual_override: bool | None) -> bool:
     """Resolve dual-perspective flag with sensible defaults."""
     if is_dual_override is not None:
         return is_dual_override

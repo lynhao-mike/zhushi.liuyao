@@ -1,14 +1,13 @@
-# -*- coding: utf-8 -*-
 """Classic Liuyao judgement loading and lightweight keyword retrieval."""
 
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import lru_cache
-from pathlib import Path
 from heapq import nsmallest
-from typing import Iterable
+from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_PATH = ROOT / "data" / "classic_judgements.jsonl"
@@ -34,7 +33,7 @@ class ClassicJudgement:
     search_text: str
 
     @classmethod
-    def from_dict(cls, data: dict) -> "ClassicJudgement":
+    def from_dict(cls, data: dict) -> ClassicJudgement:
         keywords = tuple(data.get("keywords", ()))
         raw_text = data["raw_text"]
         section = data.get("section", "")

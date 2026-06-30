@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """日令时效卦最小回归测试。"""
 
 from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.domain.dongbian import analyze_dongbian
 from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.rules.context import RuleContext
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.domain.dongbian import analyze_dongbian
 from tests.fixtures.zengshan_230_cases import CASE_999
 
 

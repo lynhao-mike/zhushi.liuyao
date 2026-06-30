@@ -12,7 +12,7 @@ Schema design principles:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import (
     BigInteger,
@@ -24,7 +24,6 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
-    UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -32,7 +31,7 @@ from sqlalchemy.sql import func
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class Base(DeclarativeBase):
@@ -113,7 +112,7 @@ class ReadingSession(Base):
     )
 
     # ── Relationships ─────────────────────────────────────────────────
-    feedbacks: Mapped[list["ReadingFeedback"]] = relationship(
+    feedbacks: Mapped[list[ReadingFeedback]] = relationship(
         back_populates="reading", cascade="all, delete-orphan"
     )
 

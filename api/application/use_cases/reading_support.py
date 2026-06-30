@@ -5,13 +5,13 @@ ponytail: keep helpers concrete and local to reading use cases; add abstractions
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any, Dict, List
+from datetime import UTC, datetime
+from typing import Any
 
 from liuyao import QUESTION_TYPE_LABELS, archive_reports
 
 
-def ensure_report_files(payload: Dict[str, Any]) -> bool:
+def ensure_report_files(payload: dict[str, Any]) -> bool:
     if payload.get("report_files"):
         return False
     payload["report_files"] = archive_reports(
@@ -40,13 +40,13 @@ def ensure_report_files(payload: Dict[str, Any]) -> bool:
 
 def build_payload(
     req,
-    result: Dict[str, Any],
+    result: dict[str, Any],
     is_dual: bool,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     meta = result["hexagram_meta"]
     analysis = result["analysis"]
 
-    payload: Dict[str, Any] = {
+    payload: dict[str, Any] = {
         "question_type": req.question_type,
         "question_type_label": QUESTION_TYPE_LABELS.get(req.question_type, req.question_type),
         "question": req.question,
@@ -90,19 +90,19 @@ def build_payload(
     return payload
 
 
-def payload_to_response(payload: Dict[str, Any], from_cache: bool) -> Dict[str, Any]:
+def payload_to_response(payload: dict[str, Any], from_cache: bool) -> dict[str, Any]:
     data = dict(payload)
     data["from_cache"] = from_cache
 
     if isinstance(data.get("created_at"), str):
         data["created_at"] = datetime.fromisoformat(data["created_at"])
     elif "created_at" not in data:
-        data["created_at"] = datetime.now(timezone.utc)
+        data["created_at"] = datetime.now(UTC)
 
     return data
 
 
-def orm_to_response(row) -> Dict[str, Any]:
+def orm_to_response(row) -> dict[str, Any]:
     lines = row.lines_json or []
     wangshuai = row.wangshuai_json if isinstance(row.wangshuai_json, list) else (row.wangshuai_json or {}).get("results", [])
     yingqi = row.yingqi_json if isinstance(row.yingqi_json, list) else (row.yingqi_json or {}).get("results", [])
@@ -114,7 +114,7 @@ def orm_to_response(row) -> Dict[str, Any]:
 
     # GET must be read-only. Report files are archived during create/cache recovery,
     # not regenerated on every detail request.
-    report_files: List[str] = []
+    report_files: list[str] = []
 
     return {
         "id": row.id,
@@ -146,7 +146,7 @@ def orm_to_response(row) -> Dict[str, Any]:
     }
 
 
-def orm_to_summary(row) -> Dict[str, Any]:
+def orm_to_summary(row) -> dict[str, Any]:
     return {
         "id": row.id,
         "question_type": row.question_type,
@@ -162,7 +162,7 @@ def orm_to_summary(row) -> Dict[str, Any]:
     }
 
 
-def feedback_to_dict(row) -> Dict[str, Any]:
+def feedback_to_dict(row) -> dict[str, Any]:
     return {
         "id": row.id,
         "reading_id": row.reading_id,
@@ -170,11 +170,11 @@ def feedback_to_dict(row) -> Dict[str, Any]:
         "feedback_text": row.feedback_text,
         "status": row.status,
         "original_judgement": row.original_judgement,
-        "created_at": row.created_at or datetime.now(timezone.utc),
+        "created_at": row.created_at or datetime.now(UTC),
     }
 
 
-def template_to_dict(row) -> Dict[str, Any]:
+def template_to_dict(row) -> dict[str, Any]:
     return {
         "id": row.id,
         "name": row.name,

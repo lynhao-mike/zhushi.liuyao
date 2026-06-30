@@ -5,10 +5,9 @@ ponytail: 只做报告层象法摘要, 不参与吉凶裁决; 以后若要自动
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .data import HEXAGRAM_BY_NAME
-
 
 WU_XING_IMAGE = {
     "木": {"image": "东方、青润、生发、文教、舟车、园林、肝胆筋骨", "source": "易冒·五行章第五", "relevant_to": None},
@@ -56,7 +55,7 @@ BA_GUA_IMAGE = {
 }
 
 # 各问事类型侧重的六亲象 (ponytail: 只列高频的，不做九十章全量映射; 升级: 新增问事类型且发现六亲象遗漏时扩展映射)
-QUESTION_TYPE_FOCUS: Dict[str, List[str]] = {
+QUESTION_TYPE_FOCUS: dict[str, list[str]] = {
     "shiwu":    ["父母", "妻财"],          # 失物: 物件本体+财值
     "bing":     ["官鬼", "子孙"],          # 疾病: 病源+药效
     "cai":      ["妻财", "子孙", "兄弟"],  # 求财: 财+元神+耗神
@@ -72,7 +71,7 @@ QUESTION_TYPE_FOCUS: Dict[str, List[str]] = {
 
 # 高频六神×六亲组合线索句
 # ponytail: 硬编码 8 条最高频组合，不做规则引擎；验证效果后再泛化
-_COMBO_SENTENCES: List[Dict[str, Any]] = [
+_COMBO_SENTENCES: list[dict[str, Any]] = [
     {
         "liu_shen": "白虎", "liu_qin": "官鬼", "is_moving": True,
         "sentence": "白虎临官鬼发动，官非伤灾之象，宜防纠纷病损。",
@@ -822,7 +821,7 @@ _COMBO_SENTENCES: List[Dict[str, Any]] = [
 ]
 
 
-def _match_combo_sentences(line: Any, wangshuai: str) -> List[Dict[str, Any]]:
+def _match_combo_sentences(line: Any, wangshuai: str) -> list[dict[str, Any]]:
     """匹配单爻的高频组合线索句。"""
     results = []
     for combo in _COMBO_SENTENCES:
@@ -851,11 +850,11 @@ def _match_combo_sentences(line: Any, wangshuai: str) -> List[Dict[str, Any]]:
     return results
 
 
-def _gua_parts(gua_name: str) -> Dict[str, str]:
+def _gua_parts(gua_name: str) -> dict[str, str]:
     return HEXAGRAM_BY_NAME.get(gua_name, {})
 
 
-def _line_roles(line: Any, yong_lines: List[Any]) -> List[str]:
+def _line_roles(line: Any, yong_lines: list[Any]) -> list[str]:
     roles = []
     if any(line.position == y.position for y in yong_lines):
         roles.append("用神")
@@ -870,12 +869,12 @@ def _line_roles(line: Any, yong_lines: List[Any]) -> List[str]:
     return roles
 
 
-def _build_structure_sentences(patterns_results: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_structure_sentences(patterns_results: dict[str, Any] | None) -> list[dict[str, Any]]:
     """从结构模式中提炼少量高频结构句。"""
     if not patterns_results:
         return []
 
-    results: List[Dict[str, Any]] = []
+    results: list[dict[str, Any]] = []
     chong_he = patterns_results.get("chong_he_gua", {}) or {}
     pattern = chong_he.get("pattern")
     if pattern == "六冲变六合":
@@ -986,12 +985,12 @@ def _build_structure_sentences(patterns_results: Optional[Dict[str, Any]]) -> Li
 
 def analyze_yimao_imagery(
     hexagram,
-    yong_lines: Optional[List[Any]] = None,
-    wangshuai_results: Optional[List[Dict]] = None,
-    dongbian_results: Optional[Dict] = None,
-    patterns_results: Optional[Dict] = None,
+    yong_lines: list[Any] | None = None,
+    wangshuai_results: list[dict] | None = None,
+    dongbian_results: dict | None = None,
+    patterns_results: dict | None = None,
     question_type: str = "other",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """生成《易冒》象法摘要, 仅供细节分析与报告展示。"""
     yong_lines = yong_lines or []
     wangshuai_results = wangshuai_results or []

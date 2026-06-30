@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """双核卦象最小主判规则测试。"""
 
 from liuyao.application.use_cases.analysis import run_analysis

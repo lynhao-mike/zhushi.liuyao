@@ -4,11 +4,13 @@ Readings Router — /api/v1/readings
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.application.use_cases import feedback as feedback_svc
+from api.application.use_cases import readings as reading_svc
+from api.core.config import get_settings
 from api.interfaces.http.dependencies import get_db
 from api.interfaces.http.schemas.reading import (
     PaginatedReadings,
@@ -17,13 +19,6 @@ from api.interfaces.http.schemas.reading import (
     ReadingFeedbackResponse,
     ReadingResponse,
     StatsResponse,
-)
-from api.application.use_cases import feedback as feedback_svc
-from api.application.use_cases import readings as reading_svc
-from api.core.config import get_settings
-from api.interfaces.http.schemas.mappers import (
-    reading_create_command_from_request,
-    reading_feedback_create_command_from_request,
 )
 
 settings = get_settings()
@@ -54,8 +49,7 @@ async def create_reading(
     req: ReadingCreateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ReadingResponse:
-    command = reading_create_command_from_request(req)
-    return await reading_svc.create_reading(command, db)
+    return await reading_svc.create_reading(req, db)
 
 
 @router.get(
@@ -64,8 +58,8 @@ async def create_reading(
     summary="List reading sessions",
 )
 async def list_readings(
-    question_type: Optional[str] = Query(None, description="Filter by question type"),
-    ji_xiong: Optional[str] = Query(None, description="Filter by 吉/凶/平"),
+    question_type: str | None = Query(None, description="Filter by question type"),
+    ji_xiong: str | None = Query(None, description="Filter by 吉/凶/平"),
     page: int = Query(1, ge=1),
     size: int = Query(
         settings.DEFAULT_PAGE_SIZE,
@@ -109,8 +103,7 @@ async def create_feedback(
     req: ReadingFeedbackCreateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> ReadingFeedbackResponse:
-    command = reading_feedback_create_command_from_request(req)
-    return await feedback_svc.create_reading_feedback(reading_id, command, db)
+    return await feedback_svc.create_reading_feedback(reading_id, req, db)
 
 
 @router.delete(

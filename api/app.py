@@ -14,11 +14,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
-from api.infrastructure.cache.redis_client import close_redis, init_redis
 from api.application.use_cases.engine import shutdown_executor
 from api.core.config import get_settings
 from api.core.exceptions import register_exception_handlers
 from api.core.logging import configure_logging
+from api.infrastructure.cache.redis_client import close_redis, init_redis
 from api.infrastructure.database.session import close_engine
 from api.interfaces.http.routers import health, readings, templates
 
@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 
     await init_redis()
 
-    log.info("app_ready", host=settings.HOST, port=settings.PORT)
+    log.info("app_ready")
 
     yield
 

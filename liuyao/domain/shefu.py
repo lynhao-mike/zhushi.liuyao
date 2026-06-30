@@ -12,13 +12,13 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 
 from .data import WU_XING_SHENG
 
 
-def _add_candidate(candidates: List[Dict[str, Any]], category: str, keyword: str,
-                   reason: str, evidence: Dict[str, Any], confidence: str = "medium"):
+def _add_candidate(candidates: list[dict[str, Any]], category: str, keyword: str,
+                   reason: str, evidence: dict[str, Any], confidence: str = "medium"):
     candidates.append({
         "category": category,
         "keyword": keyword,
@@ -28,7 +28,7 @@ def _add_candidate(candidates: List[Dict[str, Any]], category: str, keyword: str
     })
 
 
-def analyze_shefu_imagery(hexagram, dongbian_results=None) -> Dict[str, Any]:
+def analyze_shefu_imagery(hexagram, dongbian_results=None) -> dict[str, Any]:
     """分析射覆/经历还原类具象候选。
 
     Args:
@@ -39,8 +39,8 @@ def analyze_shefu_imagery(hexagram, dongbian_results=None) -> Dict[str, Any]:
         dict: {pattern, event_candidates, evidence, summary}
     """
     dongbian_results = dongbian_results or {}
-    candidates: List[Dict[str, Any]] = []
-    evidence: Dict[str, Any] = {
+    candidates: list[dict[str, Any]] = []
+    evidence: dict[str, Any] = {
         "ben_gua": hexagram.ben_gua_name,
         "bian_gua": hexagram.bian_gua_name,
         "moving_positions": [line.position for line in hexagram.lines if line.is_moving],

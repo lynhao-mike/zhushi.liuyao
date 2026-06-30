@@ -3,12 +3,17 @@
 """
 
 import pytest
-from liuyao.domain.data import (
-    NA_JIA, DI_ZHI_WU_XING, HEXAGRAM_BY_TRIGRAMS, HEXAGRAM_BY_NAME,
-    PALACE_SHI_YING, get_liu_qin, get_liu_shen, get_xun_kong,
-    WU_XING_SHENG, WU_XING_KE,
-)
+
 from liuyao.domain.calendar_utils import get_gan_zhi
+from liuyao.domain.data import (
+    HEXAGRAM_BY_NAME,
+    HEXAGRAM_BY_TRIGRAMS,
+    NA_JIA,
+    PALACE_SHI_YING,
+    get_liu_qin,
+    get_liu_shen,
+    get_xun_kong,
+)
 from liuyao.domain.hexagram import Hexagram
 
 

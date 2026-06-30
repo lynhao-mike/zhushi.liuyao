@@ -2,20 +2,16 @@
 吉凶判断模块专项测试 - Dedicated unit tests for liuyao/jixiong.py
 """
 
-import pytest
+from liuyao.domain.dongbian import analyze_dongbian
+from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.jixiong import (
     determine_yong_shen,
-    find_yong_shen_lines,
     find_shi_line,
     find_ying_line,
-    judge_dong_gua,
-    judge_jing_gua,
+    find_yong_shen_lines,
     judge_jixiong,
-    YONG_SHEN_TABLE,
 )
-from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.domain.dongbian import analyze_dongbian
 
 
 class TestDetermineYongShen:

@@ -6,7 +6,6 @@
 
 from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
 
-
 # 卦局白话解释 — 权威来源 (reporting.py 从此处导入, 不再重复定义)
 GUA_JU_BAIHUA: dict = {
     "世用受克局":   "用神与世爻合一却遭受动爻克伤——失物与主人的缘分已断，凶。",

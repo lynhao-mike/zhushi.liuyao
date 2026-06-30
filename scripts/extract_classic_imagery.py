@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Extract candidate classic Liuyao imagery records from 《易冒》 reference markdown files."""
 
 from __future__ import annotations
@@ -7,9 +6,9 @@ import argparse
 import hashlib
 import json
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "data" / "classic_imagery.jsonl"
@@ -225,7 +224,7 @@ def extract_keywords(text: str) -> list[str]:
 
 
 def stable_id(source: str, source_file: Path, line_number: int, raw_text: str) -> str:
-    digest = hashlib.sha1(f"{source}:{source_file.name}:{line_number}:{raw_text}".encode("utf-8")).hexdigest()[:12]
+    digest = hashlib.sha1(f"{source}:{source_file.name}:{line_number}:{raw_text}".encode()).hexdigest()[:12]
     return f"imagery_{source}_{digest}"
 
 

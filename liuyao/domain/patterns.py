@@ -14,20 +14,16 @@
 
 from .data import (
     DI_ZHI_WU_XING,
-    WU_XING_SHENG, WU_XING_KE,
-    LIU_CHONG, LIU_HE,
-    SAN_HE, SAN_HUI,
-    BAN_HE_PAIRS,
+    LIU_CHONG,
+    LIU_CHONG_GUA,
     LIU_HAI,
-    JIN_SHEN, TUI_SHEN,
-    WU_XING_MU, WU_XING_MU_JIXIONG, MU_BY_ZHI,
-    LIU_CHONG_GUA, LIU_HE_GUA,
-    get_xing_relations,
-    get_chang_sheng,
+    LIU_HE,
+    LIU_HE_GUA,
+    SAN_HUI,
+    WU_XING_KE,
+    WU_XING_MU_JIXIONG,
+    WU_XING_SHENG,
 )
-
-
-
 
 # =============================================================================
 # 入墓 (Ru Mu) Detection
@@ -47,8 +43,8 @@ def detect_ru_mu(hexagram, wangshuai_results, dongbian_results,
         list[dict]: 每个入墓信息
             {position, line_zhi, mu_type(日/动/化), mu_zhi, is_real(真假墓), reason}
     """
-    moving_analyses = dongbian_results.get("moving_analyses", {})
-    san_he_ju = dongbian_results.get("san_he_ju", [])
+    dongbian_results.get("moving_analyses", {})
+    dongbian_results.get("san_he_ju", [])
 
     results = []
 

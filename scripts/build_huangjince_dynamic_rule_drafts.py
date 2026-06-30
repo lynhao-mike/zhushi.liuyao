@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Build auditable draft dynamic rules from 《黄金策》 candidate judgements.
 
 草稿文件用于“全量规则化”的审计与编译排队，不作为运行时默认执行
@@ -12,8 +11,9 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
 
 from liuyao.domain.classic_judgements import ClassicJudgement, load_classic_judgements
 from liuyao.domain.rules.classic_rule_schema import validate_classic_rules
+
 DEFAULT_JUDGEMENTS_PATH = ROOT / "data" / "classic_judgements.jsonl"
 DEFAULT_REVIEWED_RULES_PATH = ROOT / "data" / "huangjince_candidate_rules.jsonl"
 DEFAULT_OUTPUT = ROOT / "data" / "huangjince_dynamic_rule_drafts.jsonl"

@@ -14,9 +14,8 @@ try:
 except ImportError:  # pragma: no cover - 允许仅使用 Hexagram.from_ganzhi 的测试环境不安装 sxtwl
     sxtwl = None
 
-from .data import TIAN_GAN, DI_ZHI, get_xun_kong
+from .data import DI_ZHI, TIAN_GAN, get_xun_kong
 from .exceptions import CalendarError, LiuyaoError
-
 
 _DAY_GANZHI_BASE_DATE = date(2024, 1, 15)  # 戊寅日
 _DAY_GANZHI_BASE_INDEX = 14  # 甲子为0, 戊寅为14

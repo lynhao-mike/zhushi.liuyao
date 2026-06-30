@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """时效卦统一分类最小测试。"""
 
-from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.domain.dongbian import analyze_dongbian
-from liuyao.domain.rules.context import RuleContext
 from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.domain.dongbian import analyze_dongbian
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.rules.context import RuleContext
+from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
 
 
 def _ctx(hexagram, yong_shen_liu_qin, question_type):

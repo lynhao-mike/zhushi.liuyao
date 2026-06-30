@@ -6,15 +6,13 @@ Reusable named hexagram configurations (classical text examples, etc.).
 from __future__ import annotations
 
 import uuid
-from typing import List
 
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.application.use_cases import templates as template_svc
 from api.interfaces.http.dependencies import get_db
 from api.interfaces.http.schemas.reading import TemplateCreateRequest, TemplateResponse
-from api.interfaces.http.schemas.mappers import template_create_command_from_request
-from api.application.use_cases import templates as template_svc
 
 router = APIRouter(prefix="/templates", tags=["templates"])
 
@@ -29,16 +27,15 @@ async def create_template(
     req: TemplateCreateRequest,
     db: AsyncSession = Depends(get_db),
 ) -> TemplateResponse:
-    command = template_create_command_from_request(req)
-    return await template_svc.create_template(command, db)
+    return await template_svc.create_template(req, db)
 
 
 @router.get(
     "",
-    response_model=List[TemplateResponse],
+    response_model=list[TemplateResponse],
     summary="List all templates",
 )
-async def list_templates(db: AsyncSession = Depends(get_db)) -> List[TemplateResponse]:
+async def list_templates(db: AsyncSession = Depends(get_db)) -> list[TemplateResponse]:
     return await template_svc.list_templates(db)
 
 

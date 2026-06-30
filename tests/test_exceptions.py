@@ -3,11 +3,12 @@
 """
 
 import pytest
+
 from liuyao.domain.exceptions import (
-    LiuyaoError,
-    ArrangementError,
     AnalysisError,
+    ArrangementError,
     CalendarError,
+    LiuyaoError,
 )
 from liuyao.domain.hexagram import Hexagram
 

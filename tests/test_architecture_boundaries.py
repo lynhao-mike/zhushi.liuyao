@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Clean Architecture 边界守护测试。"""
 
 from __future__ import annotations

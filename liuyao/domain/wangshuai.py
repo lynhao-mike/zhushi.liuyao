@@ -6,12 +6,13 @@
 """
 
 from .data import (
-    DI_ZHI, DI_ZHI_WU_XING,
-    WU_XING_SHENG, WU_XING_KE,
-    LIU_CHONG, LIU_HE,
+    DI_ZHI_WU_XING,
+    LIU_CHONG,
+    LIU_HE,
+    WU_XING_KE,
+    WU_XING_SHENG,
     get_chang_sheng,
 )
-
 
 # 旺衰状态常量
 WANG = "旺"    # Prosperous

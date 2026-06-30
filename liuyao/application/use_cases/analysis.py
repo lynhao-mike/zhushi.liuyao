@@ -11,23 +11,25 @@ import logging
 
 from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
 from liuyao.domain.data import get_star_spirits
-from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
 from liuyao.domain.dongbian import analyze_dongbian
 from liuyao.domain.jixiong import (
-    judge_jixiong, determine_yong_shen,
-    find_yong_shen_lines, find_shi_line,
-    find_ying_line,
-    get_dual_perspectives,
     JI_SHEN_TABLE,
+    determine_yong_shen,
+    find_shi_line,
+    find_ying_line,
+    find_yong_shen_lines,
+    get_dual_perspectives,
+    judge_jixiong,
 )
-from liuyao.domain.yingqi import analyze_yingqi
-from liuyao.domain.yimao_imagery import analyze_yimao_imagery
 from liuyao.domain.patterns import (
     analyze_all_patterns,
     analyze_perspective_patterns,
     analyze_structural_patterns,
     merge_pattern_results,
 )
+from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
+from liuyao.domain.yimao_imagery import analyze_yimao_imagery
+from liuyao.domain.yingqi import analyze_yingqi
 
 log = logging.getLogger(__name__)
 
@@ -104,7 +106,7 @@ def run_analysis(hexagram, question_type="other",
             primary_yong_position=primary_yong_position,
             question_type=question_type,
         )
-    except Exception as e:
+    except Exception:
         log.error("dongbian_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
         report.dongbian_results = {
@@ -119,7 +121,7 @@ def run_analysis(hexagram, question_type="other",
             report.yong_shen_liu_qin, report.ji_shen_liu_qin,
             report.yong_shen_lines, question_type,
         )
-    except Exception as e:
+    except Exception:
         log.error("patterns_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
         report.patterns_results = {}
@@ -159,7 +161,7 @@ def run_analysis(hexagram, question_type="other",
             report.wangshuai_results, report.dongbian_results,
             patterns_results=report.patterns_results,
         )
-    except Exception as e:
+    except Exception:
         log.error("yingqi_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
         report.yingqi_results = []
@@ -260,7 +262,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
                 hexagram, report.yong_shen_lines, shared_ws, shared_db,
                 patterns_results=report.patterns_results,
             )
-        except Exception as e:
+        except Exception:
             log.error("yingqi_analysis_failed", exc_info=True,
                       gua=hexagram.ben_gua_name, perspective=label)
             report.yingqi_results = []

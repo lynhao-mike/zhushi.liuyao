@@ -10,13 +10,12 @@ The module exposes:
   - init_redis() / close_redis()  — lifecycle (called from app lifespan)
   - get_cache() / set_cache()     — low-level typed helpers
   - CacheKey                      — structured key builder
-  - cache_or_compute()            — thin async wrapper pattern
 """
 from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any
 
 import redis.asyncio as aioredis
 
@@ -27,9 +26,6 @@ log = get_logger(__name__)
 settings = get_settings()
 
 _redis: aioredis.Redis | None = None
-
-T = TypeVar("T")
-
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
 
@@ -86,11 +82,6 @@ class CacheKey:
     @staticmethod
     def stats() -> str:
         return "stats:global"
-
-    @staticmethod
-    def template(template_id: str) -> str:
-        return f"template:{template_id}"
-
 
 # ── Fingerprint ───────────────────────────────────────────────────────────────
 
@@ -161,15 +152,6 @@ async def set_cache(key: str, value: Any, ttl: int) -> bool:
         return False
 
 
-async def delete_cache(key: str) -> None:
-    r = get_redis()
-    if r:
-        try:
-            await r.delete(key)
-        except Exception:
-            pass
-
-
 async def invalidate_prefix(prefix: str) -> int:
     """Unlink (async-delete) all keys matching prefix:*. Returns count unlinked."""
     r = get_redis()
@@ -191,25 +173,3 @@ async def invalidate_prefix(prefix: str) -> int:
     return deleted
 
 
-# ── cache_or_compute helper ───────────────────────────────────────────────────
-
-async def cache_or_compute(
-    cache_key: str,
-    ttl: int,
-    compute_fn: Callable[[], Awaitable[T]],
-) -> tuple[T, bool]:
-    """
-    Try cache first; fall back to compute_fn, then store result.
-
-    Returns:
-        (value, from_cache)
-    """
-    cached = await get_cache(cache_key)
-    if cached is not None:
-        log.debug("cache_hit", key=cache_key)
-        return cached, True
-
-    log.debug("cache_miss", key=cache_key)
-    value = await compute_fn()
-    await set_cache(cache_key, value, ttl)
-    return value, False

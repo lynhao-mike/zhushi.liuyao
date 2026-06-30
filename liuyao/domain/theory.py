@@ -544,79 +544,18 @@ ZHEN_JIA_CONDITIONS = {
 # 从各章节子模块导入所有理论知识，统一暴露在 theory 命名空间下
 
 # ── 第8-12章：断卦基础 ──
-from liuyao.domain.theory_chapters import (
-    DUANGUA_STEPS,          # 断卦七步流程
-    LIANGGE_CENGMIAN,       # 两个理论层面（吉凶层面 vs 细节层面）
-    JICHU_ZHI_SHI,          # 基础知识（六神/六亲/纳甲/星煞/相刑相害）
-    YONGSHEN_RULES,         # 用神确定规则（主观/客观/真假/嫁接）
-    XINGTAI_GUA,            # 心态卦理论（明心态卦/暗心态卦）
-    YONGSHEN_QINSHU,        # 世爻/应爻/用神/元神/忌神/仇神
-)
 
 # ── 第13-16章：旺衰与动变 ──
-from liuyao.domain.theory_chapters import (
-    WANGSHUAI_FACTORS,      # 影响旺衰的四个因素（月建/日建/动爻/变爻）
-    SPECIAL_RIYUE_COMBO,    # 特殊日月组合（废爻型/金刚型/月令时效卦）
-    DONGYAO_WANGSHUAI,      # 动变旺衰显示规则（趋旺/趋衰/左右摇摆）
-    YOUYONG_WUYONG_DONGYAO, # 有用/无用动爻四种判定规则
-    MAODUN_FENXI,           # 矛盾趋势辨别三原则
-    WANGSHUAI_LEVEL_TABLE,  # 旺衰层次速查表
-    WUYONG_DONGYAO_QUICK_REF, # 四种无用动爻快速辨别表
-)
 
 # ── 第17-20章：复合动变与代占 ──
-from liuyao.domain.theory_chapters import (
-    FUHE_DONG_RULES,        # 复合之动的定义与三种整合模式
-    FUHE_DONG_YUNZHUAN_RULES, # 复合动变五条运转规则
-    SHIYONG_ZUOYONG,        # 世用关系与吉凶判断
-    YINIAN_DAIZHAN,         # 意念与代占规则（三种代占类型）
-    GUAXIANG_XIANSHI,       # 卦象六大显示特征
-    FUHE_DONG_RULES_SUMMARY,  # 复合动变速查
-    SHIYONG_JIXIONG_SUMMARY,  # 世用吉凶速查
-    DAIZHAN_TYPES_SUMMARY,    # 代占三种类型速查
-    GUAXIANG_6_FEATURES_SUMMARY,  # 卦象六特征速查
-)
 
 # ── 第21-23章：动卦吉凶/暗动/静卦 ──
-from liuyao.domain.theory_chapters import (
-    JIXIONG_GUJU,           # 动卦吉凶卦局（5吉/5凶/特例）
-    ANDONG_THEORY,          # 系统性暗动理论（冲起六种/特征/应期）
-    JINGGUA_STEPS,          # 静卦判断三步骤（详细版含特例）
-)
 
 # ── 第26-28章：月令/日令/旬空 ──
-from liuyao.domain.theory_chapters import (
-    YUELING_FUNCTIONS,      # 月令功能详解（月破/月建/月合/时效卦）
-    RILING_FUNCTIONS,       # 日令功能详解（日建/日绊/日破/暗动/应期）
-    XUNKONG_THEORY,         # 旬空理论（真假空/5种特殊应用/出空三式）
-    QUICK_REFERENCE as RIYUE_QUICK_REF,  # 日月旬空速查表
-    YEHE_QUOTES,            # 野鹤关键引语汇编
-)
 
 # ── 第29-31章：六冲/六合/互化 ──
-from liuyao.domain.theory_chapters import (
-    LIUCHONG_THEORY,        # 六冲理论详解（四种位置/冲起冲散/六冲卦）
-    LIUHE_THEORY,           # 六合理论详解（四种位置/三绊/日绊真假/六合卦）
-    CHONGHE_HUHUA,          # 六冲六合互化（四种模式/就事论事直判法）
-    ZHENJIA_BAN,            # 真绊假绊判定
-    LIUCHONG_LIUHE_XIJIE,   # 六合六冲细节寓意补充
-)
 
 # ── 第32-40章：三合/十二宫/进退/三墓/三绊/反吟/伏吟/藏伏/应期 ──
-from liuyao.domain.theory_chapters import (
-    SANHEJV_THEORY,         # 三合局理论（吉/凶/假三合局/应期）
-    CHANGSHENG_THEORY,      # 长生十二宫（吉凶层面/应期细节）
-    HUAJIN_HUATUI,          # 化进化退理论（识别/应用/应期/细节）
-    SANMU_THEORY,           # 三墓理论（真假墓六种判定/细节寓意）
-    SANBAN_THEORY,          # 三绊理论（真假绊/解绊应期）
-    FANYIN_THEORY,          # 反吟理论（卦之反吟/爻之反吟/吉凶反吟）
-    FUYIN_THEORY,           # 伏吟理论
-    CANFU_THEORY,           # 藏伏理论（伏神/飞神/藏爻/三种分析思路）
-    YINGQI_FORMULAS,        # 应期公式归纳（23条/6大原则/加速迟缓信号）
-    THEORY_INDEX,           # 理论索引
-    THEORY_LAYERS,          # 各理论适用层面速查
-    KEY_FORMULAS as YILI_KEY_FORMULAS,  # 易理篇关键口诀
-)
 
 # =============================================================================
 # 全局知识库索引 - Global Knowledge Index

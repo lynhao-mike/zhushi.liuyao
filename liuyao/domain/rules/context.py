@@ -6,7 +6,7 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from liuyao.domain.data import DI_ZHI_WU_XING, LIU_CHONG
 
@@ -17,13 +17,13 @@ class RuleContext:
 
     hexagram: Any
     yong_shen_liu_qin: str
-    wangshuai_results: List[Dict[str, Any]]
-    dongbian_results: Dict[str, Any]
+    wangshuai_results: list[dict[str, Any]]
+    dongbian_results: dict[str, Any]
     question_type: str
-    patterns_results: Dict[str, Any] = field(default_factory=dict)
-    shi_line: Optional[Any] = None
-    primary_yong: Optional[Any] = None
-    yong_lines: List[Any] = field(default_factory=list)
+    patterns_results: dict[str, Any] = field(default_factory=dict)
+    shi_line: Any | None = None
+    primary_yong: Any | None = None
+    yong_lines: list[Any] = field(default_factory=list)
     month_zhi: str = ""
     day_zhi: str = ""
 
@@ -44,22 +44,22 @@ class RuleContext:
         }
 
     @property
-    def moving_analyses(self) -> Dict[int, Dict[str, Any]]:
+    def moving_analyses(self) -> dict[int, dict[str, Any]]:
         return self.dongbian_results.get("moving_analyses", {})
 
     @property
-    def useful_moving(self) -> List[int]:
+    def useful_moving(self) -> list[int]:
         return self.dongbian_results.get("useful_moving", [])
 
     @property
-    def san_he_ju(self) -> List[Dict[str, Any]]:
+    def san_he_ju(self) -> list[dict[str, Any]]:
         return self.dongbian_results.get("san_he_ju", [])
 
     @property
-    def compound_movement(self) -> List[Dict[str, Any]]:
+    def compound_movement(self) -> list[dict[str, Any]]:
         return self.dongbian_results.get("compound_movement", [])
 
-    def final_compound_movement(self) -> Dict[str, Any]:
+    def final_compound_movement(self) -> dict[str, Any]:
         for item in self.compound_movement:
             if item.get("mode") == "san_he" and item.get("valid"):
                 return item
@@ -81,11 +81,11 @@ class RuleContext:
         return item.get("acts_on_target", "none") if item else "none"
 
     @property
-    def san_ban(self) -> List[Dict[str, Any]]:
+    def san_ban(self) -> list[dict[str, Any]]:
         return self.patterns_results.get("san_ban", []) if self.patterns_results else []
 
     @property
-    def intervening_positions(self) -> List[int]:
+    def intervening_positions(self) -> list[int]:
         """世应之间的间爻位置。"""
         ying_line = getattr(self.hexagram, "ying_line", None)
         if not self.shi_line or not ying_line:
@@ -93,24 +93,24 @@ class RuleContext:
         low, high = sorted((self.shi_line.position, ying_line.position))
         return [pos for pos in range(low + 1, high)]
 
-    def wangshuai_of(self, line: Any) -> Dict[str, Any]:
+    def wangshuai_of(self, line: Any) -> dict[str, Any]:
         return self.wangshuai_results[line.position - 1]
 
     @property
-    def primary_yong_moving(self) -> Dict[str, Any]:
+    def primary_yong_moving(self) -> dict[str, Any]:
         """用神动变分析结果（常用访问器，减少规则内重复拆包）。"""
         if not self.primary_yong:
             return {}
         return self.moving_analyses.get(self.primary_yong.position, {})
 
     @property
-    def primary_yong_wangshuai(self) -> Dict[str, Any]:
+    def primary_yong_wangshuai(self) -> dict[str, Any]:
         """用神旺衰分析结果（常用访问器，减少规则内重复拆包）。"""
         if not self.primary_yong:
             return {}
         return self.wangshuai_of(self.primary_yong)
 
-    def yong_interaction(self) -> Dict[str, List[str]]:
+    def yong_interaction(self) -> dict[str, list[str]]:
         """用神受动爻生克情况（常用访问器，减少规则内重复拆包）。"""
         if not self.primary_yong:
             return {"受生": [], "受克": []}
@@ -118,7 +118,7 @@ class RuleContext:
             self.primary_yong.position, {"受生": [], "受克": []}
         )
 
-    def moving_decline_reasons(self, line: Any) -> List[str]:
+    def moving_decline_reasons(self, line: Any) -> list[str]:
         """返回动爻失势原因, 兼容动变自身衰败与变爻被日月冲破。"""
         moving = self.moving_analyses.get(line.position, {})
         reasons = list(moving.get("趋衰", []))
@@ -130,7 +130,7 @@ class RuleContext:
                 reasons.append("变爻逢月冲破")
         return list(dict.fromkeys(reasons))
 
-    def special_day_month_combo(self, line: Any) -> Dict[str, Any]:
+    def special_day_month_combo(self, line: Any) -> dict[str, Any]:
         """返回最小特殊日月组合分类，供 P0/P1 规则统一消费。"""
         ws = self.wangshuai_of(line)
         month_wang = ws.get("month_wang", [])
@@ -151,12 +151,12 @@ class RuleContext:
             "wangshuai": ws,
         }
 
-    def shixiao_context(self, line: Any | None = None) -> Dict[str, Any]:
+    def shixiao_context(self, line: Any | None = None) -> dict[str, Any]:
         """统一时效卦分类：月令时效 / 日令时效 / 终身时效。"""
         target = line or self.primary_yong
         moving = self.primary_yong_moving if target is self.primary_yong else self.moving_analyses.get(getattr(target, "position", 0), {})
         bian_zhi = getattr(target, "bian_di_zhi", None) if target else None
-        he_month = LIU_CHONG.get(self.month_zhi)
+        LIU_CHONG.get(self.month_zhi)
         line_hits_month = bool(target and getattr(target, "di_zhi", None) == self.month_zhi)
         line_hits_day = bool(target and getattr(target, "di_zhi", None) == self.day_zhi)
         bian_hits_month = bian_zhi == self.month_zhi
@@ -178,7 +178,7 @@ class RuleContext:
             "wangshuai": self.wangshuai_of(target) if target else {},
         }
 
-    def competitive_opponent_candidates(self) -> List[Dict[str, Any]]:
+    def competitive_opponent_candidates(self) -> list[dict[str, Any]]:
         """识别短期竞争卦中可能代表竞争者且发动失势的间爻。"""
         if not self.is_competitive_selection or not self.shi_line:
             return []

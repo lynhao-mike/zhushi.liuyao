@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """缓存键确定性与隔离性回归测试。"""
 
 from api.infrastructure.cache.redis_client import CacheKey, build_fingerprint, build_ganzhi_key

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """用户反馈案例回归测试。
 
 目标不是只验证“能跑通”, 而是把一次明确误断沉淀为黄金反馈样本:
@@ -13,7 +12,6 @@ import pytest
 from liuyao.application.use_cases.analysis import run_analysis
 from liuyao.domain.hexagram import Hexagram
 from tests.fixtures.feedback_cases import FEEDBACK_CASES
-
 
 BASELINE_FEEDBACK_RULE_HITS = {
     "feedback_kaoyan_fushi_001": {

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
 """HTTP 响应模型契约回归测试。"""
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from api.interfaces.http.schemas.reading import (
     PaginatedReadings,
@@ -42,7 +41,7 @@ def _reading_payload() -> dict:
         "report_readable": None,
         "report_files": [],
         "from_cache": False,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
     }
 
 
@@ -68,7 +67,7 @@ def test_paginated_readings_accepts_summary_payload():
         "ji_xiong": "吉",
         "gua_ju_pattern": "用旺世兴局",
         "is_dual": False,
-        "created_at": datetime.now(timezone.utc),
+        "created_at": datetime.now(UTC),
     }
 
     response = PaginatedReadings.model_validate(
@@ -99,7 +98,7 @@ def test_stats_template_and_feedback_responses_accept_service_payloads():
             "cast_hour": 12,
             "default_question_type": "other",
             "source_text": None,
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
         }
     )
     feedback = ReadingFeedbackResponse.model_validate(
@@ -110,7 +109,7 @@ def test_stats_template_and_feedback_responses_accept_service_payloads():
             "feedback_text": None,
             "status": "submitted",
             "original_judgement": {"ji_xiong": "吉"},
-            "created_at": datetime.now(timezone.utc),
+            "created_at": datetime.now(UTC),
         }
     )
 

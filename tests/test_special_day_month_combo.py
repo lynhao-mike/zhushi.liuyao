@@ -1,11 +1,10 @@
-# -*- coding: utf-8 -*-
 """特殊日月组合最小闭环测试。"""
 
 from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.domain.dongbian import analyze_dongbian
 from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.rules.context import RuleContext
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.domain.dongbian import analyze_dongbian
 
 
 def _ctx(hexagram, yong_shen_liu_qin="官鬼", question_type="other"):

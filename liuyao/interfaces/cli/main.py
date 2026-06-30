@@ -10,11 +10,15 @@
 import argparse
 import sys
 
-from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.data import HEXAGRAM_BY_NAME, BA_GUA
 from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
+from liuyao.domain.data import BA_GUA, HEXAGRAM_BY_NAME
+from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
-from liuyao.interfaces.cli.reporting import format_report, format_dual_report, format_readable_report
+from liuyao.interfaces.cli.reporting import (
+    format_dual_report,
+    format_readable_report,
+    format_report,
+)
 from liuyao.report_archive import archive_reports, build_hexagram_input_snapshot
 
 

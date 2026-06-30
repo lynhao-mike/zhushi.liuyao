@@ -7,11 +7,11 @@
 
 from .data import (
     DI_ZHI_WU_XING,
-    WU_XING_SHENG, WU_XING_KE,
+    WU_XING_KE,
+    WU_XING_SHENG,
 )
 from .rules import P0_RULES, RuleContext, RuleEngine
 from .rules.dynamic_rules import evaluate_dynamic_classic_rules
-
 
 # 用神选择表: 问事类型 -> 用神六亲
 YONG_SHEN_TABLE = {
@@ -191,7 +191,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         }
 
     # 获取世爻旺衰
-    shi_ws = wangshuai_results[shi_line.position - 1]
+    wangshuai_results[shi_line.position - 1]
     shi_has_support = _line_has_day_month_support(shi_line.di_zhi, month_zhi, day_zhi)
 
     # 获取用神旺衰 (取最旺的一个)
@@ -226,7 +226,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
     shi_interaction = interactions.get(shi_line.position, {"受生": [], "受克": []})
 
     # 用神爻受生/受克情况
-    yong_interaction = interactions.get(primary_yong.position, {"受生": [], "受克": []})
+    interactions.get(primary_yong.position, {"受生": [], "受克": []})
 
     # =========================================================================
     # P0 规则管线: 特殊日月组合 / 三合局 / 内力终局 / 动兆优先
@@ -342,7 +342,7 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         return with_classic_candidates({
             "pattern": "用旺世兴局",
             "ji_xiong": "吉",
-            "explanation": f"用神旺相, 世爻得日月扶助, 吉",
+            "explanation": "用神旺相, 世爻得日月扶助, 吉",
         })
 
     # 8. 动兆临日月: 用神发动且变出临日/月, 以动兆得令优先于静态衰败。
@@ -564,7 +564,7 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
 
     # 用生世
     if WU_XING_SHENG[yong_wx] == shi_wx:
-        yong_ws = wangshuai_results[primary_yong.position - 1]
+        wangshuai_results[primary_yong.position - 1]
         yong_has_support = _line_has_day_month_support(primary_yong.di_zhi, month_zhi, day_zhi)
         if yong_has_support:
             return {
@@ -576,7 +576,7 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
             return {
                 "pattern": "静卦用生世(力弱)",
                 "ji_xiong": "平",
-                "explanation": f"用神生世但用神无日月扶, 力量不足",
+                "explanation": "用神生世但用神无日月扶, 力量不足",
             }
 
     # 用克世
@@ -614,7 +614,7 @@ def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type
         return {
             "pattern": "静卦用衰",
             "ji_xiong": "凶",
-            "explanation": f"用神衰弱, 所求难成",
+            "explanation": "用神衰弱, 所求难成",
         }
 
     return {

@@ -1,13 +1,12 @@
-# -*- coding: utf-8 -*-
 """复合之动最终目标爻规则最小回归测试。"""
 
 from types import SimpleNamespace
 
 from liuyao.application.use_cases.analysis import run_analysis
 from liuyao.domain.dongbian import analyze_compound_movement
+from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.rules.context import RuleContext
 from liuyao.domain.rules.p0_rules import CompoundMovementFinalTargetRule
-from liuyao.domain.hexagram import Hexagram
 from tests.fixtures.zengshan_230_cases import CASE_10
 
 

@@ -3,8 +3,7 @@ Async SQLAlchemy session factory and dependency injection helper.
 """
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -51,18 +50,6 @@ def _get_session_factory():
 # ── FastAPI dependency ────────────────────────────────────────────────────────
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Yield an async DB session, rolling back on error."""
-    async with _get_session_factory()() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-
-
-@asynccontextmanager
-async def managed_session() -> AsyncGenerator[AsyncSession, None]:
-    """Context-manager form for use outside of FastAPI DI (e.g. scripts)."""
     async with _get_session_factory()() as session:
         try:
             yield session

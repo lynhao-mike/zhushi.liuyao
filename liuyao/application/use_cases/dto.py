@@ -5,7 +5,6 @@
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 from liuyao.domain.hexagram import Hexagram
 
@@ -22,18 +21,18 @@ class AnalysisReport:
     perspective_label: str = ""  # 视角标签 (如"物件本相视角"), 单视角时为空
 
     # 分析结果
-    wangshuai_results: List[Dict] = field(default_factory=list)
-    dongbian_results: Dict = field(default_factory=dict)
-    patterns_results: Dict = field(default_factory=dict)
-    star_spirits: Dict = field(default_factory=dict)
-    yimao_imagery: Dict = field(default_factory=dict)
-    jixiong_result: Dict = field(default_factory=dict)
-    yingqi_results: List[Dict] = field(default_factory=list)
+    wangshuai_results: list[dict] = field(default_factory=list)
+    dongbian_results: dict = field(default_factory=dict)
+    patterns_results: dict = field(default_factory=dict)
+    star_spirits: dict = field(default_factory=dict)
+    yimao_imagery: dict = field(default_factory=dict)
+    jixiong_result: dict = field(default_factory=dict)
+    yingqi_results: list[dict] = field(default_factory=list)
 
     # 用神信息
-    yong_shen_lines: List = field(default_factory=list)
-    shi_line: Optional[object] = None
-    ying_line: Optional[object] = None
+    yong_shen_lines: list = field(default_factory=list)
+    shi_line: object | None = None
+    ying_line: object | None = None
 
 
 @dataclass
@@ -51,14 +50,14 @@ class DualPerspectiveReport:
     question_type: str = ""
 
     # 共享部分
-    wangshuai_results: List[Dict] = field(default_factory=list)
-    dongbian_results: Dict = field(default_factory=dict)
-    star_spirits: Dict = field(default_factory=dict)
-    shi_line: Optional[object] = None
-    ying_line: Optional[object] = None
+    wangshuai_results: list[dict] = field(default_factory=list)
+    dongbian_results: dict = field(default_factory=dict)
+    star_spirits: dict = field(default_factory=dict)
+    shi_line: object | None = None
+    ying_line: object | None = None
 
     # 各视角分析结果
-    perspectives: List[AnalysisReport] = field(default_factory=list)
+    perspectives: list[AnalysisReport] = field(default_factory=list)
 
     # 综合结论 (一致吉/一致凶/分歧)
     consensus: str = ""

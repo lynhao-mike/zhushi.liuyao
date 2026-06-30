@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 create_reading() 最小单元安全网。
 
@@ -8,23 +7,22 @@ create_reading() 最小单元安全网。
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from api.application.use_cases.dto import ReadingCreateCommand
-from api.application.use_cases.readings import create_reading
 from api.application.use_cases.reading_support import orm_to_response as _orm_to_response
-
+from api.application.use_cases.readings import create_reading
+from api.interfaces.http.schemas.reading import ReadingCreateRequest
 
 # ── Fake DB ───────────────────────────────────────────────────────────────────
 
 class _FakeSession:
     def __init__(self):
-        self._store: Dict[str, Any] = {}
-        self.added: List[Any] = []
+        self._store: dict[str, Any] = {}
+        self.added: list[Any] = []
         self.flushed = False
 
     async def get(self, model, key):
@@ -49,7 +47,7 @@ class _FakeSession:
 
 # ── Stub engine result ────────────────────────────────────────────────────────
 
-_STUB_ENGINE_RESULT: Dict[str, Any] = {
+_STUB_ENGINE_RESULT: dict[str, Any] = {
     "hexagram_meta": {
         "ben_gua_name": "雷火丰",
         "bian_gua_name": "风山渐",
@@ -76,7 +74,7 @@ _STUB_ENGINE_RESULT: Dict[str, Any] = {
     "gua_ju_pattern": None,
 }
 
-_STUB_REQ = ReadingCreateCommand(
+_STUB_REQ = ReadingCreateRequest(
     yao_values=[9, 8, 7, 9, 6, 6],
     year=2026,
     month=5,
@@ -114,7 +112,7 @@ async def test_cache_hit_with_missing_report_files_is_rewarmed_after_recovery():
     cached_payload = {
         **_STUB_ENGINE_RESULT["hexagram_meta"],
         "id": str(uuid.uuid4()),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "question_type": "shiwu",
         "question_type_label": "失物",
         "question": "测试",
@@ -155,7 +153,7 @@ async def test_create_reading_returns_cache_hit_without_db_write():
     cached_payload = {
         **_STUB_ENGINE_RESULT["hexagram_meta"],
         "id": str(uuid.uuid4()),
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_at": datetime.now(UTC).isoformat(),
         "question_type": "shiwu",
         "question_type_label": "失物",
         "question": "测试",
@@ -201,7 +199,7 @@ async def test_create_reading_cache_key_includes_question_context():
     ):
         await create_reading(_STUB_REQ, db)
         await create_reading(
-            ReadingCreateCommand(
+            ReadingCreateRequest(
                 yao_values=_STUB_REQ.yao_values,
                 year=_STUB_REQ.year,
                 month=_STUB_REQ.month,
@@ -233,7 +231,7 @@ def test_orm_to_response_is_read_only_for_archived_report_text():
         gan_zhi={},
         report_text="技术报告内容",
         report_readable="可读报告内容",
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
 
     with patch(

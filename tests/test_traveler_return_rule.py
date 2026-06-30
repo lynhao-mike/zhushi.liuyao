@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """行人占规则最小回归测试。"""
 
 import pytest

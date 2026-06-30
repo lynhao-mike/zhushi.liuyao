@@ -6,21 +6,21 @@ ponytail: only move the feedback flow out of `reading.py`; keep the DB access co
 from __future__ import annotations
 
 import uuid
-from typing import Any, Dict
+from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.application.use_cases.dto import ReadingFeedbackCreateCommand
 from api.application.use_cases.reading_support import feedback_to_dict
 from api.core.exceptions import NotFoundError
 from api.infrastructure.database.models import ReadingFeedback, ReadingSession
+from api.interfaces.http.schemas.reading import ReadingFeedbackCreateRequest
 
 
 async def create_reading_feedback(
     reading_id: uuid.UUID,
-    req: ReadingFeedbackCreateCommand,
+    req: ReadingFeedbackCreateRequest,
     db: AsyncSession,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     row = await db.get(ReadingSession, reading_id)
     if not row:
         raise NotFoundError(f"Reading {reading_id} not found")

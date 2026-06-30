@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """用忌互化规则最小回归测试。"""
 
 import pytest

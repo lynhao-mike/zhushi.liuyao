@@ -30,13 +30,15 @@
 """
 
 from .data import (
-    DI_ZHI, DI_ZHI_WU_XING,
-    LIU_CHONG, LIU_HE,
-    JIN_SHEN, TUI_SHEN,
-    WU_XING_SHENG, WU_XING_KE,
-    SAN_HE, SAN_HUI,
-    WU_XING_MU, MU_BY_ZHI,
     BAN_HE_PAIRS,
+    DI_ZHI,
+    DI_ZHI_WU_XING,
+    JIN_SHEN,
+    LIU_CHONG,
+    LIU_HE,
+    WU_XING_KE,
+    WU_XING_MU,
+    WU_XING_SHENG,
 )
 
 
@@ -218,7 +220,7 @@ def estimate_yingqi_for_san_he(san_he_ju, hexagram):
         members = sh["members"]
         # 检查是否完整 (3个全在动爻)
         moving_zhis = {l.di_zhi for l in hexagram.lines if l.is_moving}
-        in_moving = [m for m in members if m in moving_zhis]
+        [m for m in members if m in moving_zhis]
         in_static = [m for m in members if m not in moving_zhis]
 
         if len(in_static) == 0:
@@ -243,7 +245,7 @@ def estimate_yingqi_gen(hexagram, primary_yong, wangshuai_results, dongbian_resu
     if not primary_yong:
         return candidates
     ws = wangshuai_results[primary_yong.position - 1]
-    moving_analyses = dongbian_results.get("moving_analyses", {})
+    dongbian_results.get("moving_analyses", {})
     has_dong = any(l.is_moving for l in hexagram.lines)
     if has_dong:
         return candidates  # ponytail: 有动即排除应期意外, 无需标记; upgrade: 出现有动爻但仍有应期意外的反馈样本时重新评估排除逻辑
@@ -271,7 +273,6 @@ def estimate_yingqi_dujing(hexagram, yong_shen_lines) -> list[str]:
     line = static[0]
     zhi = line.di_zhi
     chong = LIU_CHONG.get(zhi)
-    label = f"独静{line.liu_qin}{zhi}"
     if chong:
         candidates.append(f"独静: {zhi}日/月(逢值) 或 {chong}日/月(逢冲)")
     else:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """复合之动最终目标爻分流测试。"""
 
 from types import SimpleNamespace

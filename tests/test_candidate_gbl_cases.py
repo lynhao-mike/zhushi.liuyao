@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """郭丙李 PDF 候选理论案例测试。
 
 候选理论测试只验证元数据、重建批次来源、候选提示和非污染约束, 不把 PDF 候选理论直接
@@ -13,7 +12,6 @@ from tests.fixtures.candidate_gbl_cases import (
     CANDIDATE_GBL_CASES,
     CANDIDATE_GBL_CASES_BY_ID,
 )
-
 
 REQUIRED_CANDIDATE_FIELDS = {
     "case_id",

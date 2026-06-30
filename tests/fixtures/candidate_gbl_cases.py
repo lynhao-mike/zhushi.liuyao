@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """郭丙李 PDF 候选理论案例 fixture。
 
 这些案例来自 docs/reference/new 下的重建批次 Markdown 文档, 只用于验证候选理论的

@@ -4,11 +4,8 @@ All secrets come from env; defaults are safe for local Docker Compose.
 """
 from __future__ import annotations
 
-import os
 from functools import lru_cache
-from typing import List
 
-from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -17,14 +14,6 @@ class Settings(BaseSettings):
     APP_NAME: str = "zhushi-liuyao"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = False
-    SECRET_KEY: str = "change-me-in-production-please"
-
-    # ── Server ────────────────────────────────────────────────────────
-    HOST: str = "0.0.0.0"
-    PORT: int = 8000
-    WORKERS: int = 4
-    RELOAD: bool = False
-
     # ── Database (PostgreSQL) ─────────────────────────────────────────
     POSTGRES_HOST: str = "postgres"
     POSTGRES_PORT: int = 5432
@@ -71,7 +60,7 @@ class Settings(BaseSettings):
     DB_POOL_RECYCLE: int = 1800           # 30 min
 
     # ── CORS ──────────────────────────────────────────────────────────
-    CORS_ORIGINS: List[str] = ["*"]
+    CORS_ORIGINS: list[str] = ["*"]
 
     # ── Pagination ────────────────────────────────────────────────────
     DEFAULT_PAGE_SIZE: int = 20

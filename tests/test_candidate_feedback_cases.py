@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """用户反馈候选校准案例测试。
 
 候选反馈测试只验证元数据、卦象复现与校准提示, 不把单个反馈直接升级为核心规则。
@@ -15,7 +14,6 @@ from tests.fixtures.candidate_feedback_cases import (
     CANDIDATE_FEEDBACK_CASES,
     CANDIDATE_FEEDBACK_CASES_BY_ID,
 )
-
 
 REQUIRED_CANDIDATE_FEEDBACK_FIELDS = {
     "case_id",

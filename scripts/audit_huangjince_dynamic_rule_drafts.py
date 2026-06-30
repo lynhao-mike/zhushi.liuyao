@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Audit 《黄金策》 dynamic rule drafts and build a deterministic compile queue.
 
 本脚本只产出审计报告与“下一批待编译”队列，不生成运行时规则，
@@ -12,8 +11,9 @@ import argparse
 import json
 import sys
 from collections import Counter
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """《黄金策》动态候选规则闭环测试。
 
 这些测试验证候选规则可校验、可执行、可附加证据, 且不会覆盖既有 P0/一般吉凶主判。
@@ -12,8 +11,8 @@ from liuyao.domain.jixiong import judge_jixiong
 from liuyao.domain.rules.classic_rule_schema import validate_classic_rules
 from liuyao.domain.rules.context import RuleContext
 from liuyao.domain.rules.dynamic_rules import (
-    DynamicClassicRule,
     DEFAULT_HUANGJINCE_RULES_PATH,
+    DynamicClassicRule,
     evaluate_condition,
     evaluate_dynamic_classic_rules,
     load_dynamic_classic_rule_records,

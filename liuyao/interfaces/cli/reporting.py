@@ -7,10 +7,10 @@
 - format_readable_report: 可读性断卦报告(面向客户，供易师直接解读)
 """
 
-from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
-from liuyao.domain.classic_judgements import search_classic_judgements
+from liuyao.application.use_cases.verdict import GUA_JU_BAIHUA, build_verdict
 from liuyao.domain.classic_imagery import search_classic_imagery
-from liuyao.application.use_cases.verdict import build_verdict, GUA_JU_BAIHUA
+from liuyao.domain.classic_judgements import search_classic_judgements
+from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
 
 # 问事类型中文名 (从 data 模块导入, 此处保留别名以兼容模块内引用)
 QUESTION_TYPE_NAMES = QUESTION_TYPE_LABELS
@@ -442,7 +442,7 @@ def _format_star_spirits_block(star_spirits, hexagram):
         zhi = star_spirits.get(name, "")
         if not zhi:
             continue
-        zhi_list = zhi if isinstance(zhi, (tuple, list)) else (zhi,)
+        zhi_list = zhi if isinstance(zhi, tuple | list) else (zhi,)
         # 找出对应的爻
         matched = []
         for pos, lzhi in line_zhis.items():
@@ -669,7 +669,6 @@ def _readable_gua_tu(hexagram):
     rows.append("  " + "─" * 46)
     # 从上爻到初爻（卦图习惯由上至下）
     for line in reversed(hexagram.lines):
-        pos = line.position
         shen = line.liu_shen
         qin  = line.liu_qin
         zhi  = line.di_zhi
@@ -1282,16 +1281,20 @@ def format_readable_report(analysis, meta=None):
 
             out.append(f"  【视角{idx}】{label}")
             if ys_lines:
-                for l in ys_lines:
+                for line in ys_lines:
                     tags = []
-                    if l.is_moving: tags.append("动")
-                    if l.is_shi:    tags.append("世")
-                    if l.is_ying:   tags.append("应")
-                    if l.is_xun_kong: tags.append("旬空")
-                    ws_lv = ws_results[l.position - 1]["overall"]
+                    if line.is_moving:
+                        tags.append("动")
+                    if line.is_shi:
+                        tags.append("世")
+                    if line.is_ying:
+                        tags.append("应")
+                    if line.is_xun_kong:
+                        tags.append("旬空")
+                    ws_lv = ws_results[line.position - 1]["overall"]
                     tag_s = "、".join(tags) if tags else "静"
                     out.append(
-                        f"  用神：{ys}——第{l.position}爻 {l.liu_shen} {l.di_zhi}{l.wu_xing}"
+                        f"  用神：{ys}——第{line.position}爻 {line.liu_shen} {line.di_zhi}{line.wu_xing}"
                         f"  （{tag_s}，{ws_lv}相）"
                     )
             else:
@@ -1315,15 +1318,18 @@ def format_readable_report(analysis, meta=None):
         ji_mark = {"吉": "✓ 吉", "凶": "✗ 凶", "平": "— 平"}.get(
             jx.get("ji_xiong", "平"), jx.get("ji_xiong", "平"))
         if ys_lines:
-            for l in ys_lines:
+            for line in ys_lines:
                 tags = []
-                if l.is_moving: tags.append("动")
-                if l.is_shi:    tags.append("世")
-                if l.is_ying:   tags.append("应")
-                ws_lv = ws_results[l.position - 1]["overall"]
+                if line.is_moving:
+                    tags.append("动")
+                if line.is_shi:
+                    tags.append("世")
+                if line.is_ying:
+                    tags.append("应")
+                ws_lv = ws_results[line.position - 1]["overall"]
                 tag_s = "、".join(tags) if tags else "静"
                 out.append(
-                    f"  用神：{ys}——第{l.position}爻 {l.liu_shen} {l.di_zhi}{l.wu_xing}"
+                    f"  用神：{ys}——第{line.position}爻 {line.liu_shen} {line.di_zhi}{line.wu_xing}"
                     f"  （{tag_s}，{ws_lv}相）"
                 )
         else:

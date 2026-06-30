@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """终身时效卦规则最小回归测试。"""
 
 import pytest

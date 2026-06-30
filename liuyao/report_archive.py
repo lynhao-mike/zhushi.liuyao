@@ -7,10 +7,10 @@ be reviewed and compared with later feedback.
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
-
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_REPORTS_DIR = PROJECT_ROOT / "examples" / "reports"
@@ -34,7 +34,7 @@ HEXAGRAM_INPUT_LABELS = {
 }
 
 
-def _safe_filename_part(value: Optional[str], fallback: str = "未命名") -> str:
+def _safe_filename_part(value: str | None, fallback: str = "未命名") -> str:
     text = (value or "").strip() or fallback
     text = re.sub(r"[\\/:*?\"<>|\r\n\t]+", "_", text)
     text = re.sub(r"\s+", "", text)
@@ -42,7 +42,7 @@ def _safe_filename_part(value: Optional[str], fallback: str = "未命名") -> st
     return (text or fallback)[:48]
 
 
-def _build_prefix(meta: Optional[Dict[str, Any]]) -> str:
+def _build_prefix(meta: dict[str, Any] | None) -> str:
     meta = meta or {}
     question = _safe_filename_part(meta.get("question"), "未命名占问")
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -55,7 +55,7 @@ def _iter_hexagram_input_lines(value: Any) -> Iterable[str]:
     if isinstance(value, str):
         return [line.rstrip() for line in value.splitlines() if line.strip()]
     if isinstance(value, dict):
-        lines: List[str] = []
+        lines: list[str] = []
         for key, label in HEXAGRAM_INPUT_LABELS.items():
             if key not in value or value[key] in (None, "", []):
                 continue
@@ -68,7 +68,7 @@ def _iter_hexagram_input_lines(value: Any) -> Iterable[str]:
     return [str(value)]
 
 
-def _build_hexagram_input_section(meta: Optional[Dict[str, Any]]) -> str:
+def _build_hexagram_input_section(meta: dict[str, Any] | None) -> str:
     meta = meta or {}
     lines = list(_iter_hexagram_input_lines(meta.get("hexagram_input")))
     if not lines:
@@ -76,7 +76,7 @@ def _build_hexagram_input_section(meta: Optional[Dict[str, Any]]) -> str:
     return "\n".join(["# 输入卦象信息", "", *lines, ""])
 
 
-def _with_hexagram_input(content: str, meta: Optional[Dict[str, Any]]) -> str:
+def _with_hexagram_input(content: str, meta: dict[str, Any] | None) -> str:
     section = _build_hexagram_input_section(meta)
     if not section:
         return content
@@ -90,9 +90,9 @@ def build_hexagram_input_snapshot(
     is_dual: bool,
     date: str,
     hour: int,
-    yao_values: List[int],
+    yao_values: list[int],
     hexagram: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build a reusable hexagram input snapshot for reporting/archive metadata."""
     return {
         "question": question,
@@ -136,11 +136,11 @@ def build_hexagram_input_snapshot(
 
 def archive_reports(
     *,
-    report_text: Optional[str] = None,
-    report_readable: Optional[str] = None,
-    meta: Optional[Dict[str, Any]] = None,
-    reports_dir: Optional[str | Path] = None,
-) -> List[str]:
+    report_text: str | None = None,
+    report_readable: str | None = None,
+    meta: dict[str, Any] | None = None,
+    reports_dir: str | Path | None = None,
+) -> list[str]:
     """Write generated reports to disk and return workspace-relative paths."""
     target_dir = Path(reports_dir) if reports_dir else DEFAULT_REPORTS_DIR
     if not target_dir.is_absolute():
@@ -148,7 +148,7 @@ def archive_reports(
     target_dir.mkdir(parents=True, exist_ok=True)
 
     prefix = _build_prefix(meta)
-    written: List[str] = []
+    written: list[str] = []
 
     outputs = [
         (report_text, "技术报告"),

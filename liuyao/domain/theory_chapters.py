@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Merged theory chapter knowledge tables.
 
 Generated from the former theory_chapters08_12.py ... theory_chapters32_40.py shards.

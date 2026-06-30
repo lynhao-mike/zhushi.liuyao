@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
 """最小阅读反馈用例测试。"""
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 
-from api.application.use_cases.dto import ReadingFeedbackCreateCommand
 from api.application.use_cases.feedback import create_reading_feedback
 from api.infrastructure.database.models import ReadingSession
+from api.interfaces.http.schemas.reading import ReadingFeedbackCreateRequest
 
 
 class FakeResult:
@@ -51,10 +50,10 @@ async def test_create_reading_feedback_persists_snapshot_and_links_reading():
         yao_values=[8, 7, 7, 6, 7, 8],
         cast_hour=12,
         jixiong_json={"rule_id": "P1_TEST", "ji_xiong": "吉"},
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
     )
     db = FakeDB(reading)
-    req = ReadingFeedbackCreateCommand(
+    req = ReadingFeedbackCreateRequest(
         actual_outcome="事情已解决",
         feedback_text="用户实际结果反馈",
     )

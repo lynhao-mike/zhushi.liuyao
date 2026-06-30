@@ -2,20 +2,17 @@
 动变模块专项测试 - Dedicated unit tests for liuyao/dongbian.py
 """
 
-import pytest
 from types import SimpleNamespace
 
 from liuyao.domain.dongbian import (
-    is_hui_tou_sheng,
-    is_hui_tou_ke,
-    is_hua_jin_shen,
-    is_hua_tui_shen,
-    is_hua_jue,
-    is_hua_po,
-    analyze_moving_line,
-    detect_an_dong,
     analyze_compound_movement,
     analyze_dongbian,
+    is_hua_jin_shen,
+    is_hua_jue,
+    is_hua_po,
+    is_hua_tui_shen,
+    is_hui_tou_ke,
+    is_hui_tou_sheng,
 )
 from liuyao.domain.hexagram import Hexagram
 from liuyao.domain.wangshuai import analyze_hexagram_wangshuai

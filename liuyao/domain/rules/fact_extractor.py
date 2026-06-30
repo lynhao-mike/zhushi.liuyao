@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Minimal fact extraction for dynamic classic Liuyao rules.
 
 事实抽取器只读取 ``RuleContext`` 已有卦象、旺衰、动变信息, 不新增吉凶

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """克中带冲突破金刚型最小回归测试。"""
 
 from liuyao.application.use_cases.analysis import run_analysis

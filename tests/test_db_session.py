@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """数据库会话依赖事务边界测试。"""
 
 from __future__ import annotations

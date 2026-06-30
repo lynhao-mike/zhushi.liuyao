@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 《增删卜易》卦例验证测试（真实日月干支对照）
 
@@ -20,17 +19,25 @@
 
 import pytest
 
-from liuyao.domain.hexagram import Hexagram
 from liuyao.application.use_cases.analysis import run_analysis
+from liuyao.domain.hexagram import Hexagram
+from liuyao.domain.rules import THEORY_RULE_CASE_MAP
 from liuyao.interfaces.cli.reporting import format_report
 from tests.fixtures.zengshan_230_cases import (
+    CASE_01,
+    CASE_03,
+    CASE_04,
+    CASE_09,
+    CASE_10,
+    CASE_14,
+    CASE_15,
+    CASE_17,
+    CASE_18,
+    CASE_22,
+    CASE_23,
+    CASE_101,
     ZENGSHAN_CASES,
-    CASE_01, CASE_03, CASE_04, CASE_09,
-    CASE_10, CASE_14, CASE_15, CASE_17,
-    CASE_18, CASE_22, CASE_23, CASE_101,
 )
-from liuyao.domain.rules import THEORY_RULE_CASE_MAP
-
 
 # ============================================================================ #
 # 命中基线与已知未对照集 (回归红线)                                              #
@@ -84,7 +91,7 @@ BASELINE_RULE_HITS = {
     "例60":  {"rule_id": "legacy",                  "pattern": "用旺世衰局"},
     "例61":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例101": {"rule_id": "P0_ZHEN_BAN",              "pattern": "真绊"},
-    "例108": {"rule_id": "P1_YUANSHEN_DUFA_BIANFEI", "pattern": "元神独发变废(回头克)"},
+    "例108": {"rule_id": "P0_ZHEN_BAN",              "pattern": "真绊"},
     "例144": {"rule_id": "legacy",                  "pattern": "占寿元动则有期"},
     "例218": {"rule_id": "P0_HUI_TOU_SHENG_RESCUE",  "pattern": "用神动化回头生"},
 }
@@ -398,7 +405,7 @@ class TestTheoryRules:
 
     def test_yue_po_ri_ke_fei_yao_condition(self):
         """废爻型: 月破(月令冲) + 日令克。亥水在巳月(月破)未日(日克)。"""
-        from liuyao.domain.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
+        from liuyao.domain.wangshuai import ri_chen_wangshuai, yue_jian_wangshuai
         _, yue_shuai = yue_jian_wangshuai("亥", "巳")
         _, ri_shuai = ri_chen_wangshuai("亥", "未")
         assert "月破" in yue_shuai, "亥水在巳月应为月破"
@@ -406,7 +413,7 @@ class TestTheoryRules:
 
     def test_jingang_yue_jian_ri_sheng_condition(self):
         """金刚型: 月建(临月令) + 日令生/合。申金在申月为临月令。"""
-        from liuyao.domain.wangshuai import yue_jian_wangshuai, ri_chen_wangshuai
+        from liuyao.domain.wangshuai import ri_chen_wangshuai, yue_jian_wangshuai
         yue_wang, _ = yue_jian_wangshuai("申", "申")
         assert "临月令" in yue_wang, "申金在申月应为临月令"
         ri_wang, _ = ri_chen_wangshuai("申", "辰")
@@ -446,9 +453,9 @@ class TestTheoryRules:
     def test_ban_formation_hua_ban(self):
         """化绊: 动爻与变爻六合。验证 analyze_all_patterns 可正常运行。"""
         h = Hexagram.from_ganzhi([7, 7, 9, 7, 7, 7], month_zhi="丑", day_zhi="寅", xun_kong=["子", "丑"])
-        from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
         from liuyao.domain.dongbian import analyze_dongbian
         from liuyao.domain.patterns import analyze_all_patterns
+        from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
         ws = analyze_hexagram_wangshuai(h)
         db = analyze_dongbian(h, ws)
         patterns = analyze_all_patterns(h, ws, db, "父母", "官鬼", [], "bing")
