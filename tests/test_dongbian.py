@@ -161,6 +161,22 @@ class TestAnalyzeDongbian:
         assert result[0]["mode"] == "chain_ke_cancel"
         assert result[0]["path"] == [1, 2]
 
+    def test_compound_movement_leave_job_case_uses_only_original_moving_lines(self):
+        h = SimpleNamespace(
+            shi_line=SimpleNamespace(position=3, di_zhi="卯", wu_xing="木"),
+            lines_by_position={3: SimpleNamespace(position=3, di_zhi="卯", wu_xing="木")},
+            moving_lines=[
+                SimpleNamespace(position=2, di_zhi="巳", wu_xing="火", bian_di_zhi="辰", bian_wu_xing="土"),
+                SimpleNamespace(position=4, di_zhi="午", wu_xing="火", bian_di_zhi="戌", bian_wu_xing="土"),
+                SimpleNamespace(position=5, di_zhi="申", wu_xing="金", bian_di_zhi="子", bian_wu_xing="水"),
+            ],
+        )
+        result = analyze_compound_movement(h, {}, [2, 4, 5], question_type="other")
+        paths = {(item["mode"], tuple(item["path"]), item["acts_on_target"]) for item in result}
+        assert ("chain_ke_cancel", (2, 5, 3), "protect") in paths
+        assert ("chain_ke_cancel", (4, 5, 3), "protect") in paths
+        assert not any("变" in item["path"] for item in result)
+
     def test_compound_movement_san_he_has_priority(self):
         h = SimpleNamespace(moving_lines=[])
         result = analyze_compound_movement(

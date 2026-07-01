@@ -308,6 +308,10 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
                         acts = "block"
                         valid = True
                         path = [source.position, middle.position, target_pos]
+                    elif target_line is not None and WU_XING_KE.get(middle.wu_xing) == target_line.wu_xing:
+                        acts = "protect"
+                        valid = True
+                        path = [source.position, middle.position, target_pos]
                 results.append({
                     "mode": "chain_ke_cancel",
                     "final_target_kind": final_target["kind"],
@@ -316,7 +320,7 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
                     "aggregated_to_position": middle.position,
                     "acts_on_target": acts,
                     "valid": valid,
-                    "reason": f"第{source.position}爻克第{middle.position}爻, {'并阻断其后续到目标爻' if valid and acts == 'block' else ('最终克到目标爻' if valid else '但未打到最终目标爻')}",
+                    "reason": f"第{source.position}爻克第{middle.position}爻, {'并阻断其后续到目标爻' if valid and acts == 'block' else ('并制住其克伤目标爻' if valid and acts == 'protect' else ('最终克到目标爻' if valid else '但未打到最终目标爻'))}",
                     "source_positions": path,
                 })
 

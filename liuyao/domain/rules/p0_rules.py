@@ -323,6 +323,14 @@ class CompoundMovementFinalTargetRule(BaseRule):
                     f"复合动路径{item.get('path')}整体阻断用神, 按复合之动整体论凶",
                     evidence=[item],
                 )
+        if acts == "protect":
+            if target_kind in {"shi", "shi_yong", "yong"}:
+                return self.result(
+                    "复合动制忌护身",
+                    "吉",
+                    f"复合动路径{item.get('path')}先制住克伤目标爻的动爻, 按复合之动整体论吉",
+                    evidence=[item],
+                )
         return None
 
 

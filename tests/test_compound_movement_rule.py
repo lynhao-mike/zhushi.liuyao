@@ -91,6 +91,27 @@ def test_compound_rule_hits_block_yong():
     assert result.ji_xiong == "凶"
 
 
+def test_compound_rule_hits_protect_target():
+    ctx = _ctx([
+        {
+            "mode": "chain_ke_cancel",
+            "final_target_kind": "shi",
+            "final_target_position": 2,
+            "path": [4, 5, 2],
+            "aggregated_to_position": 5,
+            "acts_on_target": "protect",
+            "valid": True,
+            "reason": "测试",
+            "source_positions": [4, 5, 2],
+        }
+    ])
+    result = CompoundMovementFinalTargetRule().evaluate(ctx)
+    assert result is not None
+    assert result.rule_id == "P0_COMPOUND_MOVEMENT_FINAL_TARGET"
+    assert result.pattern == "复合动制忌护身"
+    assert result.ji_xiong == "吉"
+
+
 def test_compound_rule_yields_to_san_he_mode():
     ctx = _ctx([
         {
