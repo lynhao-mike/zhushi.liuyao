@@ -160,3 +160,34 @@ def test_http_routers_use_interface_dependencies_for_database_sessions():
                 offenders.append(f"{path.relative_to(ROOT)} imports {module}")
 
     assert offenders == []
+
+
+def test_auxiliary_classic_sources_stay_out_of_rule_pipeline():
+    """《黄金策》《易冒》等辅助资料只能进报告层, 不能进入核心规则主判。"""
+    forbidden_modules = {
+        "liuyao.domain.classic_judgements",
+        "liuyao.domain.classic_imagery",
+        "liuyao.domain.yimao_imagery",
+    }
+    offenders = []
+
+    for path in (ROOT / "liuyao" / "domain" / "rules").rglob("*.py"):
+        for module in _imports(path):
+            if module in forbidden_modules:
+                offenders.append(f"{path.relative_to(ROOT)} imports {module}")
+
+    assert offenders == []
+
+
+def test_reports_keep_auxiliary_sources_as_non_judgement_layers():
+    """报告层必须明确辅助资料只做校验、印证、取象, 不改主判。"""
+    source = _read_text(ROOT / "liuyao" / "interfaces" / "cli" / "reporting.py")
+
+    required_phrases = [
+        "《卜筮正宗》只作基础校验和纠偏, 不改判",
+        "《黄金策》提供经典断语参考",
+        "《易冒》提供方位、人物、状态、物象等古法取象",
+        "不作吉凶主判",
+    ]
+    for phrase in required_phrases:
+        assert phrase in source
