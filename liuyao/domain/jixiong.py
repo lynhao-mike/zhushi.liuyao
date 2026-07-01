@@ -160,19 +160,10 @@ def _line_has_day_month_support(line_zhi, month_zhi, day_zhi):
 def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_results,
                    question_type, patterns_results=None):
     """
-    动卦吉凶判断。
+    动卦吉凶判断: 统一由 P0_RULES 管线处理。
 
-    吉利卦局:
-    1. 世用受生局: 自占, 用神与世爻重叠, 受动爻生
-    2. 用神生世局: 用神为有用动爻, 且生世
-    3. 用旺世兴局: 用神旺 + 世至少得日月之一
-
-    凶兆卦局:
-    1. 用神衰败局: 用神整体衰
-    2. 世爻受伤局: 世受有用动爻克, 或世动化衰
-    3. 世用受克局: 用=世, 受克
-    4. 用旺世衰局: 用旺但世无日月扶
-    5. 用神克世局: 用神动克世
+    所有卦局模式（废爻型、时效卦、三合局、内力终局、反馈特例、
+    用旺世兴等）均已迁移为 BaseRule 子类，按 priority 排序执行。
 
     Returns:
         dict: {"pattern": 卦局名, "ji_xiong": "吉"/"凶"/"平", "explanation": 说明}
@@ -190,47 +181,16 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
             "explanation": "未找到用神或世爻",
         }
 
-    # 获取世爻旺衰
-    wangshuai_results[shi_line.position - 1]
-    shi_has_support = _line_has_day_month_support(shi_line.di_zhi, month_zhi, day_zhi)
-
-    # 获取用神旺衰 (取最旺的一个)
-    yong_ws_list = []
-    for yl in yong_lines:
-        yong_ws_list.append(wangshuai_results[yl.position - 1])
-
     # 选择主用神: 优先动爻, 其次旺爻
     primary_yong = yong_lines[0]
-    primary_yong_ws = yong_ws_list[0]
-    for i, yl in enumerate(yong_lines):
+    for yl in yong_lines:
         if yl.is_moving:
             primary_yong = yl
-            primary_yong_ws = yong_ws_list[i]
             break
-        if yong_ws_list[i]["overall"] == "旺":
+        if wangshuai_results[yl.position - 1]["overall"] == "旺":
             primary_yong = yl
-            primary_yong_ws = yong_ws_list[i]
+            break
 
-    yong_is_wang = primary_yong_ws["overall"] == "旺"
-    yong_is_shuai = primary_yong_ws["overall"] == "衰"
-
-    # 用神是否就是世爻
-    yong_is_shi = any(yl.position == shi_line.position for yl in yong_lines)
-
-    # 获取动爻交互
-    interactions = dongbian_results.get("interactions", {})
-    moving_analyses = dongbian_results.get("moving_analyses", {})
-    useful_moving = dongbian_results.get("useful_moving", [])
-
-    # 世爻受生/受克情况
-    shi_interaction = interactions.get(shi_line.position, {"受生": [], "受克": []})
-
-    # 用神爻受生/受克情况
-    interactions.get(primary_yong.position, {"受生": [], "受克": []})
-
-    # =========================================================================
-    # P0 规则管线: 特殊日月组合 / 三合局 / 内力终局 / 动兆优先
-    # =========================================================================
     rule_context = RuleContext(
         hexagram=hexagram,
         yong_shen_liu_qin=yong_shen_liu_qin,
@@ -244,130 +204,16 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
         month_zhi=month_zhi,
         day_zhi=day_zhi,
     )
-    def with_classic_candidates(result):
-        return _attach_classic_rule_candidates(result, rule_context)
 
     rule_result = RuleEngine(P0_RULES).evaluate(rule_context)
     if rule_result:
-        return with_classic_candidates(rule_result.to_jixiong())
+        return _attach_classic_rule_candidates(rule_result.to_jixiong(), rule_context)
 
-    # =========================================================================
-    # 特例检查 (优先于一般规则)
-    # =========================================================================
-    special = _check_special_cases(
-        hexagram, yong_shen_liu_qin, shi_line, primary_yong,
-        wangshuai_results, dongbian_results, question_type,
-        month_zhi, day_zhi
-    )
-    if special:
-        return with_classic_candidates(special)
-
-    # =========================================================================
-    # 按照传统理论优先级判断:
-    # 世用受克局 -> 世爻受伤局 -> 世用受生局 -> 用神生世局 ->
-    # 用旺世衰局 -> 用神克世局 -> 用旺世兴局 -> 用神衰败局
-    # =========================================================================
-
-    yong_wx = DI_ZHI_WU_XING[primary_yong.di_zhi]
-    shi_wx = DI_ZHI_WU_XING[shi_line.di_zhi]
-
-    # 1. 世用受克局: 用神与世重叠, 受动爻克 (最严重, 优先判断)
-    if yong_is_shi and shi_interaction["受克"]:
-        return with_classic_candidates({
-            "pattern": "世用受克局",
-            "ji_xiong": "凶",
-            "explanation": f"用神持世, 受动爻克({', '.join(shi_interaction['受克'])}), 凶",
-        })
-
-    # 2. 世爻受伤局: 世受有用动爻克, 或世动化衰
-    shi_hurt = False
-    shi_hurt_result = None
-    if shi_interaction["受克"]:
-        shi_hurt = True
-        shi_hurt_result = {
-            "pattern": "世爻受伤局",
-            "ji_xiong": "凶",
-            "explanation": f"世爻受动爻克({', '.join(shi_interaction['受克'])}), 凶",
-        }
-    elif shi_line.is_moving and shi_line.position in moving_analyses:
-        shi_dong = moving_analyses[shi_line.position]
-        if shi_dong["趋衰"]:
-            shi_hurt = True
-            shi_hurt_result = {
-                "pattern": "世爻受伤局",
-                "ji_xiong": "凶",
-                "explanation": f"世爻动化{','.join(shi_dong['趋衰'])}, 凶",
-            }
-
-    # If world is hurt, it overrides auspicious patterns (用旺世兴 etc.)
-    if shi_hurt:
-        return with_classic_candidates(shi_hurt_result)
-
-    # 3. 世用受生局: 用神与世重叠, 受有用动爻生
-    if yong_is_shi and shi_interaction["受生"]:
-        return with_classic_candidates({
-            "pattern": "世用受生局",
-            "ji_xiong": "吉",
-            "explanation": f"用神持世, 受动爻生({', '.join(shi_interaction['受生'])}), 大吉",
-        })
-
-    # 4. 用神生世局: 用神为有用动爻且生世
-    if primary_yong.is_moving and primary_yong.position in useful_moving:
-        if WU_XING_SHENG[yong_wx] == shi_wx:
-            return with_classic_candidates({
-                "pattern": "用神生世局",
-                "ji_xiong": "吉",
-                "explanation": f"用神{primary_yong.di_zhi}{yong_wx}动而生世爻{shi_line.di_zhi}{shi_wx}, 吉",
-            })
-
-    # 5. 用旺世衰局
-    if yong_is_wang and not shi_has_support:
-        return with_classic_candidates({
-            "pattern": "用旺世衰局",
-            "ji_xiong": "凶",
-            "explanation": "用神旺但世爻无日月扶助, 事可成但于己不利",
-        })
-
-    # 6. 用神克世局
-    if primary_yong.is_moving and primary_yong.position in useful_moving:
-        if WU_XING_KE[yong_wx] == shi_wx:
-            return with_classic_candidates({
-                "pattern": "用神克世局",
-                "ji_xiong": "凶",
-                "explanation": f"用神{primary_yong.di_zhi}{yong_wx}动克世爻{shi_line.di_zhi}{shi_wx}, 凶",
-            })
-
-    # 7. 用旺世兴局
-    if yong_is_wang and shi_has_support:
-        return with_classic_candidates({
-            "pattern": "用旺世兴局",
-            "ji_xiong": "吉",
-            "explanation": "用神旺相, 世爻得日月扶助, 吉",
-        })
-
-    # 8. 动兆临日月: 用神发动且变出临日/月, 以动兆得令优先于静态衰败。
-    primary_moving = moving_analyses.get(primary_yong.position, {})
-    if primary_yong.is_moving and "化出临日月" in primary_moving.get("趋旺", []):
-        return with_classic_candidates({
-            "pattern": "用神动化临日月",
-            "ji_xiong": "吉",
-            "explanation": f"用神{primary_yong.di_zhi}{yong_wx}发动, 变出临日月, 动兆得令为吉",
-        })
-
-    # 9. 用神衰败局
-    if yong_is_shuai:
-        return with_classic_candidates({
-            "pattern": "用神衰败局",
-            "ji_xiong": "凶",
-            "explanation": f"用神{primary_yong.di_zhi}{yong_wx}衰弱({primary_yong_ws['details']}), 凶",
-        })
-
-    # 无明显吉凶模式
-    return with_classic_candidates({
+    return _attach_classic_rule_candidates({
         "pattern": "平局",
         "ji_xiong": "平",
         "explanation": "卦局平和, 无明显吉凶倾向",
-    })
+    }, rule_context)
 
 
 def _attach_classic_rule_candidates(result, rule_context):
@@ -382,105 +228,10 @@ def _attach_classic_rule_candidates(result, rule_context):
     return enriched
 
 
-def _check_special_cases(hexagram, yong_shen_liu_qin, shi_line, primary_yong,
-                         wangshuai_results, dongbian_results, question_type,
-                         month_zhi, day_zhi):
-    """
-    检查特例情况。
-
-    特例:
-    - 求财: 财克世(有日月扶)为吉
-    - 疾病医药: 子孙克世为吉(药到病除)
-    - 行人: 用神克世为吉(人快回)
-    - 忧患心态: 子孙克世为吉(忧除)
-    """
-    yong_wx = DI_ZHI_WU_XING[primary_yong.di_zhi]
-    shi_wx = DI_ZHI_WU_XING[shi_line.di_zhi]
-    shi_has_support = _line_has_day_month_support(shi_line.di_zhi, month_zhi, day_zhi)
-    useful_moving = dongbian_results.get("useful_moving", [])
-    moving_analyses = dongbian_results.get("moving_analyses", {})
-
-    # 占寿元与一般求事不同: 用神、元神、忌神发动皆主气数有期。
-    # 先落定为凶, 避免因找不到默认官鬼用神或普通用旺规则误判为平/吉。
-    if question_type == "shouming" and moving_analyses:
-        return {
-            "pattern": "占寿元动则有期",
-            "ji_xiong": "凶",
-            "explanation": "寿元卦不喜动, 卦中发动主气数有期, 凶",
-        }
-
-    # 用神/世爻自身发动化衰, 属内力终局, 优先按凶断。
-    for line in (primary_yong, shi_line):
-        moving = moving_analyses.get(line.position)
-        if moving and moving.get("趋衰"):
-            return {
-                "pattern": "内力动化衰败",
-                "ji_xiong": "凶",
-                "explanation": f"{'用神' if line is primary_yong else '世爻'}{line.di_zhi}自发动化{','.join(moving['趋衰'])}, 内力主导为凶",
-            }
-
-    # 用神动克世的情况
-    yong_ke_shi = (primary_yong.is_moving and
-                   primary_yong.position in useful_moving and
-                   WU_XING_KE[yong_wx] == shi_wx)
-
-    if not yong_ke_shi:
-        return None
-
-    # 求财: 财克世, 世有日月扶 -> 吉
-    if question_type == "cai" and yong_shen_liu_qin == "妻财":
-        if shi_has_support:
-            return {
-                "pattern": "求财特例(财克世有扶)",
-                "ji_xiong": "吉",
-                "explanation": "求财卦, 妻财克世但世有日月扶助, 财来就我, 吉",
-            }
-
-    # 失物: 用神动克世, 世有日月扶 -> 吉(短期可寻回)
-    # 据《知识点总结》: "用神发动克旺相世爻可视为成事之兆,
-    # 如占短期失物、短期工作、短期考试等等"
-    if question_type == "shiwu" and shi_has_support:
-        return {
-            "pattern": "失物特例(用克世)",
-            "ji_xiong": "吉",
-            "explanation": f"失物卦, 用神{primary_yong.di_zhi}动克世但世有日月扶, 短期可寻回",
-        }
-
-    # 疾病: 子孙克世 -> 吉(药效)
-    if question_type == "bing":
-        # 疾病时子孙代表药, 用神是官鬼(代表病)
-        # 但如果子孙动克世, 是药到病除
-        zi_sun_lines = list(getattr(hexagram, "lines_by_liu_qin", {}).get("子孙", ()))
-        for zs in zi_sun_lines:
-            zs_wx = DI_ZHI_WU_XING[zs.di_zhi]
-            if zs.is_moving and WU_XING_KE[zs_wx] == shi_wx:
-                return {
-                    "pattern": "疾病特例(子孙克世)",
-                    "ji_xiong": "吉",
-                    "explanation": "疾病卦, 子孙(药神)动克世, 药到病除, 吉",
-                }
-
-    # 行人: 用神克世 -> 吉(人快回)
-    if question_type == "xingRen":
-        return {
-            "pattern": "行人特例(用克世)",
-            "ji_xiong": "吉",
-            "explanation": "行人卦, 用神克世, 人即将归来, 吉",
-        }
-
-    # 忧患: 子孙克世 -> 吉
-    if question_type == "youHuan":
-        zi_sun_lines = list(getattr(hexagram, "lines_by_liu_qin", {}).get("子孙", ()))
-        for zs in zi_sun_lines:
-            zs_wx = DI_ZHI_WU_XING[zs.di_zhi]
-            if zs.is_moving and WU_XING_KE[zs_wx] == shi_wx:
-                return {
-                    "pattern": "忧患特例(子孙克世)",
-                    "ji_xiong": "吉",
-                    "explanation": "忧患卦, 子孙(喜神)克世, 忧患可解, 吉",
-                }
-
-    return None
+# _check_special_cases 已迁移至 p0_rules.py:
+# ShoumingDongYouQiRule, InnerForceDeclineRule, CaiKeShiSpecialRule,
+# ShiwuKeShiSpecialRule, BingZiSunKeShiRule, XingRenKeShiRule,
+# YouHuanZiSunKeShiRule
 
 
 def judge_jing_gua(hexagram, yong_shen_liu_qin, wangshuai_results, question_type):

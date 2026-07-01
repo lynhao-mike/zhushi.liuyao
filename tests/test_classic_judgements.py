@@ -183,10 +183,10 @@ def _investment_gold_report_text():
 
 
 def _classic_reference_block(text: str) -> str:
-    start = text.find("  经典断语参考：")
+    start = text.find("  《黄金策》经典断语印证（不改判）：")
     assert start != -1
-    imagery_start = text.find("  经典象法参考：", start)
-    end = imagery_start if imagery_start != -1 else text.find("▌ 七、", start)
+    imagery_start = text.find("  《易冒》经典象法参考（细节层，不改判）：", start)
+    end = imagery_start if imagery_start != -1 else text.find("▌ 八、", start)
     assert end != -1
     return text[start:end]
 
@@ -207,7 +207,7 @@ def test_readable_report_adds_classic_reference_without_changing_judgement():
     text = format_readable_report(report, meta={"question": "问是否能投资黄金交易获利"})
 
     assert report.jixiong_result == original_jixiong
-    assert "经典断语参考" in text
+    assert "《黄金策》经典断语印证（不改判）" in text
     assert "来源：docs/reference/" in text
     assert "状态：candidate" in text
     assert "仅作报告参考" in text

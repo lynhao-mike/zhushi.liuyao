@@ -51,6 +51,52 @@ class BaseRule:
         }
 
 
+class JudgeDongGuaRule(BaseRule):
+    """动卦通用基类: 提取 judge_dong_gua 共享的事实访问逻辑。"""
+
+    def _yong_wx(self, ctx):
+        return DI_ZHI_WU_XING[ctx.primary_yong.di_zhi] if ctx.primary_yong else ""
+
+    def _shi_wx(self, ctx):
+        return DI_ZHI_WU_XING[ctx.shi_line.di_zhi] if ctx.shi_line else ""
+
+    def _shi_has_support(self, ctx):
+        if not ctx.shi_line:
+            return False
+        month_wx = DI_ZHI_WU_XING.get(ctx.month_zhi, "")
+        day_wx = DI_ZHI_WU_XING.get(ctx.day_zhi, "")
+        line_wx = DI_ZHI_WU_XING.get(ctx.shi_line.di_zhi, "")
+        month_support = (month_wx == line_wx) or (WU_XING_SHENG.get(month_wx) == line_wx)
+        day_support = (day_wx == line_wx) or (WU_XING_SHENG.get(day_wx) == line_wx)
+        month_lin = (ctx.shi_line.di_zhi == ctx.month_zhi)
+        day_lin = (ctx.shi_line.di_zhi == ctx.day_zhi)
+        return month_support or day_support or month_lin or day_lin
+
+    def _yong_is_shi(self, ctx):
+        if not ctx.primary_yong or not ctx.shi_line:
+            return False
+        return any(yl.position == ctx.shi_line.position for yl in ctx.yong_lines)
+
+    def _shi_interaction(self, ctx):
+        if not ctx.shi_line:
+            return {"受生": [], "受克": []}
+        return ctx.dongbian_results.get("interactions", {}).get(
+            ctx.shi_line.position, {"受生": [], "受克": []}
+        )
+
+    def _yong_is_wang(self, ctx):
+        return ctx.primary_yong_wangshuai.get("overall") == "旺"
+
+    def _yong_is_shuai(self, ctx):
+        return ctx.primary_yong_wangshuai.get("overall") == "衰"
+
+    def _yong_ke_shi(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return False
+        return line.position in ctx.useful_moving and WU_XING_KE.get(self._yong_wx(ctx)) == self._shi_wx(ctx)
+
+
 class FeiYaoRiyueRule(BaseRule):
     """废爻型: 月破 + 日克, 高优先级定衰败。"""
 
@@ -1011,6 +1057,369 @@ class TransformedYongMediatorRule(BaseRule):
         return None
 
 
+# =========================================================================
+# 动卦通用规则: 从 judge_dong_gua if/else 链迁移
+# 理论依据: 《古筮真诠》卦局通论
+# =========================================================================
+
+
+class ShoumingDongYouQiRule(JudgeDongGuaRule):
+    """占寿元: 卦中任何爻发动皆主气数有期。"""
+
+    rule_id = "P0_SHOUMING_DONG_YOU_QI"
+    theory_id = "卦局通论_寿元动则有期"
+    priority = 725
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "shouming":
+            return None
+        if not ctx.dongbian_results.get("moving_analyses"):
+            return None
+        return self.result(
+            "占寿元动则有期",
+            "凶",
+            "寿元卦不喜动, 卦中发动主气数有期, 凶",
+        )
+
+
+class InnerForceDeclineRule(JudgeDongGuaRule):
+    """内力动化衰败: 用神/世爻自身发动化衰, 内力终局优先。"""
+
+    rule_id = "P0_INNER_FORCE_DECLINE"
+    theory_id = "卦局通论_内力终局"
+    priority = 720
+
+    def evaluate(self, ctx):
+        for line in (ctx.primary_yong, ctx.shi_line):
+            if not line:
+                continue
+            moving = ctx.moving_analyses.get(line.position)
+            if moving and moving.get("趋衰"):
+                label = "用神" if line is ctx.primary_yong else "世爻"
+                return self.result(
+                    "内力动化衰败",
+                    "凶",
+                    f"{label}{line.di_zhi}自发动化{','.join(moving['趋衰'])}, 内力主导为凶",
+                    evidence=[{"position": line.position, "moving": moving}],
+                )
+        return None
+
+
+class CaiKeShiSpecialRule(JudgeDongGuaRule):
+    """求财特例: 妻财克世, 世有日月扶 → 财来就我。"""
+
+    rule_id = "P0_CAI_KE_SHI_SPECIAL"
+    theory_id = "卦局通论_求财特例"
+    priority = 715
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "cai":
+            return None
+        if ctx.yong_shen_liu_qin != "妻财":
+            return None
+        if not self._yong_ke_shi(ctx):
+            return None
+        if not self._shi_has_support(ctx):
+            return None
+        return self.result(
+            "求财特例(财克世有扶)",
+            "吉",
+            "求财卦, 妻财克世但世有日月扶助, 财来就我, 吉",
+            evidence=[{"shi_position": ctx.shi_line.position, "yong_position": ctx.primary_yong.position}],
+        )
+
+
+class ShiwuKeShiSpecialRule(JudgeDongGuaRule):
+    """失物特例: 用神动克世, 世有日月扶 → 短期可寻回。"""
+
+    rule_id = "P0_SHIWU_KE_SHI_SPECIAL"
+    theory_id = "卦局通论_失物特例"
+    priority = 712
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "shiwu":
+            return None
+        if not self._yong_ke_shi(ctx):
+            return None
+        if not self._shi_has_support(ctx):
+            return None
+        line = ctx.primary_yong
+        return self.result(
+            "失物特例(用克世)",
+            "吉",
+            f"失物卦, 用神{line.di_zhi}动克世但世有日月扶, 短期可寻回",
+            evidence=[{"shi_position": ctx.shi_line.position, "yong_position": line.position}],
+        )
+
+
+class BingZiSunKeShiRule(JudgeDongGuaRule):
+    """疾病特例: 子孙动克世 → 药到病除。"""
+
+    rule_id = "P0_BING_ZISUN_KE_SHI"
+    theory_id = "卦局通论_疾病特例"
+    priority = 710
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "bing":
+            return None
+        if not ctx.shi_line:
+            return None
+        shi_wx = self._shi_wx(ctx)
+        for zs in getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("子孙", []):
+            if zs.is_moving and WU_XING_KE.get(DI_ZHI_WU_XING.get(zs.di_zhi)) == shi_wx:
+                return self.result(
+                    "疾病特例(子孙克世)",
+                    "吉",
+                    "疾病卦, 子孙(药神)动克世, 药到病除, 吉",
+                    evidence=[{"zi_sun_position": zs.position, "shi_position": ctx.shi_line.position}],
+                )
+        return None
+
+
+class XingRenKeShiRule(JudgeDongGuaRule):
+    """行人特例: 用神克世 → 人快回。"""
+
+    rule_id = "P0_XINGREN_KE_SHI"
+    theory_id = "卦局通论_行人特例"
+    priority = 708
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "xingRen":
+            return None
+        if not self._yong_ke_shi(ctx):
+            return None
+        return self.result(
+            "行人特例(用克世)",
+            "吉",
+            "行人卦, 用神克世, 人即将归来, 吉",
+            evidence=[{"shi_position": ctx.shi_line.position, "yong_position": ctx.primary_yong.position}],
+        )
+
+
+class YouHuanZiSunKeShiRule(JudgeDongGuaRule):
+    """忧患特例: 子孙动克世 → 忧患可解。"""
+
+    rule_id = "P0_YOUHUAN_ZISUN_KE_SHI"
+    theory_id = "卦局通论_忧患特例"
+    priority = 705
+
+    def evaluate(self, ctx):
+        if ctx.question_type != "youHuan":
+            return None
+        if not ctx.shi_line:
+            return None
+        shi_wx = self._shi_wx(ctx)
+        for zs in getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("子孙", []):
+            if zs.is_moving and WU_XING_KE.get(DI_ZHI_WU_XING.get(zs.di_zhi)) == shi_wx:
+                return self.result(
+                    "忧患特例(子孙克世)",
+                    "吉",
+                    "忧患卦, 子孙(喜神)克世, 忧患可解, 吉",
+                    evidence=[{"zi_sun_position": zs.position, "shi_position": ctx.shi_line.position}],
+                )
+        return None
+
+
+class YongShenShuaiBaiRule(JudgeDongGuaRule):
+    """用神衰败局: 用神整体衰弱。"""
+
+    rule_id = "P0_YONG_SHEN_SHUAIBAI"
+    theory_id = "卦局通论_用神衰败"
+    priority = 600
+
+    def evaluate(self, ctx):
+        if not ctx.primary_yong:
+            return None
+        if not self._yong_is_shuai(ctx):
+            return None
+        ws = ctx.primary_yong_wangshuai
+        return self.result(
+            "用神衰败局",
+            "凶",
+            f"用神{ctx.primary_yong.di_zhi}{self._yong_wx(ctx)}衰弱({ws.get('details', '')}), 凶",
+            evidence=[{"position": ctx.primary_yong.position, "wangshuai": ws}],
+        )
+
+
+class YongWangShiShuaiRule(JudgeDongGuaRule):
+    """用旺世衰局: 用神旺但世爻无日月扶。"""
+
+    rule_id = "P0_YONG_WANG_SHI_SHUAI"
+    theory_id = "卦局通论_用旺世衰"
+    priority = 615
+
+    def evaluate(self, ctx):
+        if not self._yong_is_wang(ctx):
+            return None
+        if self._shi_has_support(ctx):
+            return None
+        return self.result(
+            "用旺世衰局",
+            "凶",
+            "用神旺但世爻无日月扶助, 事可成但于己不利",
+            evidence=[{"yong_position": ctx.primary_yong.position, "shi_position": getattr(ctx.shi_line, "position", None)}],
+        )
+
+
+class YongKeShiRule(JudgeDongGuaRule):
+    """用神克世局: 用神有用动爻克世。"""
+
+    rule_id = "P0_YONG_KE_SHI"
+    theory_id = "卦局通论_用神克世"
+    priority = 610
+
+    def evaluate(self, ctx):
+        if not self._yong_ke_shi(ctx):
+            return None
+        yong_wx = self._yong_wx(ctx)
+        shi_wx = self._shi_wx(ctx)
+        return self.result(
+            "用神克世局",
+            "凶",
+            f"用神{ctx.primary_yong.di_zhi}{yong_wx}动克世爻{ctx.shi_line.di_zhi}{shi_wx}, 凶",
+            evidence=[{"yong_position": ctx.primary_yong.position, "shi_position": ctx.shi_line.position}],
+        )
+
+
+class YongDongHuaRiYueRule(JudgeDongGuaRule):
+    """用神动化临日月: 动兆得令优先于静态衰败。"""
+
+    rule_id = "P0_YONG_DONG_HUA_RIYUE"
+    theory_id = "卦局通论_动兆临日月"
+    priority = 605
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        moving = ctx.moving_analyses.get(line.position, {})
+        if "化出临日月" not in moving.get("趋旺", []):
+            return None
+        return self.result(
+            "用神动化临日月",
+            "吉",
+            f"用神{line.di_zhi}{self._yong_wx(ctx)}发动, 变出临日月, 动兆得令为吉",
+            evidence=[{"position": line.position, "moving": moving}],
+        )
+
+
+class ShiYongShengJuRule(JudgeDongGuaRule):
+    """世用受生局: 用神持世, 受有用动爻生。"""
+
+    rule_id = "P0_SHI_YONG_SHENG"
+    theory_id = "卦局通论_世用受生"
+    priority = 620
+
+    def evaluate(self, ctx):
+        if not self._yong_is_shi(ctx):
+            return None
+        interaction = self._shi_interaction(ctx)
+        if not interaction.get("受生"):
+            return None
+        return self.result(
+            "世用受生局",
+            "吉",
+            f"用神持世, 受动爻生({', '.join(interaction['受生'])}), 大吉",
+            evidence=[{"shi_position": ctx.shi_line.position, "born_by": interaction["受生"]}],
+        )
+
+
+class ShiYongKeJuRule(JudgeDongGuaRule):
+    """世用受克局: 用神持世, 受有用动爻克。"""
+
+    rule_id = "P0_SHI_YONG_KE"
+    theory_id = "卦局通论_世用受克"
+    priority = 630
+
+    def evaluate(self, ctx):
+        if not self._yong_is_shi(ctx):
+            return None
+        interaction = self._shi_interaction(ctx)
+        if not interaction.get("受克"):
+            return None
+        return self.result(
+            "世用受克局",
+            "凶",
+            f"用神持世, 受动爻克({', '.join(interaction['受克'])}), 凶",
+            evidence=[{"shi_position": ctx.shi_line.position, "killed_by": interaction["受克"]}],
+        )
+
+
+class ShiYaoShouShangRule(JudgeDongGuaRule):
+    """世爻受伤局: 世受有用动爻克, 或世动化衰。"""
+
+    rule_id = "P0_SHI_YAO_SHOUSHANG"
+    theory_id = "卦局通论_世爻受伤"
+    priority = 625
+
+    def evaluate(self, ctx):
+        if not ctx.shi_line:
+            return None
+        interaction = self._shi_interaction(ctx)
+        if interaction.get("受克"):
+            return self.result(
+                "世爻受伤局",
+                "凶",
+                f"世爻受动爻克({', '.join(interaction['受克'])}), 凶",
+                evidence=[{"shi_position": ctx.shi_line.position, "killed_by": interaction["受克"]}],
+            )
+        if ctx.shi_line.is_moving:
+            moving = ctx.moving_analyses.get(ctx.shi_line.position)
+            if moving and moving.get("趋衰"):
+                return self.result(
+                    "世爻受伤局",
+                    "凶",
+                    f"世爻动化{','.join(moving['趋衰'])}, 凶",
+                    evidence=[{"shi_position": ctx.shi_line.position, "moving": moving}],
+                )
+        return None
+
+
+class YongShenShengShiRule(JudgeDongGuaRule):
+    """用神生世局: 用神为有用动爻且生世。"""
+
+    rule_id = "P0_YONG_SHEN_SHENG_SHI"
+    theory_id = "卦局通论_用神生世"
+    priority = 618
+
+    def evaluate(self, ctx):
+        line = ctx.primary_yong
+        if not line or not line.is_moving:
+            return None
+        if line.position not in ctx.useful_moving:
+            return None
+        yong_wx = self._yong_wx(ctx)
+        shi_wx = self._shi_wx(ctx)
+        if WU_XING_SHENG.get(yong_wx) != shi_wx:
+            return None
+        return self.result(
+            "用神生世局",
+            "吉",
+            f"用神{line.di_zhi}{yong_wx}动而生世爻{ctx.shi_line.di_zhi}{shi_wx}, 吉",
+            evidence=[{"yong_position": line.position, "shi_position": ctx.shi_line.position}],
+        )
+
+
+class YongWangShiXingRule(JudgeDongGuaRule):
+    """用旺世兴局: 用神旺 + 世得日月扶。"""
+
+    rule_id = "P0_YONG_WANG_SHI_XING"
+    theory_id = "卦局通论_用旺世兴"
+    priority = 608
+
+    def evaluate(self, ctx):
+        if not self._yong_is_wang(ctx):
+            return None
+        if not self._shi_has_support(ctx):
+            return None
+        return self.result(
+            "用旺世兴局",
+            "吉",
+            "用神旺相, 世爻得日月扶助, 吉",
+            evidence=[{"yong_position": ctx.primary_yong.position, "shi_position": ctx.shi_line.position}],
+        )
+
+
 def _assert_unique_feedback_calibrations(rules):
     seen = {}
     for rule in rules:
@@ -1029,6 +1438,7 @@ def _assert_unique_feedback_calibrations(rules):
 
 
 P0_RULES = _assert_unique_feedback_calibrations([
+    # === P0 原有规则 (priority 775-1000) ===
     FeiYaoRiyueRule(),
     YueLingShixiaoRule(),
     RiLingShixiaoRule(),
@@ -1052,4 +1462,22 @@ P0_RULES = _assert_unique_feedback_calibrations([
     TravelerReturnRule(),
     YuanShenDuFaBianFeiRule(),
     YongJiMutualTransformRule(),
+    # === 占类特例 (priority 705-725): 从 _check_special_cases 迁入 ===
+    ShoumingDongYouQiRule(),
+    InnerForceDeclineRule(),
+    CaiKeShiSpecialRule(),
+    ShiwuKeShiSpecialRule(),
+    BingZiSunKeShiRule(),
+    XingRenKeShiRule(),
+    YouHuanZiSunKeShiRule(),
+    # === 通用动卦卦局 (priority 615-650): 从 judge_dong_gua if/else 迁入 ===
+    YongShenShuaiBaiRule(),
+    YongWangShiShuaiRule(),
+    YongKeShiRule(),
+    YongDongHuaRiYueRule(),
+    YongWangShiXingRule(),
+    ShiYongShengJuRule(),
+    ShiYongKeJuRule(),
+    ShiYaoShouShangRule(),
+    YongShenShengShiRule(),
 ])

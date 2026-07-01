@@ -593,11 +593,14 @@ class TestReport:
         report = run_analysis(h, "cai")
         text = format_report(report)
 
-        # 验证六个部分都存在
+        # 验证核心部分都存在
         assert "排卦信息" in text
         assert "日月信息" in text
         assert "各爻旺衰" in text
         assert "动变分析" in text
+        assert "断法校验" in text
+        assert "经典断语印证" in text
+        assert "细节取象" in text
         assert "吉凶判断" in text
         assert "应期推断" in text
 
@@ -623,6 +626,21 @@ class TestReport:
 
         # 吉凶有判断
         assert "吉" in text or "凶" in text
+
+    def test_format_report_auxiliary_sources_do_not_change_judgement(self):
+        """辅助资料段落只做校验、印证、取象, 不改变主判结果。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        original_jixiong = dict(report.jixiong_result)
+        text = format_report(report)
+
+        assert report.jixiong_result == original_jixiong
+        assert "《卜筮正宗》只作基础校验和纠偏, 不改判" in text
+        assert "《黄金策》提供经典断语参考" in text
+        assert "不改判" in text
+        assert "《易冒》提供方位、人物、状态、物象等古法取象" in text
+        assert "《黄金策》提供六神星煞象意" in text
+        assert "吉凶层" in text and "应期层" in text and "细节层" in text
 
     def test_format_report_static_hexagram(self):
         """静卦报告"""
@@ -870,6 +888,9 @@ class TestDualPerspective:
         assert "日月信息" in text
         assert "各爻旺衰" in text
         assert "动变分析" in text
+        assert "断法校验" in text
+        assert "经典断语印证" in text
+        assert "细节取象" in text
 
         # 双视角对照
         assert "双视角吉凶判断" in text

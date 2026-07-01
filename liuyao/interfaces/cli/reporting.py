@@ -472,6 +472,56 @@ def _format_kuayi_supplements(jixiong_result):
     return lines
 
 
+def _format_method_check_block(report):
+    """格式化断法校验段: 《卜筮正宗》只做基础校验和纠偏。"""
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【断法校验】")
+    lines.append("=" * 60)
+    lines.append("  主判来源: 《古筮真诠》规则管线; 《卜筮正宗》只作基础校验和纠偏, 不改判。")
+    lines.append("  分层校验: 吉凶层先定动静与世用生克; 应期层另看填冲值合; 细节层再用六神星煞取象。")
+    if getattr(report.hexagram, "moving_lines", None):
+        lines.append("  动卦校验: 动爻作用不跨位, 变爻只回头作用本位动爻, 不直接生克其他爻。")
+    else:
+        lines.append("  静卦校验: 先看用忌持世, 再看世用生克, 最后看用旺世兴。")
+    lines.append("")
+    return lines
+
+
+def _format_classic_confirmation_block(report):
+    """格式化《黄金策》经典断语印证段; 复用现有断语检索, 不改变主判。"""
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【经典断语印证】")
+    lines.append("=" * 60)
+    lines.append("  《黄金策》提供经典断语参考: 只作同向印证、反向提醒或细节提示, 不改判。")
+    references = _readable_classic_reference_lines(report, limit=3)
+    if references:
+        lines.extend(references)
+    else:
+        lines.append("  暂无匹配的《黄金策》断语参考。")
+    lines.append("")
+    return lines
+
+
+def _format_detail_imagery_scope_block(report):
+    """格式化细节取象总说明: 《易冒》与《黄金策》六神星煞只作细节层。"""
+    lines = []
+    lines.append("=" * 60)
+    lines.append("【细节取象】")
+    lines.append("=" * 60)
+    lines.append("  《易冒》提供方位、人物、状态、物象等古法取象; 《黄金策》提供六神星煞象意。")
+    lines.append("  本段只服务细节定位, 不覆盖上面的吉凶判断。")
+    imagery_refs = _readable_classic_imagery_lines(report, limit=2)
+    if imagery_refs:
+        lines.append("  《易冒》经典象法参考:")
+        lines.extend(imagery_refs)
+    if getattr(report, "star_spirits", None):
+        lines.append("  《黄金策》六神星煞象意: 星煞入卦用于定位贵人、文昌、驿马、灾煞等细节信号, 不作吉凶主判。")
+    lines.append("")
+    return lines
+
+
 # ============================================================================
 # 单视角报告
 # ============================================================================
@@ -491,6 +541,9 @@ def format_report(report):
     # 新增: 卦象结构模式 (入墓/三绊/反吟/伏吟/六冲六合卦/三刑/六害/三会/心态卦/卦意法)
     if getattr(report, "patterns_results", None):
         lines.extend(_format_patterns_block(report.patterns_results))
+    lines.extend(_format_method_check_block(report))
+    lines.extend(_format_classic_confirmation_block(report))
+    lines.extend(_format_detail_imagery_scope_block(report))
     # 新增: 《易冒》象法摘要 (细节层, 不改吉凶)
     if getattr(report, "yimao_imagery", None):
         lines.extend(_format_yimao_imagery_block(report.yimao_imagery))
@@ -511,6 +564,13 @@ def format_report(report):
 # ============================================================================
 # 双视角报告
 # ============================================================================
+
+def _dual_auxiliary_reference_report(dual_report):
+    """双视角技术报告复用第一视角生成辅助资料段; 不参与主判。"""
+    if not dual_report.perspectives:
+        return None
+    return dual_report.perspectives[0]
+
 
 def _format_perspective_block(idx, perspective):
     """格式化单个视角的吉凶+应期摘要段落"""
@@ -596,6 +656,12 @@ def format_dual_report(dual_report):
     lines.extend(_format_riyue(h))
     lines.extend(_format_wangshuai(h, dual_report.wangshuai_results))
     lines.extend(_format_dongbian(h, dual_report.dongbian_results))
+
+    auxiliary_report = _dual_auxiliary_reference_report(dual_report)
+    if auxiliary_report:
+        lines.extend(_format_method_check_block(auxiliary_report))
+        lines.extend(_format_classic_confirmation_block(auxiliary_report))
+        lines.extend(_format_detail_imagery_scope_block(auxiliary_report))
 
     # 共享: 《易冒》象法摘要 (取第一视角用神)
     if dual_report.perspectives and getattr(dual_report.perspectives[0], "yimao_imagery", None):
@@ -1345,10 +1411,10 @@ def format_readable_report(analysis, meta=None):
             out.extend(candidate_lines)
         out.append("")
 
-    # ── 六、《易冒》象法线索 ────────────────────────────────────────────
+    # ── 六、细节取象 ──────────────────────────────────────────────────
     yimao_lines = _readable_yimao_imagery_lines(analysis)
     if yimao_lines:
-        out.append("▌ 六、《易冒》象法线索")
+        out.append("▌ 六、细节取象（《易冒》古法）")
         out.append("─" * (W + 2))
         out.extend(yimao_lines)
         out.append("")
@@ -1357,15 +1423,18 @@ def format_readable_report(analysis, meta=None):
     out.append("▌ 七、综合结论")
     out.append("─" * (W + 2))
     out.extend(_readable_conclusion(analysis))
+    out.append("")
+    out.append("  断法校验提示：")
+    out.append("  · 《卜筮正宗》只作基础校验和纠偏：吉凶层先定，随后再看应期层与细节层，不改判。")
     classic_reference_lines = _readable_classic_reference_lines(analysis)
     if classic_reference_lines:
         out.append("")
-        out.append("  经典断语参考：")
+        out.append("  《黄金策》经典断语印证（不改判）：")
         out.extend(classic_reference_lines)
     classic_imagery_lines = _readable_classic_imagery_lines(analysis)
     if classic_imagery_lines:
         out.append("")
-        out.append("  经典象法参考：")
+        out.append("  《易冒》经典象法参考（细节层，不改判）：")
         out.extend(classic_imagery_lines)
     calibration_lines = _readable_feedback_calibration_lines(analysis)
     if calibration_lines:

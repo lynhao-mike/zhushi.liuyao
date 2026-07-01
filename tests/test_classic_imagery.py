@@ -57,7 +57,7 @@ def _investment_gold_report_text():
 
 
 def _classic_imagery_block(text: str) -> str:
-    start = text.find("  经典象法参考：")
+    start = text.find("  《易冒》经典象法参考（细节层，不改判）：")
     assert start != -1
     end = text.find("▌ 八、", start)
     assert end != -1
@@ -158,7 +158,7 @@ def test_readable_report_adds_classic_imagery_without_changing_judgement():
     original_jixiong = dict(report.jixiong_result)
 
     assert report.jixiong_result == original_jixiong
-    assert "经典象法参考" in text
+    assert "《易冒》经典象法参考（细节层，不改判）" in text
     assert "《易冒》" in text
     assert "来源：docs/reference/yimao/" in text
     assert "仅作象法参考" in text
@@ -166,8 +166,8 @@ def test_readable_report_adds_classic_imagery_without_changing_judgement():
 
 def test_readable_report_separates_judgement_and_imagery_sources():
     _, text = _investment_gold_report_text()
-    judgement_start = text.find("  经典断语参考：")
-    imagery_start = text.find("  经典象法参考：")
+    judgement_start = text.find("  《黄金策》经典断语印证（不改判）：")
+    imagery_start = text.find("  《易冒》经典象法参考（细节层，不改判）：")
     assert judgement_start != -1
     assert imagery_start != -1
     judgement_block = text[judgement_start:imagery_start]

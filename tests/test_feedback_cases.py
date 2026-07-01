@@ -147,7 +147,7 @@ def test_feedback_case_report_contains_dual_path_review():
         assert "成败证据" in text
 
 
-    assert "《易冒》象法线索" in readable
+    assert "细节取象（《易冒》古法）" in readable
     assert "不覆盖上面的吉凶判断" in readable
 
 
