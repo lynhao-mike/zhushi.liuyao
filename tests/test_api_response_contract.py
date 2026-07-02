@@ -5,6 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
+from api.application.use_cases.engine import should_use_dual
 from api.interfaces.http.schemas.reading import (
     PaginatedReadings,
     ReadingFeedbackResponse,
@@ -43,6 +44,14 @@ def _reading_payload() -> dict:
         "from_cache": False,
         "created_at": datetime.now(UTC).isoformat(),
     }
+
+
+def test_engine_dual_default_strategy_is_not_same_as_supported_table():
+    """API 默认双视角策略只自动启用失物, 显式 override 仍优先。"""
+    assert should_use_dual("shiwu", None) is True
+    assert should_use_dual("bing", None) is False
+    assert should_use_dual("bing", True) is True
+    assert should_use_dual("shiwu", False) is False
 
 
 def test_reading_response_accepts_service_payload():

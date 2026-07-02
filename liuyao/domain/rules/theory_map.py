@@ -104,31 +104,21 @@ THEORY_RULE_CASE_MAP = {
         ),
     },
     "特殊日月组合_月冲日冲非衰败": {
-        "rules": [],
+        "rules": ["P0_TRANSFORMED_YONG_MEDIATOR"],
         "cases": ["例205"],
-        "status": "pending_fixture_fix",
-        "notes": (
-            "例205 fixture_mismatch(yao_types构出的卦无妻财爻), 待原书核实卦图; "
-            "理论: 月破+日冲不属于衰败式特殊日月组合, 用神逢动生仍受益"
-        ),
+        "status": "implemented_p0",
+        "notes": "例205 已按原文《明夷之丰》校准 fixture; 世爻月冲日冲不入废爻型, 动化变爻用神回头生判吉",
     },
     "元神独发变废定凶": {
-        "rules": [],
+        "rules": ["P1_YUANSHEN_DUFA_BIANFEI"],
         "cases": ["例108"],
-        "status": "pending_rule_detail",
-        "notes": (
-            "fixture 已按原书核实(辰月乙卯日家人之贲, 旬空子丑); "
-            "引擎判平因元神独发变废定凶规则未实现, 属规则缺口"
-        ),
+        "status": "implemented_p0",
+        "notes": "例108 已由元神独发变废规则覆盖并进入基线",
     },
     "子鬼互化": {
-        "rules": ["P1_YONG_JI_MUTUAL_TRANSFORM"],
+        "rules": ["P0_SELF_CHANGE_TERMINAL", "P1_YONG_JI_MUTUAL_TRANSFORM"],
         "cases": ["例17"],
-        "status": "pending_rule_detail",
-        "notes": (
-            "fixture 已按原书修正(戊子日剥之观, 旬空午未); "
-            "引擎判吉因 P1 优先级低于月令时效卦, 需调整优先级或增加例外"
-            "理论: 元神独发却动化回头克/化绝等变废, 养命之源断绝则凶"
-        ),
+        "status": "implemented_p0",
+        "notes": "例17 已校准 fixture 为五爻子孙独动化官鬼; 当前由化绝内力终局判凶, 用忌互化规则保留同类覆盖",
     },
 }

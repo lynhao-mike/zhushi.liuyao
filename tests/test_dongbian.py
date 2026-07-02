@@ -177,6 +177,19 @@ class TestAnalyzeDongbian:
         assert ("chain_ke_cancel", (4, 5, 3), "protect") in paths
         assert not any("变" in item["path"] for item in result)
 
+    def test_compound_movement_self_case_shi_does_not_join_chain_middle(self):
+        h = SimpleNamespace(
+            shi_line=SimpleNamespace(position=2, di_zhi="巳", wu_xing="火"),
+            lines_by_position={4: SimpleNamespace(position=4, di_zhi="未", wu_xing="土")},
+            moving_lines=[
+                SimpleNamespace(position=1, di_zhi="寅", wu_xing="木"),
+                SimpleNamespace(position=2, di_zhi="巳", wu_xing="火"),
+                SimpleNamespace(position=3, di_zhi="申", wu_xing="金"),
+            ],
+        )
+        result = analyze_compound_movement(h, {}, [1, 2, 3], primary_yong_position=4, question_type="cai")
+        assert not any(item["path"] == [1, 2, 4] for item in result)
+
     def test_compound_movement_san_he_has_priority(self):
         h = SimpleNamespace(moving_lines=[])
         result = analyze_compound_movement(

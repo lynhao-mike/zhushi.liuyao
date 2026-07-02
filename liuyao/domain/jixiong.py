@@ -54,7 +54,7 @@ JI_SHEN_TABLE = {
 }
 
 # 双(多)视角用神配置: 问事类型 -> [(用神六亲, 视角标签), ...]
-# 仅在某些问事类型存在多个合理用神选择时启用。
+# 仅表示该占类支持多个合理用神选择, 不等于默认必须启用双视角。
 # - 失物: 妻财(贵重财物之价值属性, 主视角) + 父母(物件本相, 辅助视角)
 # - 疾病: 官鬼(病势消长) + 子孙(药效医疗)
 DUAL_PERSPECTIVE_TABLE = {
@@ -67,6 +67,17 @@ DUAL_PERSPECTIVE_TABLE = {
         ("子孙", "药效视角(医疗成效)"),
     ],
 }
+
+
+# 默认自动启用双视角的占类。
+# 其他支持双视角的占类可通过 CLI/API 显式开启。
+DEFAULT_DUAL_PERSPECTIVE_TYPES = {"shiwu"}
+
+
+def should_use_dual_by_default(question_type):
+    """判断占类是否应默认自动启用双视角。"""
+    return question_type in DEFAULT_DUAL_PERSPECTIVE_TYPES
+
 
 
 def get_dual_perspectives(question_type):
@@ -174,15 +185,19 @@ def judge_dong_gua(hexagram, yong_shen_liu_qin, wangshuai_results, dongbian_resu
     shi_line = find_shi_line(hexagram)
     yong_lines = find_yong_shen_lines(hexagram, yong_shen_liu_qin)
 
-    if not shi_line or not yong_lines:
+    has_transformed_yong = any(
+        getattr(line, "bian_liu_qin", None) == yong_shen_liu_qin
+        for line in getattr(hexagram, "moving_lines", ())
+    )
+    if not shi_line or (not yong_lines and not has_transformed_yong):
         return {
             "pattern": "无法判断",
             "ji_xiong": "平",
             "explanation": "未找到用神或世爻",
         }
 
-    # 选择主用神: 优先动爻, 其次旺爻
-    primary_yong = yong_lines[0]
+    # 选择主用神: 优先动爻, 其次旺爻；变爻用神场景允许本卦无主用神。
+    primary_yong = yong_lines[0] if yong_lines else None
     for yl in yong_lines:
         if yl.is_moving:
             primary_yong = yl

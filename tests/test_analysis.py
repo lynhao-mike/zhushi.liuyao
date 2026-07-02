@@ -29,7 +29,7 @@ from liuyao.domain.wangshuai import (
     yue_jian_wangshuai,
 )
 from liuyao.domain.yingqi import analyze_yingqi, estimate_yingqi
-from liuyao.interfaces.cli.reporting import format_report
+from liuyao.interfaces.cli.reporting import format_readable_report, format_report
 
 # =============================================================================
 # 旺衰分析测试
@@ -642,6 +642,36 @@ class TestReport:
         assert "《黄金策》提供六神星煞象意" in text
         assert "吉凶层" in text and "应期层" in text and "细节层" in text
 
+    def test_readable_report_uses_risk_control_for_wealth(self):
+        """财运类可读报告挂载风险控制模块, 不套用通用建议标题。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "cai")
+        text = format_readable_report(report, meta={"question": "问是否能投资黄金交易获利"})
+
+        assert "、风险控制" in text
+        assert "、给卦主的建议" not in text
+
+    def test_readable_report_skips_advice_for_generic_question(self):
+        """普通占问不强制挂载建议模块, 保持报告按需输出。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "other")
+        text = format_readable_report(report, meta={"question": "综合占问"})
+
+        assert "、给卦主的建议" not in text
+        assert "、风险控制" not in text
+        assert "、综合结论" in text
+
+    def test_readable_report_section_numbers_stay_continuous(self):
+        """可选模块省略后, 可读报告章节编号仍应连续。"""
+        h = Hexagram([8, 7, 7, 9, 7, 8], 2024, 1, 15)
+        report = run_analysis(h, "other")
+        text = format_readable_report(report, meta={"question": "综合占问"})
+
+        headings = [line for line in text.splitlines() if line.startswith("▌ ")]
+        numbers = [line.split("、", 1)[0].replace("▌ ", "") for line in headings]
+
+        assert numbers == ["一", "二", "三", "四", "五", "六", "七"]
+
     def test_format_report_static_hexagram(self):
         """静卦报告"""
         h = Hexagram([7, 8, 7, 8, 7, 8], 2024, 1, 15)
@@ -747,6 +777,7 @@ from liuyao.domain.jixiong import (
     DUAL_PERSPECTIVE_TABLE,
     YONG_SHEN_TABLE,
     get_dual_perspectives,
+    should_use_dual_by_default,
 )
 from liuyao.interfaces.cli.reporting import format_dual_report
 
@@ -772,6 +803,12 @@ class TestDualPerspective:
         ys_list = [ys for ys, _ in DUAL_PERSPECTIVE_TABLE["bing"]]
         assert "官鬼" in ys_list
         assert "子孙" in ys_list
+
+    def test_default_dual_strategy_only_auto_enables_shiwu(self):
+        """支持双视角不等于默认自动启用双视角。"""
+        assert should_use_dual_by_default("shiwu") is True
+        assert should_use_dual_by_default("bing") is False
+        assert should_use_dual_by_default("cai") is False
 
     def test_get_dual_perspectives_shiwu(self):
         """失物类型: 应返回两个视角，妻财为主视角"""

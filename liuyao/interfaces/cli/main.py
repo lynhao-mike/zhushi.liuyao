@@ -13,7 +13,7 @@ import sys
 from liuyao.application.use_cases.analysis import run_analysis, run_dual_analysis
 from liuyao.domain.data import BA_GUA, HEXAGRAM_BY_NAME
 from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.jixiong import DUAL_PERSPECTIVE_TABLE
+from liuyao.domain.jixiong import should_use_dual_by_default
 from liuyao.interfaces.cli.reporting import (
     format_dual_report,
     format_readable_report,
@@ -186,11 +186,12 @@ def main():
     try:
         # 决定使用单视角还是双视角:
         #   - 显式 --no-dual: 强制单视角
-        #   - 显式 --dual 或 该占类在 DUAL_PERSPECTIVE_TABLE 中: 双视角
+        #   - 显式 --dual: 强制双视角（若无配置则退化为默认视角）
+        #   - 默认仅对策略允许的占类自动启用双视角
         #   - 否则: 单视角
         use_dual = (
             (not args.no_dual) and
-            (args.dual or args.question_type in DUAL_PERSPECTIVE_TABLE)
+            (args.dual or should_use_dual_by_default(args.question_type))
         )
 
         report_meta = _build_report_meta(args, use_dual=use_dual, yao_values=yao_values, hexagram=h)

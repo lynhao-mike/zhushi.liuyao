@@ -250,6 +250,8 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
             "ju": ju,
         } for ju in san_he_ju]
 
+    shi_line = getattr(hexagram, "shi_line", None)
+    self_case_shi_pos = shi_line.position if final_target["kind"] in {"shi", "shi_yong"} and shi_line else None
     useful = [line for line in hexagram.moving_lines if line.position in useful_moving]
     if len(useful) < 2:
         return []
@@ -268,8 +270,12 @@ def analyze_compound_movement(hexagram, moving_analyses, useful_moving, san_he_j
             position_map[target_pos] = target_line
 
     for source in useful:
+        if source.position == self_case_shi_pos:
+            continue
         for middle in useful:
             if source.position == middle.position:
+                continue
+            if middle.position == self_case_shi_pos and middle.position != target_pos:
                 continue
             if WU_XING_SHENG[source.wu_xing] == middle.wu_xing:
                 acts = "none"

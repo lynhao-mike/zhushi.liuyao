@@ -22,7 +22,6 @@ from api.core.logging import get_logger
 
 # Import the existing liuyao library (synchronous)
 from liuyao import (
-    DUAL_PERSPECTIVE_TABLE,
     AnalysisReport,
     DualPerspectiveReport,
     Hexagram,
@@ -32,6 +31,7 @@ from liuyao import (
     format_report,
     run_analysis,
     run_dual_analysis,
+    should_use_dual_by_default,
 )
 
 log = get_logger(__name__)
@@ -299,4 +299,4 @@ def should_use_dual(question_type: str, is_dual_override: bool | None) -> bool:
     """Resolve dual-perspective flag with sensible defaults."""
     if is_dual_override is not None:
         return is_dual_override
-    return question_type in DUAL_PERSPECTIVE_TABLE
+    return should_use_dual_by_default(question_type)

@@ -14,6 +14,7 @@ from liuyao.domain.data import DI_ZHI_WU_XING, QUESTION_TYPE_LABELS
 
 # 问事类型中文名 (从 data 模块导入, 此处保留别名以兼容模块内引用)
 QUESTION_TYPE_NAMES = QUESTION_TYPE_LABELS
+_CHINESE_NUMERALS = "零一二三四五六七八九十"
 
 
 # ============================================================================
@@ -1183,6 +1184,18 @@ def _readable_feedback_calibration_lines(analysis):
     return lines
 
 
+def _readable_advice_module_title(question_type):
+    """按占类决定可读报告是否挂载建议模块。"""
+    if question_type == "shiwu":
+        return "给卦主的建议"
+    if question_type in {"cai", "shengyi"}:
+        return "风险控制"
+    if question_type in {"hun_male", "hun_female"}:
+        return "行动建议"
+    return ""
+
+
+
 def _readable_advice_lines(question_type, overall_ji):
     """按问事类型生成建议段落, 避免失物话术套用到其他占类。"""
     if question_type == "shiwu":
@@ -1271,6 +1284,13 @@ def format_readable_report(analysis, meta=None):
     W = 58  # 报告宽度
 
     out = []
+    section_no = 0
+
+    def add_section(title):
+        nonlocal section_no
+        section_no += 1
+        out.append(f"▌ {_CHINESE_NUMERALS[section_no]}、{title}")
+        out.append("─" * (W + 2))
 
     # ── 封面 ──────────────────────────────────────────────────────────
     out.append("╔" + "═" * W + "╗")
@@ -1278,9 +1298,8 @@ def format_readable_report(analysis, meta=None):
     out.append("╚" + "═" * W + "╝")
     out.append("")
 
-    # ── 一、基本信息 ──────────────────────────────────────────────────
-    out.append("▌ 一、基本信息")
-    out.append("─" * (W + 2))
+    # ── 基本信息 ──────────────────────────────────────────────────────
+    add_section("基本信息")
 
     question = meta.get("question", "（未填写）")
     querent  = meta.get("querent",  "（未填写）")
@@ -1295,9 +1314,8 @@ def format_readable_report(analysis, meta=None):
     out.append(f"  旬    空：{hexagram.xun_kong[0]}、{hexagram.xun_kong[1]}")
     out.append("")
 
-    # ── 二、卦象 ──────────────────────────────────────────────────────
-    out.append("▌ 二、卦象")
-    out.append("─" * (W + 2))
+    # ── 卦象 ──────────────────────────────────────────────────────────
+    add_section("卦象")
     out.append(f"  本卦：{hexagram.ben_gua_name}（{hexagram.palace_name}宫）"
                f"  →  变卦：{hexagram.bian_gua_name}")
     out.append("")
@@ -1308,9 +1326,8 @@ def format_readable_report(analysis, meta=None):
     out.append("        旬空之爻暂时力量虚悬，待出空方能论其效用。")
     out.append("")
 
-    # ── 三、旺衰总览 ──────────────────────────────────────────────────
-    out.append("▌ 三、各爻旺衰总览")
-    out.append("─" * (W + 2))
+    # ── 旺衰总览 ──────────────────────────────────────────────────────
+    add_section("各爻旺衰总览")
     out.append(f"  月建：{gz['month_zhi']}（{DI_ZHI_WU_XING[gz['month_zhi']]}）"
                f"  日辰：{gz['day_zhi']}（{DI_ZHI_WU_XING[gz['day_zhi']]}）")
     out.append("")
@@ -1323,9 +1340,8 @@ def format_readable_report(analysis, meta=None):
     out.append("  旺相之爻力量充足，衰弱之爻力量不足，平和之爻不偏不倚。")
     out.append("")
 
-    # ── 四、动变解析 ──────────────────────────────────────────────────
-    out.append("▌ 四、动变解析")
-    out.append("─" * (W + 2))
+    # ── 动变解析 ──────────────────────────────────────────────────────
+    add_section("动变解析")
     if is_dual:
         db_results = analysis.dongbian_results
     else:
@@ -1333,9 +1349,8 @@ def format_readable_report(analysis, meta=None):
     out.extend(_readable_dongbian_summary(hexagram, db_results))
     out.append("")
 
-    # ── 五、用神分析 ──────────────────────────────────────────────────
-    out.append("▌ 五、用神分析")
-    out.append("─" * (W + 2))
+    # ── 用神分析 ──────────────────────────────────────────────────────
+    add_section("用神分析")
     if is_dual:
         for idx, p in enumerate(analysis.perspectives, 1):
             label = p.perspective_label
@@ -1411,17 +1426,15 @@ def format_readable_report(analysis, meta=None):
             out.extend(candidate_lines)
         out.append("")
 
-    # ── 六、细节取象 ──────────────────────────────────────────────────
+    # ── 细节取象 ──────────────────────────────────────────────────────
     yimao_lines = _readable_yimao_imagery_lines(analysis)
     if yimao_lines:
-        out.append("▌ 六、细节取象（《易冒》古法）")
-        out.append("─" * (W + 2))
+        add_section("细节取象（《易冒》古法）")
         out.extend(yimao_lines)
         out.append("")
 
-    # ── 七、综合结论 ──────────────────────────────────────────────────
-    out.append("▌ 七、综合结论")
-    out.append("─" * (W + 2))
+    # ── 综合结论 ──────────────────────────────────────────────────────
+    add_section("综合结论")
     out.extend(_readable_conclusion(analysis))
     out.append("")
     out.append("  断法校验提示：")
@@ -1443,17 +1456,20 @@ def format_readable_report(analysis, meta=None):
         out.extend(calibration_lines)
     out.append("")
 
-    # ── 八、建议 ──────────────────────────────────────────────────────
-    out.append("▌ 八、给卦主的建议")
-    out.append("─" * (W + 2))
-    # 取综合吉凶
-    if is_dual:
-        ji_set = {p.jixiong_result.get("ji_xiong") for p in analysis.perspectives}
-        overall_ji = ji_set.pop() if len(ji_set) == 1 else "平"
-    else:
-        overall_ji = analysis.jixiong_result.get("ji_xiong", "平")
+    # ── 按占类挂载建议/风控模块 ────────────────────────────────────────
+    question_type = getattr(analysis, "question_type", "")
+    advice_title = _readable_advice_module_title(question_type)
+    if advice_title:
+        add_section(advice_title)
+        # 取综合吉凶
+        if is_dual:
+            ji_set = {p.jixiong_result.get("ji_xiong") for p in analysis.perspectives}
+            overall_ji = ji_set.pop() if len(ji_set) == 1 else "平"
+        else:
+            overall_ji = analysis.jixiong_result.get("ji_xiong", "平")
 
-    out.extend(_readable_advice_lines(getattr(analysis, "question_type", ""), overall_ji))
+        out.extend(_readable_advice_lines(question_type, overall_ji))
+        out.append("")
 
     if meta.get("note"):
         out.append("")
