@@ -19,6 +19,7 @@ class AnalysisReport:
     yong_shen_liu_qin: str = ""
     ji_shen_liu_qin: str = ""
     perspective_label: str = ""  # 视角标签 (如"物件本相视角"), 单视角时为空
+    analysis_route: dict = field(default_factory=dict)
 
     # 分析结果
     wangshuai_results: list[dict] = field(default_factory=list)
@@ -48,6 +49,7 @@ class DualPerspectiveReport:
 
     hexagram: Hexagram = None
     question_type: str = ""
+    analysis_route: dict = field(default_factory=dict)
 
     # 共享部分
     wangshuai_results: list[dict] = field(default_factory=list)

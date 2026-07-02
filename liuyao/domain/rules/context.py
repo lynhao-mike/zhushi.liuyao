@@ -85,6 +85,10 @@ class RuleContext:
         return self.patterns_results.get("san_ban", []) if self.patterns_results else []
 
     @property
+    def analysis_route(self) -> dict[str, Any]:
+        return self.patterns_results.get("analysis_route", {}) if self.patterns_results else {}
+
+    @property
     def intervening_positions(self) -> list[int]:
         """世应之间的间爻位置。"""
         ying_line = getattr(self.hexagram, "ying_line", None)

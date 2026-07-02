@@ -10,6 +10,7 @@
 import logging
 
 from liuyao.application.use_cases.dto import AnalysisReport, DualPerspectiveReport
+from liuyao.domain.analysis_router import route_analysis
 from liuyao.domain.data import get_star_spirits
 from liuyao.domain.dongbian import analyze_dongbian
 from liuyao.domain.jixiong import (
@@ -84,7 +85,12 @@ def run_analysis(hexagram, question_type="other",
     report.question_type = question_type
     report.perspective_label = perspective_label
 
-    # 1. 确定用神 (允许覆盖)
+    # 1. 前置分析路由 + 确定用神
+    report.analysis_route = route_analysis(
+        hexagram,
+        question_type,
+        yong_shen_override=yong_shen_override,
+    )
     if yong_shen_override:
         report.yong_shen_liu_qin = yong_shen_override
     else:
@@ -121,6 +127,7 @@ def run_analysis(hexagram, question_type="other",
             report.yong_shen_liu_qin, report.ji_shen_liu_qin,
             report.yong_shen_lines, question_type,
         )
+        report.patterns_results["analysis_route"] = report.analysis_route
     except Exception:
         log.error("patterns_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
@@ -182,6 +189,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
     dual = DualPerspectiveReport()
     dual.hexagram = hexagram
     dual.question_type = question_type
+    dual.analysis_route = route_analysis(hexagram, question_type)
 
     # 1-2. 共享计算: 旺衰 + 动变 (只算一次)
     shared_ws = analyze_hexagram_wangshuai(hexagram)
@@ -203,6 +211,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         shared_structural_patterns = analyze_structural_patterns(
             hexagram, shared_ws, shared_db,
         )
+        shared_structural_patterns["analysis_route"] = dual.analysis_route
     except Exception:
         log.error("structural_patterns_analysis_failed", exc_info=True,
                   gua=hexagram.ben_gua_name, question_type=question_type)
@@ -214,6 +223,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
         report.hexagram = hexagram
         report.question_type = question_type
         report.perspective_label = label
+        report.analysis_route = dual.analysis_route
         report.yong_shen_liu_qin = yong_shen
         report.ji_shen_liu_qin = JI_SHEN_TABLE.get(yong_shen, "")
         report.yong_shen_lines = find_yong_shen_lines(hexagram, yong_shen)
@@ -232,6 +242,7 @@ def run_dual_analysis(hexagram, question_type="shiwu"):
             report.patterns_results = merge_pattern_results(
                 shared_structural_patterns, perspective_patterns,
             )
+            report.patterns_results["analysis_route"] = report.analysis_route
         except Exception:
             log.error("patterns_analysis_failed", exc_info=True,
                       gua=hexagram.ben_gua_name, perspective=label)

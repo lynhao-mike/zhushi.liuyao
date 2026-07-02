@@ -1255,6 +1255,77 @@ class YouHuanZiSunKeShiRule(JudgeDongGuaRule):
         return None
 
 
+class MindsetXiYouSignalRule(BaseRule):
+    """心态卦喜神/忧神最小判定: 子孙为喜, 官鬼为忧。"""
+
+    rule_id = "P1_MINDSET_XI_YOU_SIGNAL"
+    theory_id = "心态卦_喜神忧神"
+    priority = 908
+
+    def evaluate(self, ctx):
+        if ctx.analysis_route.get("mode") != "mindset":
+            return None
+        if not ctx.shi_line:
+            return None
+        if ctx.shi_line.liu_qin == "子孙":
+            return self._result("心态卦喜神持世", "吉", "心态卦见子孙持世, 喜神临身, 忧虑可解或心中较安", ctx, ctx.shi_line)
+        if ctx.shi_line.liu_qin == "官鬼":
+            return self._result("心态卦忧神持世", "凶", "心态卦见官鬼持世, 忧神临身, 心中有忧患牵缠", ctx, ctx.shi_line)
+
+        zi_sun_moving = [line for line in getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("子孙", []) if line.is_moving]
+        guan_gui_moving = [line for line in getattr(ctx.hexagram, "lines_by_liu_qin", {}).get("官鬼", []) if line.is_moving]
+        if zi_sun_moving and not guan_gui_moving:
+            return self._result("心态卦喜神发动", "吉", "心态卦见子孙发动而官鬼不动, 喜神显动, 忧虑有解", ctx, zi_sun_moving[0])
+        if guan_gui_moving and not zi_sun_moving:
+            return self._result("心态卦忧神发动", "凶", "心态卦见官鬼发动而子孙不动, 忧神显动, 忧患加重", ctx, guan_gui_moving[0])
+        return None
+
+    def _result(self, pattern, ji_xiong, explanation, ctx, line):
+        return self.result(
+            pattern,
+            ji_xiong,
+            explanation,
+            evidence=[{
+                "route_mode": ctx.analysis_route.get("mode"),
+                "position": line.position,
+                "liu_qin": line.liu_qin,
+                "di_zhi": line.di_zhi,
+                "is_shi": getattr(line, "is_shi", False),
+                "is_moving": getattr(line, "is_moving", False),
+            }],
+            stop=True,
+        )
+
+
+class MindsetRouteRule(BaseRule):
+    """暗心态路由最小消费: 先给心态判读框架, 不强行吉凶化。"""
+
+    rule_id = "P1_MINDSET_ROUTE"
+    theory_id = "分析路由_心态卦"
+    priority = 907
+
+    def evaluate(self, ctx):
+        route = ctx.analysis_route
+        if route.get("mode") != "mindset":
+            return None
+        if ctx.question_type == "youHuan":
+            return None
+        xintai = (ctx.patterns_results or {}).get("xintai_gua", {})
+        signals = xintai.get("signals") or ["analysis_route=mindset"]
+        return self.result(
+            "心态卦路由",
+            "平",
+            "路由判定为心态卦; 当前仅先按喜神/忧神框架保留分歧, 不套普通事卦用神旺衰直断",
+            evidence=[{
+                "route_mode": route.get("mode"),
+                "route_summary": route.get("summary", {}),
+                "signals": signals,
+                "question_type": ctx.question_type,
+            }],
+            stop=True,
+        )
+
+
 class YongShenShuaiBaiRule(JudgeDongGuaRule):
     """用神衰败局: 用神整体衰弱。"""
 
@@ -1506,6 +1577,8 @@ P0_RULES = _assert_unique_feedback_calibrations([
     BingZiSunKeShiRule(),
     XingRenKeShiRule(),
     YouHuanZiSunKeShiRule(),
+    MindsetXiYouSignalRule(),
+    MindsetRouteRule(),
     # === 通用动卦卦局 (priority 615-650): 从 judge_dong_gua if/else 迁入 ===
     YongShenShuaiBaiRule(),
     YongWangShiShuaiRule(),
