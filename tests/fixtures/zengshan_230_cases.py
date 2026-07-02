@@ -654,26 +654,26 @@ CASE_38 = {
     "id": "例38",
     "description": "伏吟卦，用神动变伏吟，是事态不吉的征兆。"
                    "用事爻出现伏吟，占功名则宦途哀怨，谋财则进退两难。",
-    "month_zhi": "子",  # FIXME 需从原文提取
-    "day_zhi": "午",   # FIXME 需从原文提取
-    "xun_kong": ["戌", "亥"],  # FIXME
-    # FIXME: 例38 yao_types 需从原文卦图提取
-    # 占位数据，待原文核实后替换
-    "yao_types": [9, 7, 7, 7, 7, 6],  # FIXME 伏吟卦示例占位
-    "ben_gua": "FIXME",
-    "bian_gua": "FIXME",
-    "question_type": "guan",
-    "yong_shen": "官鬼",
+    "month_zhi": "丑",
+    "day_zhi": "卯",
+    "day_gan": "辛",
+    "xun_kong": ["午", "未"],
+    # 原文：丑月辛卯日，占子痘症，得“大壮之乾”。五爻子孙申金、上爻兄弟戌土同动化伏吟。
+    "yao_types": [7, 7, 7, 7, 6, 6],
+    "ben_gua": "雷天大壮",
+    "bian_gua": "乾为天",
+    "question_type": "zinv",
+    "yong_shen": "子孙",
     "expected_ji_xiong": "凶",
     "expected_pattern_keywords": ["伏吟", "用神衰", "呻吟哀怨"],
     "theory_points": [
         "最终目标爻（用神/世爻）出现伏吟 = 趋势不吉",
         "作用他爻的动爻出现伏吟，仍算有用动爻（不影响其作用方向）",
-        "内外卦伏吟区分：内卦伏吟=内因呻吟，外卦伏吟=外因致不宁",
+        "内重于外：兄弟戌土动生用神申金为始吉，用神申金动变伏吟为终凶",
         "伏吟应期：目标爻伏吟逢值逢冲之期应事",
     ],
     "source_example": 38,
-    "notes": "FIXME 例38原文待提取，此为伏吟理论验证占位案例",
+    "notes": "原注：六冲变六冲，花未发而先谢，又是伏吟之卦，皆为凶兆。",
 }
 
 

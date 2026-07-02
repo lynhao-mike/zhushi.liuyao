@@ -405,6 +405,33 @@ class JingangMovingKeShiRule(BaseRule):
         return None
 
 
+class FuYinTerminalRule(BaseRule):
+    """世爻/用神动变伏吟, 视作终局衰相。"""
+
+    rule_id = "P0_FUYIN_TERMINAL"
+    theory_id = "伏吟_目标爻衰相"
+    priority = 855
+
+    def evaluate(self, ctx):
+        for label, line in (("用神", ctx.primary_yong), ("世爻", ctx.shi_line)):
+            if not line or not getattr(line, "is_moving", False):
+                continue
+            if getattr(line, "bian_di_zhi", None) != line.di_zhi:
+                continue
+            return self.result(
+                "伏吟终局",
+                "凶",
+                f"{label}{line.di_zhi}{line.wu_xing}发动化伏吟, 变而不变属终局衰相, 凶",
+                evidence=[{
+                    "position": line.position,
+                    "ben_zhi": line.di_zhi,
+                    "bian_zhi": getattr(line, "bian_di_zhi", None),
+                    "label": label,
+                }],
+            )
+        return None
+
+
 class SelfChangeTerminalRule(BaseRule):
     """世爻/用神自身发动化衰, 内力终局优先。"""
 
@@ -1455,6 +1482,7 @@ P0_RULES = _assert_unique_feedback_calibrations([
     ZhenBanRule(),
     KeShiChongBreaksGangjingRule(),
     JingangMovingKeShiRule(),
+    FuYinTerminalRule(),
     SelfChangeTerminalRule(),
     LifetimeShixiaoRule(),
     InvestmentWealthTurnsGhostRiskRule(),

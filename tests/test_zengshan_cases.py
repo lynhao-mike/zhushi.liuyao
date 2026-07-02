@@ -85,7 +85,7 @@ BASELINE_RULE_HITS = {
     "例20":  {"rule_id": "P0_JINGANG_MOVING_KE_SHI", "pattern": "金刚型忌神动克世"},
     "例22":  {"rule_id": "legacy",                  "pattern": "静卦用克世"},
     "例23":  {"rule_id": "P0_ZHEN_BAN",              "pattern": "真绊"},
-    "例38":  {"rule_id": "P0_YONG_WANG_SHI_SHUAI",  "pattern": "用旺世衰局"},
+    "例38":  {"rule_id": "P0_FUYIN_TERMINAL",      "pattern": "伏吟终局"},
     "例41":  {"rule_id": "P0_TRANSFORMED_YONG_MEDIATOR", "pattern": "变爻用神生世"},
     "例44":  {"rule_id": "P0_SHI_YONG_SHENG",       "pattern": "世用受生局"},
     "例54":  {"rule_id": "P0_MOVING_KE_YONG",       "pattern": "忌神动克用神"},
