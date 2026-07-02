@@ -1,83 +1,105 @@
-"""心态喜神/忧神判定规则隔离测试。
+"""心态喜神/忧神判定规则隔离测试。"""
 
-直接构造 RuleContext，不依赖 Hexagram 排卦的终端编码问题。
-"""
+from types import SimpleNamespace
 
-from liuyao.domain.hexagram import Hexagram
-from liuyao.domain.jixiong import find_shi_line
 from liuyao.domain.rules.context import RuleContext
 from liuyao.domain.rules.p0_rules import MindsetXiYouSignalRule
-from liuyao.domain.wangshuai import analyze_hexagram_wangshuai
-from liuyao.domain.dongbian import analyze_dongbian
 
 
-def _make_ctx(hexagram, question_type="youHuan", yong_shen_liu_qin="子孙"):
-    ws = analyze_hexagram_wangshuai(hexagram)
-    db = analyze_dongbian(hexagram, ws)
-    yong_lines = [l for l in hexagram.lines if l.liu_qin == yong_shen_liu_qin]
-    shi = find_shi_line(hexagram)
-    ctx = RuleContext(
-        hexagram=hexagram,
-        yong_shen_liu_qin=yong_shen_liu_qin,
-        wangshuai_results=ws,
-        dongbian_results=db,
-        question_type=question_type,
+def _line(position, liu_qin, *, is_shi=False, is_moving=False):
+    return SimpleNamespace(
+        position=position,
+        liu_qin=liu_qin,
+        di_zhi="子",
+        is_shi=is_shi,
+        is_ying=False,
+        is_moving=is_moving,
+    )
+
+
+def _ctx(lines, shi):
+    by_lq = {}
+    for line in lines:
+        by_lq.setdefault(line.liu_qin, []).append(line)
+    return RuleContext(
+        hexagram=SimpleNamespace(lines=lines, lines_by_liu_qin=by_lq),
+        yong_shen_liu_qin="子孙",
+        wangshuai_results=[],
+        dongbian_results={},
+        question_type="youHuan",
         patterns_results={"analysis_route": {"mode": "mindset"}},
         shi_line=shi,
-        primary_yong=yong_lines[0] if yong_lines else None,
-        yong_lines=yong_lines,
-        month_zhi=hexagram.gan_zhi["month_zhi"],
-        day_zhi=hexagram.gan_zhi["day_zhi"],
+        primary_yong=None,
+        yong_lines=[],
+        month_zhi="子",
+        day_zhi="午",
     )
-    return ctx, shi
 
 
-def test_xitou_signal_returns_吉_for_zisun_shi():
-    # 子孙持世的静卦
-    h = Hexagram.from_ganzhi(
-        [7, 8, 8, 8, 8, 8],  # 初爻少阳子孙持世
-        month_zhi="子", day_zhi="午", day_gan="甲",
-    )
-    ctx, shi = _make_ctx(h)
-    s_lq = shi.liu_qin if shi else ""
+def test_xi_signal_returns_ji_for_zisun_shi():
+    shi = _line(1, "子孙", is_shi=True)
+    ctx = _ctx([shi], shi)
 
-    if s_lq == "子孙":
-        result = MindsetXiYouSignalRule().evaluate(ctx)
-        assert result is not None
-        assert result.ji_xiong == "吉"
-        assert "喜神持世" in result.pattern or "喜神" in result.pattern
-    else:
-        # 世爻不是子孙，这条测试跳过——说明这个 hexagram 组合没命中持世条件
-        pass
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is not None
+    assert result.rule_id == "P1_MINDSET_XI_YOU_SIGNAL"
+    assert result.pattern == "心态卦喜神持世"
+    assert result.ji_xiong == "吉"
 
 
-def test_xitou_signal_returns_凶_for_guangui_shi():
-    h = Hexagram.from_ganzhi(
-        [8, 7, 7, 7, 7, 7],
-        month_zhi="子", day_zhi="午", day_gan="甲",
-    )
-    ctx, shi = _make_ctx(h)
-    s_lq = shi.liu_qin if shi else ""
+def test_you_signal_returns_xiong_for_guangui_shi():
+    shi = _line(1, "官鬼", is_shi=True)
+    ctx = _ctx([shi], shi)
 
-    if s_lq == "官鬼":
-        result = MindsetXiYouSignalRule().evaluate(ctx)
-        assert result is not None
-        assert result.ji_xiong == "凶"
-        assert "忧神持世" in result.pattern or "忧神" in result.pattern
-    else:
-        pass
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is not None
+    assert result.rule_id == "P1_MINDSET_XI_YOU_SIGNAL"
+    assert result.pattern == "心态卦忧神持世"
+    assert result.ji_xiong == "凶"
 
 
-def test_xitou_signal_returns_none_for_other_shi():
-    h = Hexagram.from_ganzhi(
-        [8, 8, 8, 8, 8, 8],
-        month_zhi="子", day_zhi="午", day_gan="甲",
-    )
-    ctx, shi = _make_ctx(h)
-    s_lq = shi.liu_qin if shi else ""
+def test_xi_signal_returns_ji_for_zisun_moving_only():
+    shi = _line(1, "兄弟", is_shi=True)
+    zi = _line(2, "子孙", is_moving=True)
+    ctx = _ctx([shi, zi], shi)
 
-    if s_lq not in ("子孙", "官鬼"):
-        result = MindsetXiYouSignalRule().evaluate(ctx)
-        assert result is None
-    else:
-        pass
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is not None
+    assert result.pattern == "心态卦喜神发动"
+    assert result.ji_xiong == "吉"
+
+
+def test_you_signal_returns_xiong_for_guangui_moving_only():
+    shi = _line(1, "兄弟", is_shi=True)
+    gui = _line(2, "官鬼", is_moving=True)
+    ctx = _ctx([shi, gui], shi)
+
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is not None
+    assert result.pattern == "心态卦忧神发动"
+    assert result.ji_xiong == "凶"
+
+
+def test_xi_you_signal_returns_none_when_both_zisun_and_guangui_move():
+    shi = _line(1, "兄弟", is_shi=True)
+    zi = _line(2, "子孙", is_moving=True)
+    gui = _line(3, "官鬼", is_moving=True)
+    ctx = _ctx([shi, zi, gui], shi)
+
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is None
+
+
+def test_xi_you_signal_ignores_non_mindset_route():
+    shi = _line(1, "子孙", is_shi=True)
+    ctx = _ctx([shi], shi)
+    ctx.patterns_results["analysis_route"]["mode"] = "event"
+
+    result = MindsetXiYouSignalRule().evaluate(ctx)
+
+    assert result is None
