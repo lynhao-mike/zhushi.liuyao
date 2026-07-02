@@ -19,7 +19,9 @@ from __future__ import annotations
 from liuyao.domain.jixiong import determine_yong_shen, find_ying_line, find_yong_shen_lines
 
 LIFETIME_TYPES = {"zhongshen_gongming", "zhongshen_caifu", "zhongshen_yunshi", "shouming"}
-TIMING_TYPES = {"dangri"}
+DAY_TIMING_TYPES = {"dangri", "mashang", "jinshi"}
+MONTH_TIMING_TYPES = {"guan", "kaoshi", "cai", "shengyi", "bing", "other"}
+REPEATED_DIVINATION_TYPES = {"zaizhan"}
 WORRY_TYPES = {"youHuan"}
 DESIGNATED_TARGET_TYPES = {"hun_male", "hun_female", "xingren", "xingren_gui"}
 
@@ -27,8 +29,10 @@ DESIGNATED_TARGET_TYPES = {"hun_male", "hun_female", "xingren", "xingren_gui"}
 def _detect_analysis_mode(hexagram, question_type, yong_shen_lines, yong_shen_liu_qin):
     if question_type in LIFETIME_TYPES:
         return "lifetime"
-    if question_type in TIMING_TYPES:
+    if question_type in DAY_TIMING_TYPES:
         return "timing"
+    if question_type in REPEATED_DIVINATION_TYPES:
+        return "repeated_divination"
     if question_type in WORRY_TYPES:
         return "mindset"
 
@@ -52,8 +56,12 @@ def _detect_analysis_mode(hexagram, question_type, yong_shen_lines, yong_shen_li
 def _detect_time_scope(question_type):
     if question_type in LIFETIME_TYPES:
         return "lifetime"
-    if question_type in TIMING_TYPES:
+    if question_type in DAY_TIMING_TYPES:
         return "day"
+    if question_type in MONTH_TIMING_TYPES:
+        return "month"
+    if question_type in REPEATED_DIVINATION_TYPES:
+        return "repeated"
     return "normal"
 
 
@@ -106,11 +114,14 @@ def route_analysis(hexagram, question_type, yong_shen_override=None):
                 "timing": "应期卦",
                 "lifetime": "终身卦",
                 "designated_target": "特指定向卦",
+                "repeated_divination": "连占卦",
             }.get(mode, "事卦"),
             "time_scope_label": {
                 "day": "日内时效",
+                "month": "月内时效",
                 "normal": "常规时效",
                 "lifetime": "终身时效",
+                "repeated": "连占时效",
             }.get(time_scope, "常规时效"),
         },
     }
